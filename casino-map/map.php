@@ -428,6 +428,33 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             justify-content: center; margin-bottom: 6px; transition: opacity 0.15s;
         }
         .info-panel-btn:hover { opacity: 0.85; }
+
+        /* Gruplar paneli — kat başlıkları */
+        .floor-section-header {
+            padding: 5px 10px 3px; font-size: 11px; font-weight: bold;
+            letter-spacing: 0.6px; text-transform: uppercase;
+            background: rgba(76,175,80,0.18); color: #81c784;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 4px;
+        }
+        .dark-theme .floor-section-header { background: rgba(76,175,80,0.12); }
+
+        /* Düzenle açılır menü */
+        #editDropdownWrapper { position: relative; flex-shrink: 0; }
+        #editDropdown {
+            display: none; position: absolute; top: 40px; left: 0;
+            background: white; border: 1px solid #ddd; border-radius: 10px;
+            padding: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+            z-index: 5000; min-width: 230px;
+        }
+        .dark-theme #editDropdown { background: #2d2d2d; border-color: #555; color: #eee; }
+        .edit-dd-section {
+            font-size: 10px; color: #999; font-weight: bold; text-transform: uppercase;
+            letter-spacing: 0.5px; margin: 8px 0 4px; padding-left: 2px;
+        }
+        .dark-theme .edit-dd-section { color: #888; }
+        .edit-dd-row { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 4px; }
+        #editDropdownBtn { min-width: 78px; width: auto; padding: 0 8px; gap: 4px; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 
@@ -444,60 +471,47 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             </div>
 
             <?php if($role == 'admin'): ?>
-                <div class="toolbar-group">
-                    <button class="toolbar-btn" onclick="rotateSelected(45)" title="45° döndür"><i class="fas fa-redo-alt"></i><span class="tooltip-text">45° döndür</span></button>
-                    <button class="toolbar-btn" onclick="rotateSelected(90)" title="90° döndür"><i class="fas fa-undo-alt"></i><span class="tooltip-text">90° döndür</span></button>
-                    <button class="toolbar-btn" onclick="rotateSelected(180)" title="180° döndür"><i class="fas fa-sync-alt"></i><span class="tooltip-text">180° döndür</span></button>
+                <!-- Düzenle açılır menü (döndür / hizala / konum) -->
+                <div id="editDropdownWrapper">
+                    <button class="toolbar-btn" id="editDropdownBtn" onclick="toggleEditDropdown()" title="Düzenle araçları">
+                        <i class="fas fa-edit"></i>
+                        <span>Düzenle</span>
+                        <i class="fas fa-chevron-down" id="editDropdownArrow" style="font-size:9px;"></i>
+                    </button>
+                    <div id="editDropdown">
+                        <div class="edit-dd-section">Döndür</div>
+                        <div class="edit-dd-row">
+                            <button class="toolbar-btn" onclick="rotateSelected(45)" title="45° döndür"><i class="fas fa-redo-alt"></i><span class="tooltip-text">45° döndür</span></button>
+                            <button class="toolbar-btn" onclick="rotateSelected(90)" title="90° döndür"><i class="fas fa-undo-alt"></i><span class="tooltip-text">90° döndür</span></button>
+                            <button class="toolbar-btn" onclick="rotateSelected(180)" title="180° döndür"><i class="fas fa-sync-alt"></i><span class="tooltip-text">180° döndür</span></button>
+                        </div>
+                        <div class="edit-dd-section">Hizala</div>
+                        <div class="edit-dd-row">
+                            <button class="toolbar-btn purple" onclick="alignSelected('left')" title="Sola hizala"><i class="fas fa-align-left"></i><span class="tooltip-text">Sola hizala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('right')" title="Sağa hizala"><i class="fas fa-align-right"></i><span class="tooltip-text">Sağa hizala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('top')" title="Üste hizala"><i class="fas fa-align-justify" style="transform:rotate(90deg);"></i><span class="tooltip-text">Üste hizala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('bottom')" title="Alta hizala"><i class="fas fa-align-justify" style="transform:rotate(-90deg);"></i><span class="tooltip-text">Alta hizala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('centerH')" title="Yatay ortala"><i class="fas fa-arrows-alt-h"></i><span class="tooltip-text">Yatay ortala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('centerV')" title="Dikey ortala"><i class="fas fa-arrows-alt-v"></i><span class="tooltip-text">Dikey ortala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('distributeH')" title="Yatay dağıt"><i class="fas fa-arrows-alt-h" style="transform:rotate(90deg);"></i><span class="tooltip-text">Yatay dağıt</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('distributeV')" title="Dikey dağıt"><i class="fas fa-arrows-alt-v" style="transform:rotate(90deg);"></i><span class="tooltip-text">Dikey dağıt</span></button>
+                        </div>
+                        <div class="edit-dd-section">Konum / Ayar</div>
+                        <div class="edit-dd-row">
+                            <button class="toolbar-btn orange" onclick="openPositionModal()" title="Konum ayarla"><i class="fas fa-map-marker-alt"></i><span class="tooltip-text">Konum ayarla</span></button>
+                            <button class="toolbar-btn orange" onclick="openNoteModal()" title="Not ekle"><i class="fas fa-sticky-note"></i><span class="tooltip-text">Not ekle</span></button>
+                            <button class="toolbar-btn orange" onclick="openHubSwModal()" title="Hub SW ayarla"><i class="fas fa-network-wired"></i><span class="tooltip-text">Hub SW</span></button>
+                            <button class="toolbar-btn orange" onclick="autoArrangeSelected()" title="Seçilileri düzenle (üst üste gelmesin)"><i class="fas fa-th"></i><span class="tooltip-text">Seçilileri düzenle</span></button>
+                            <button class="toolbar-btn orange" onclick="saveAllPositions()" title="Kaydet"><i class="fas fa-save"></i><span class="tooltip-text">Kaydet</span></button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="toolbar-group">
-    <button class="toolbar-btn purple" onclick="alignSelected('left')" title="Sola hizala">
-        <i class="fas fa-align-left"></i>
-        <span class="tooltip-text">Sola hizala</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('right')" title="Sağa hizala">
-        <i class="fas fa-align-right"></i>
-        <span class="tooltip-text">Sağa hizala</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('top')" title="Üste hizala">
-        <i class="fas fa-align-justify" style="transform: rotate(90deg);"></i>
-        <span class="tooltip-text">Üste hizala</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('bottom')" title="Alta hizala">
-        <i class="fas fa-align-justify" style="transform: rotate(-90deg);"></i>
-        <span class="tooltip-text">Alta hizala</span>
-    </button>
-</div>
-
-<div class="toolbar-group">
-    <button class="toolbar-btn purple" onclick="alignSelected('centerH')" title="Yatay ortala">
-        <i class="fas fa-arrows-alt-h"></i>
-        <span class="tooltip-text">Yatay ortala</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('centerV')" title="Dikey ortala">
-        <i class="fas fa-arrows-alt-v"></i>
-        <span class="tooltip-text">Dikey ortala</span>
-    </button>
-</div>
-
-<div class="toolbar-group">
-    <button class="toolbar-btn purple" onclick="alignSelected('distributeH')" title="Yatay dağıt">
-        <i class="fas fa-arrows-alt-h" style="transform: rotate(90deg);"></i>
-        <span class="tooltip-text">Yatay dağıt</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('distributeV')" title="Dikey dağıt">
-        <i class="fas fa-arrows-alt-v" style="transform: rotate(90deg);"></i>
-        <span class="tooltip-text">Dikey dağıt</span>
-    </button>
-</div>
-
-                <div class="toolbar-group">
-                    <button class="toolbar-btn orange" onclick="openPositionModal()" title="Konum ayarla"><i class="fas fa-map-marker-alt"></i><span class="tooltip-text">Konum ayarla</span></button>
-                    <button class="toolbar-btn orange" onclick="openNoteModal()" title="Not ekle"><i class="fas fa-sticky-note"></i><span class="tooltip-text">Not ekle</span></button>
-                    <button class="toolbar-btn orange" onclick="openHubSwModal()" title="Hub SW ayarla"><i class="fas fa-network-wired"></i><span class="tooltip-text">Hub SW</span></button>
-                    <button class="toolbar-btn orange" onclick="autoArrangeSelected()" title="Seçilileri düzenle (üst üste gelmesin)"><i class="fas fa-th"></i><span class="tooltip-text">Seçilileri düzenle</span></button>
-                    <button class="toolbar-btn orange" onclick="saveAllPositions()" title="Kaydet"><i class="fas fa-save"></i><span class="tooltip-text">Kaydet</span></button>
-                </div>
+                <!-- Makina Ekle -->
+                <a href="machine_settings.php?tab=edit" class="toolbar-btn" style="min-width:90px;width:auto;padding:0 8px;text-decoration:none;gap:4px;font-size:12px;font-weight:bold;" title="Yeni makine ekle">
+                    <i class="fas fa-plus"></i>
+                    <span>Makina Ekle</span>
+                </a>
 
                 <div class="toolbar-divider"></div>
 
@@ -823,5 +837,26 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             </div>
         </div>
     </div>
+
+    <script>
+    // Düzenle açılır menü toggle
+    function toggleEditDropdown() {
+        var dd = document.getElementById('editDropdown');
+        var arrow = document.getElementById('editDropdownArrow');
+        var open = dd.style.display === 'block';
+        dd.style.display = open ? 'none' : 'block';
+        if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+    }
+    // Dışarı tıklanınca kapat
+    document.addEventListener('click', function(e) {
+        var btn = document.getElementById('editDropdownWrapper');
+        var dd  = document.getElementById('editDropdown');
+        if (dd && btn && !btn.contains(e.target)) {
+            dd.style.display = 'none';
+            var arrow = document.getElementById('editDropdownArrow');
+            if (arrow) arrow.style.transform = '';
+        }
+    });
+    </script>
 </body>
 </html>

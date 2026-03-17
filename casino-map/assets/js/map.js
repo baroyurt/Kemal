@@ -859,23 +859,51 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateGroupsPanel() {
         const groupsList = document.getElementById('groupsList');
         if (!groupsList) return;
-        
-        let html = '';
+
+        const FLOOR_LABELS = {
+            '0': '🏛 Yüksek Tavan',
+            '1': '🏠 Alçak Tavan',
+            '2': '👑 Yeni VIP Salon',
+            '3': '🎰 Alt Salon',
+        };
+        const FLOOR_ORDER = ['0', '1', '2', '3'];
+
         const activeRegion = window.activeRegionId;
 
+        // Grubun baskın katını (Z) makine data-z değerlerine göre hesapla
+        function getGroupFloor(group) {
+            const floorCount = {};
+            group.machines.forEach(id => {
+                const machine = document.querySelector(`#map .machine[data-id="${id}"]`);
+                if (machine) {
+                    const z = machine.getAttribute('data-z') || '?';
+                    floorCount[z] = (floorCount[z] || 0) + 1;
+                }
+            });
+            const keys = Object.keys(floorCount);
+            if (keys.length === 0) return 'other';
+            return keys.reduce((a, b) => floorCount[a] >= floorCount[b] ? a : b);
+        }
+
+        // Grupları kata göre demetlere ayır
+        const buckets = { '0': [], '1': [], '2': [], '3': [], 'other': [] };
         for (let groupId in window.groupsData) {
             const group = window.groupsData[groupId];
-            // Bölge filtresi
             if (activeRegion !== null && group.region_id !== activeRegion) continue;
+            const floor = getGroupFloor(group);
+            const key = FLOOR_ORDER.includes(floor) ? floor : 'other';
+            buckets[key].push(groupId);
+        }
 
+        // Grup kartı HTML'i oluştur
+        function buildGroupCard(groupId) {
+            const group = window.groupsData[groupId];
             const color = group.color || '#4CAF50';
-            // Butonları role'e göre oluştur
             const adminButtons = IS_ADMIN ? `
                 <button class="assign-btn" onclick="assignSelectedToGroup(${groupId})"><i class="fas fa-arrow-right"></i> Seçilileri Ata</button>
                 <button class="delete-btn" onclick="deleteGroup(${groupId})" title="Sil"><i class="fas fa-trash"></i></button>
             ` : '';
-
-            html += `
+            return `
                 <div class="group-item-panel" id="group-panel-${groupId}" style="border-left: 4px solid ${escapeHtml(color)};">
                     <div class="group-item-header">
                         <span class="group-item-name" style="display:flex; align-items:center; gap:8px;">
@@ -901,6 +929,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         }
+
+        let html = '';
+        [...FLOOR_ORDER, 'other'].forEach(floorKey => {
+            const groupIds = buckets[floorKey];
+            if (groupIds.length === 0) return;
+            const label = FLOOR_LABELS[floorKey] || '📋 Diğer';
+            html += `<div class="floor-section-header">${label}</div>`;
+            groupIds.forEach(gid => { html += buildGroupCard(gid); });
+        });
+
         if (html === '') {
             html = '<div style="padding: 20px; text-align: center; color: #999;">Bu bölgede grup yok</div>';
         }
