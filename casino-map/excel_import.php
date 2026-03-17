@@ -16,10 +16,10 @@ include("config.php");
 // ── CSV Şablon İndirme ────────────────────────────────────────────────────────
 if(isset($_GET['download_template'])){
     include_once("xlsx_helper.php");
-    $headers = ['machine_no', 'ip', 'mac'];
+    $headers = ['machine_no', 'ip', 'mac', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
     $rows = [
-        ['MAKINE001', '192.168.1.100', 'AA:BB:CC:DD:EE:FF'],
-        ['MAKINE002', '192.168.1.101', 'AA:BB:CC:DD:EE:00'],
+        ['MAKINE001', '192.168.1.100', 'AA:BB:CC:DD:EE:FF', 0, 2036, 1340, 90, ''],
+        ['MAKINE002', '192.168.1.101', 'AA:BB:CC:DD:EE:00', 0, 2037, 1265, 90, ''],
     ];
     send_xlsx('makine_sablonu.xlsx', $headers, $rows);
 }
@@ -53,27 +53,68 @@ if(isset($_POST['upload'])){
         // UTF-8 BOM varsa atla
         $firstChunk = fread($handle, 3);
         if($firstChunk !== "\xEF\xBB\xBF") rewind($handle);
-        
-        $count = 0;
-        $skipped = 0;
-        $maxRow = $conn->query("SELECT COUNT(*) as cnt FROM machines")->fetch_assoc();
-        $existingCount = intval($maxRow['cnt']);
+
+        $inserted = 0;
+        $updated  = 0;
+        $skipped  = 0;
+        $existingCount = intval($conn->query("SELECT COUNT(*) as cnt FROM machines")->fetch_assoc()['cnt']);
+        $rowIndex  = 0; // INSERT sırası için sayaç
+
+        $check_stmt  = $conn->prepare("SELECT id FROM machines WHERE machine_no = ?");
+        $update_stmt = $conn->prepare("UPDATE machines SET ip=?, mac=?, pos_z=?, pos_x=?, pos_y=?, rotation=?, note=? WHERE id=?");
+        $insert_stmt = $conn->prepare("INSERT INTO machines(machine_no, ip, mac, pos_z, pos_x, pos_y, rotation, note) VALUES(?,?,?,?,?,?,?,?)");
 
         while(($data = fgetcsv($handle, 1000, ",")) !== FALSE){
             if(count($data) < 3 || trim($data[0]) === 'machine_no') { $skipped++; continue; }
-            $seqIndex = $existingCount + $count;
-            $gridCol  = $seqIndex % 15;
-            $gridRow  = intval($seqIndex / 15);
-            $posX = 50 + $gridCol * 68;
-            $posY = 50 + $gridRow * 68;
-            $stmt = $conn->prepare("INSERT INTO machines(machine_no, ip, mac, pos_x, pos_y, rotation) VALUES(?, ?, ?, ?, ?, 0)");
-            $stmt->bind_param("sssii", $data[0], $data[1], $data[2], $posX, $posY);
-            $stmt->execute();
-            $stmt->close();
-            $count++;
+
+            $mn  = trim($data[0]);
+            $ip  = trim($data[1]);
+            $mac = trim($data[2]);
+            // CSV'deki koordinat sütunları (opsiyonel)
+            $pz  = isset($data[3]) && $data[3] !== '' ? intval($data[3]) : 0;
+            $px  = isset($data[4]) && $data[4] !== '' ? intval($data[4]) : null;
+            $py  = isset($data[5]) && $data[5] !== '' ? intval($data[5]) : null;
+            $rot = isset($data[6]) && $data[6] !== '' ? intval($data[6]) : 0;
+            $note = isset($data[7]) ? trim($data[7]) : '';
+
+            // Makine var mı kontrol et
+            $check_stmt->bind_param("s", $mn);
+            $check_stmt->execute();
+            $check_stmt->bind_result($existing_id);
+            $check_stmt->fetch();
+            $check_stmt->free_result();
+
+            if($existing_id){
+                // Koordinat CSV'de yoksa mevcut değerleri koru
+                if($px === null || $py === null){
+                    $cur = $conn->query("SELECT pos_x, pos_y FROM machines WHERE id=" . intval($existing_id))->fetch_assoc();
+                    if($px === null) $px = intval($cur['pos_x']);
+                    if($py === null) $py = intval($cur['pos_y']);
+                }
+                $update_stmt->bind_param("ssiiiisi", $ip, $mac, $pz, $px, $py, $rot, $note, $existing_id);
+                $update_stmt->execute();
+                $updated++;
+            } else {
+                // Yeni makine — koordinat yoksa grid hesapla
+                if($px === null || $py === null){
+                    $seqIndex = $existingCount + $rowIndex;
+                    $gridCol  = $seqIndex % 15;
+                    $gridRow  = intval($seqIndex / 15);
+                    if($px === null) $px = 50 + $gridCol * 68;
+                    if($py === null) $py = 50 + $gridRow * 68;
+                }
+                $insert_stmt->bind_param("sssiiisi", $mn, $ip, $mac, $pz, $px, $py, $rot, $note);
+                $insert_stmt->execute();
+                $inserted++;
+                $rowIndex++;
+            }
         }
+        $check_stmt->close();
+        $update_stmt->close();
+        $insert_stmt->close();
         fclose($handle);
-        $upload_success = "$count makine yüklendi!" . ($skipped > 0 ? " $skipped satır atlandı." : "");
+
+        $upload_success = "$inserted makine eklendi, $updated makine güncellendi." . ($skipped > 0 ? " $skipped satır atlandı." : "");
 
         // ── Otomatik Koordinat Düzeltme (fix_positions) ──────────────────────
         // Bilinen makinelerin koordinatlarını otomatik olarak güncelle
@@ -135,8 +176,8 @@ if(isset($_POST['upload'])){
     <div class="card">
         <h3>📤 CSV Yükle</h3>
         <div class="info-box">
-            CSV formatı: <strong>machine_no, ip, mac</strong> (başlık satırı opsiyonel)<br>
-            Yükleme sonrası bilinen makinelerin koordinatları <strong>otomatik düzeltilir</strong>.
+            CSV formatı: <strong>machine_no, ip, mac, pos_z, pos_x, pos_y, rotation, note</strong> (başlık satırı opsiyonel)<br>
+            Makine zaten varsa bilgileri <strong>güncellenir</strong>; yoksa yeni olarak eklenir. Koordinat sütunları boş bırakılabilir.
         </div>
         <?php if(isset($upload_error)): ?>
             <div class="error"><?php echo htmlspecialchars($upload_error); ?></div>
