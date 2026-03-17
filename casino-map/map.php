@@ -89,24 +89,24 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         body.dark-theme .machine.selected { border: 3px solid yellow !important; }
         body.dark-theme input, body.dark-theme select, body.dark-theme textarea { background: #444; color: #fff; border-color: #666; }
         
-        .toolbar { padding: 10px; transition: all 0.3s ease; z-index: 1000; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: space-between; }
-        .toolbar-left { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; flex: 1; }
-        .toolbar-right { display: flex; gap: 5px; align-items: center; }
+        .toolbar { padding: 6px 10px; transition: all 0.3s ease; z-index: 1000; display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; justify-content: space-between; overflow-x: auto; }
+        .toolbar-left { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; flex: 1; min-width: 0; overflow: visible; }
+        .toolbar-right { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
         .toolbar-btn {
-            width: 40px; height: 40px; border-radius: 8px; background: #4CAF50; color: white;
-            border: none; cursor: pointer; font-size: 18px; display: flex; align-items: center;
-            justify-content: center; transition: all 0.2s; position: relative;
+            width: 34px; height: 34px; border-radius: 7px; background: #4CAF50; color: white;
+            border: none; cursor: pointer; font-size: 15px; display: flex; align-items: center;
+            justify-content: center; transition: all 0.2s; position: relative; flex-shrink: 0;
         }
-        .toolbar-btn:hover { background: #45a049; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .toolbar-btn:hover { background: #45a049; transform: translateY(-1px); box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
         .toolbar-btn.dashboard { background: #FF9800; }
         .toolbar-btn.theme { background: #666; }
-        .toolbar-btn.zoom { background: #2196F3; width: 35px; height: 35px; }
+        .toolbar-btn.zoom { background: #2196F3; width: 30px; height: 30px; }
         .toolbar-btn.purple { background: #9C27B0; }
         .toolbar-btn.orange { background: #FF9800; }
         .toolbar-btn.red { background: #f44336; }
-        .toolbar-divider { width: 1px; height: 30px; background: #ccc; margin: 0 10px; }
+        .toolbar-divider { width: 1px; height: 26px; background: #ccc; margin: 0 4px; flex-shrink: 0; }
         .dark-theme .toolbar-divider { background: #555; }
-        .toolbar-group { display: flex; gap: 3px; align-items: center; background: rgba(0,0,0,0.05); padding: 3px; border-radius: 10px; }
+        .toolbar-group { display: flex; gap: 2px; align-items: center; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 8px; flex-shrink: 0; }
         .tooltip-text {
             position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 4px;
@@ -115,9 +115,9 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         }
         .toolbar-btn:hover .tooltip-text { visibility: visible; opacity: 1; bottom: -40px; }
         
-        #search, #z-filter, #group-filter { padding: 8px 12px; border: 1px solid #ddd; border-radius: 20px; font-size: 13px; min-width: 150px; height: 40px; }
+        #search, #z-filter, #group-filter { padding: 5px 10px; border: 1px solid #ddd; border-radius: 16px; font-size: 12px; min-width: 110px; height: 34px; }
         
-        #map-container { flex: 1; position: relative; overflow: hidden; margin: 10px; border-radius: 10px; cursor: grab; }
+        #map-container { flex: 1; position: relative; overflow: hidden; margin: 10px; border-radius: 10px; cursor: default; }
         #map { width: 100%; height: 100%; position: relative; background-size: cover; transition: background-color 0.3s ease; transform-origin: 0 0; }
         
         .machine {
@@ -151,9 +151,8 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         .machine.has-hub-sw { border: 3px solid #FF9800 !important; box-shadow: 0 0 12px rgba(255,152,0,0.5); }
         .hub-sw-badge { position: absolute; top: -6px; left: -6px; width: 16px; height: 16px; background: #FF9800; border-radius: 50%; border: 2px solid white; font-size: 9px; display: flex; align-items: center; justify-content: center; color: white; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         .dark-theme .machine.has-hub-sw { border-color: #FF9800 !important; }
-        /* Floor tabs */
-        .floor-tabs { display: flex; gap: 3px; }
-        .floor-tab { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; background: #e0e0e0; color: #555; transition: all 0.2s; height: 36px; }
+        .floor-tabs { display: flex; gap: 2px; flex-shrink: 0; }
+        .floor-tab { padding: 4px 8px; border: none; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold; background: #e0e0e0; color: #555; transition: all 0.2s; height: 30px; white-space: nowrap; }
         .floor-tab.active { background: #4CAF50; color: white; box-shadow: 0 2px 8px rgba(76,175,80,0.4); }
         .floor-tab:hover:not(.active) { background: #c8e6c9; color: #2e7d32; }
         .dark-theme .floor-tab { background: #444; color: #ccc; }
@@ -507,20 +506,21 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                     <button class="toolbar-btn orange" onclick="startGroupCreate()" title="Grup oluştur"><i class="fas fa-plus-circle"></i><span class="tooltip-text">Grup oluştur</span></button>
                     <button class="toolbar-btn purple" onclick="showAssignGroupModal()" title="Seçilileri gruba ata"><i class="fas fa-object-group"></i><span class="tooltip-text">Gruba Ata</span></button>
                 </div>
-
-                <select id="group-filter" onchange="filterByGroup(this.value)">
-                    <option value="all">Tüm Gruplar</option>
-                    <?php
-                    $groups->data_seek(0);
-                    while($group = $groups->fetch_assoc()):
-                    ?>
-                    <option value="<?php echo $group['id']; ?>"><?php echo htmlspecialchars($group['group_name']); ?></option>
-                    <?php endwhile; ?>
-                </select>
             <?php endif; ?>
         </div>
 
         <div class="toolbar-right">
+            <?php if($role == 'admin'): ?>
+            <select id="group-filter" onchange="filterByGroup(this.value)">
+                <option value="all">Tüm Gruplar</option>
+                <?php
+                $groups->data_seek(0);
+                while($group = $groups->fetch_assoc()):
+                ?>
+                <option value="<?php echo $group['id']; ?>"><?php echo htmlspecialchars($group['group_name']); ?></option>
+                <?php endwhile; ?>
+            </select>
+            <?php endif; ?>
             <button class="toolbar-btn dashboard" onclick="toggleSidebar()" title="Menü"><i class="fas fa-bars"></i><span class="tooltip-text">Menü</span></button>
             <button class="toolbar-btn theme" onclick="toggleTheme()" title="Tema değiştir"><i class="fas fa-moon"></i><span class="tooltip-text">Tema değiştir</span></button>
             

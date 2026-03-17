@@ -342,30 +342,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Harita pan + seçim sürükleme — #map-container üzerinde
+    // Harita pan (sağ fare tuşu) + seçim sürükleme (sol fare tuşu) — #map-container üzerinde
     document.getElementById('map-container').addEventListener('mousedown', function(e) {
-        if (e.button !== 0) return;
         if (isMoving) return;
-        // Only start on empty background (not on a machine, UI overlay, or the info panel)
         if (e.target.closest('.machine')) return;
         if (e.target.closest('#machine-info-panel')) return;
         if (e.target.closest('.group-icon')) return;
         if (e.target.closest('.group-highlight')) return;
         if (e.target.closest('#multi-floor-container')) return;
 
-        if (e.ctrlKey) {
-            // Ctrl+sürükleme = seçim kutusu (4-panel genel görünümde çalışmaz)
-            if (currentFloor === 'all') return;
-            selectionStart = { x: e.clientX, y: e.clientY };
-            selectionDragStarted = false;
-            selectionBox = document.createElement('div');
-            selectionBox.className = 'selection-box';
-            selectionBox.style.display = 'none';
-            this.appendChild(selectionBox);
-        } else {
-            // Normal sürükleme = harita pan
+        if (e.button === 2) {
+            // Sağ fare tuşu = harita pan
             const map = document.getElementById('map');
-            if (!map || map.style.display === 'none') return; // 4-panel genel görünümde çalışmaz
+            if (!map || map.style.display === 'none') return;
             isPanning = true;
             panMoved = false;
             panStartX = e.clientX;
@@ -374,6 +363,14 @@ document.addEventListener('DOMContentLoaded', function() {
             panStartTY = mapTranslateY;
             this.style.cursor = 'grabbing';
             e.preventDefault();
+        } else if (e.button === 0) {
+            // Sol fare tuşu = seçim kutusu (toplu seçim)
+            selectionStart = { x: e.clientX, y: e.clientY };
+            selectionDragStarted = false;
+            selectionBox = document.createElement('div');
+            selectionBox.className = 'selection-box';
+            selectionBox.style.display = 'none';
+            this.appendChild(selectionBox);
         }
     });
 
@@ -592,26 +589,56 @@ document.addEventListener('DOMContentLoaded', function() {
         const map = document.getElementById('map');
         const multi = document.getElementById('multi-floor-container');
 
+        // Always hide the 4-panel container (kept in DOM for backward compatibility but no longer shown)
+        if (multi) multi.style.display = 'none';
+        map.style.display = 'block';
+
         if (zValue === 'all') {
-            // Show 4-panel overview; hide the single-canvas map
-            map.style.display = 'none';
-            multi.style.display = 'grid';
-            // Use rAF so the grid has dimensions when populateMiniMaps reads them
-            requestAnimationFrame(populateMiniMaps);
+            // Show ALL machines on the single canvas
+            document.querySelectorAll('#map .machine').forEach(function(machine) {
+                machine.style.display = 'flex';
+            });
+            // Remove any existing floor dividers then redraw them
+            document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
+            drawFloorDividers();
+            resizeMapToFitMachines();
+            updateGroupIcons();
+            requestAnimationFrame(function() { fitFloorToView('all'); });
         } else {
-            // Single-floor view
-            multi.style.display = 'none';
-            map.style.display = 'block';
+            // Single-floor view — remove dividers
+            document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 machine.style.display = (machine.getAttribute('data-z') === String(zValue)) ? 'flex' : 'none';
             });
-            // Expand the map to contain all machines before computing the view
             resizeMapToFitMachines();
             updateGroupIcons();
-            // Auto-fit: zoom/pan so ALL machines on this floor are visible
             requestAnimationFrame(function() { fitFloorToView(zValue); });
         }
     };
+
+    // Draw thin separator lines to indicate floor boundaries in "Tüm Katlar" view.
+    // Vertical line at X=2080 (between Z=0,1 on left and Z=2,3 on right)
+    // Horizontal line at Y=1130 (between Z=1 top-left and Z=0 bottom-left)
+    // Opacity 0.13 is subtle enough to not distract from machine icons but visible on light bg.
+    function drawFloorDividers() {
+        const map = document.getElementById('map');
+        if (!map) return;
+        const mapW = parseInt(map.style.width)  || 8000;
+        const mapH = parseInt(map.style.height) || 4000;
+        const DIVIDER_COLOR = 'rgba(0,0,0,0.13)';
+
+        // Vertical divider
+        const vDiv = document.createElement('div');
+        vDiv.className = 'floor-divider';
+        vDiv.style.cssText = 'position:absolute;left:2080px;top:0;width:2px;height:' + mapH + 'px;background:' + DIVIDER_COLOR + ';pointer-events:none;z-index:0;';
+        map.appendChild(vDiv);
+
+        // Horizontal divider (spans full width)
+        const hDiv = document.createElement('div');
+        hDiv.className = 'floor-divider';
+        hDiv.style.cssText = 'position:absolute;left:0;top:1130px;width:' + mapW + 'px;height:2px;background:' + DIVIDER_COLOR + ';pointer-events:none;z-index:0;';
+        map.appendChild(hDiv);
+    }
 
     // Tüm makineleri kattaki bounding box'a sığdıracak şekilde zoom/pan ayarla
     function fitFloorToView(zValue) {
@@ -619,9 +646,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const MACH_H  = 60;
         const PADDING = 40;
 
-        const floorMachines = Array.from(
-            document.querySelectorAll('#map .machine[data-z="' + zValue + '"]')
-        );
+        const selector = (zValue === 'all')
+            ? '#map .machine'
+            : '#map .machine[data-z="' + zValue + '"]';
+
+        const floorMachines = Array.from(document.querySelectorAll(selector))
+            .filter(function(m) { return m.style.display !== 'none'; });
         if (floorMachines.length === 0) { resetZoom(); return; }
 
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -877,7 +907,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Only include machines on the active floor; ignore the 'all' overview
                 // Also skip hidden machines (filtered out by search / group filter)
                 if (machine && machine.style.display !== 'none' &&
-                    currentFloor !== 'all' && machine.getAttribute('data-z') === currentFloor) {
+                    (currentFloor === 'all' || machine.getAttribute('data-z') === currentFloor)) {
                     visibleCount++;
                     const x = parseFloat(machine.style.left);
                     const y = parseFloat(machine.style.top);
@@ -2041,7 +2071,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (menu && !menu.contains(e.target)) hideContextMenu();
     });
     document.addEventListener('contextmenu', function(e) {
-        if (!e.target.closest('.machine')) hideContextMenu();
+        if (e.target.closest('.machine')) return; // Let machine handler show context menu
+        // Empty map area: suppress browser context menu (right-click is used for panning)
+        e.preventDefault();
+        hideContextMenu();
     });
 
     // ========== MAKİNE BİLGİ PANELİ ==========

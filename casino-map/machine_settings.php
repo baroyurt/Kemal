@@ -498,7 +498,7 @@ if($tab === 'groups'){
                 <div class="group-stats">
                     <strong>Grup İstatistikleri:</strong><br>
                     Toplam Makine: <?php echo count($group_machines); ?><br>
-                    Oluşturulma: <?php echo $group['created_at']; ?>
+                    Oluşturulma: <?php echo htmlspecialchars($group['created_at'] ?? '-'); ?>
                 </div>
             <?php else: ?>
                 <div style="text-align:center; padding:50px; color:#999;">

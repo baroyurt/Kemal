@@ -104,7 +104,7 @@ if(isset($_POST['delete_user'])){
     }
 }
 
-$users = $conn->query("SELECT id, username, role, created_at FROM users ORDER BY username");
+$users = $conn->query("SELECT id, username, role FROM users ORDER BY username");
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -206,7 +206,6 @@ $users = $conn->query("SELECT id, username, role, created_at FROM users ORDER BY
                     <th>ID</th>
                     <th>Kullanıcı Adı</th>
                     <th>Rol</th>
-                    <th>Oluşturulma</th>
                     <th>İşlemler</th>
                 </tr>
             </thead>
@@ -221,7 +220,6 @@ $users = $conn->query("SELECT id, username, role, created_at FROM users ORDER BY
                         <?php endif; ?>
                     </td>
                     <td><span class="badge <?php echo htmlspecialchars($u['role']); ?>"><?php echo htmlspecialchars($u['role']); ?></span></td>
-                    <td><?php echo htmlspecialchars($u['created_at'] ?? '-'); ?></td>
                     <td>
                         <!-- Şifre değiştir butonu -->
                         <button class="btn-info" style="font-size:12px; padding:4px 10px;" onclick="openPassModal(<?php echo intval($u['id']); ?>, '<?php echo htmlspecialchars($u['username'], ENT_QUOTES); ?>')">🔑 Şifre</button>
