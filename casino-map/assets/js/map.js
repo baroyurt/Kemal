@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global değişkenler
     window.selectedMachines = [];
     window.groupsData = {};
+    window.regionsData = [];       // bölge listesi
+    window.activeRegionId = null;  // seçili bölge filtresi
 
     // Track currently active floor ('all', '0', '1', '2', '3')
     let currentFloor = 'all';
@@ -810,21 +812,69 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(groups => {
                 window.groupsData = groups;
-                updateGroupsPanel();
+                // Bölgeleri de yükle
+                fetch('get_regions.php')
+                    .then(r => r.json())
+                    .then(regions => {
+                        window.regionsData = regions;
+                        updateRegionFilters();
+                        updateGroupsPanel();
+                    })
+                    .catch(() => {
+                        window.regionsData = [];
+                        updateRegionFilters();
+                        updateGroupsPanel();
+                    });
                 updateGroupIcons();
                 updateGroupFilter();
             })
             .catch(error => console.log('Grup yüklenemedi:', error));
     }
     
+    function updateRegionFilters() {
+        const container = document.getElementById('regionFilters');
+        if (!container) return;
+
+        const regions = window.regionsData || [];
+        if (regions.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'flex';
+
+        let html = `<button onclick="setRegionFilter(null)" style="padding:3px 10px;border-radius:12px;border:2px solid rgba(255,255,255,0.5);background:${window.activeRegionId===null?'rgba(255,255,255,0.3)':'transparent'};color:white;cursor:pointer;font-size:11px;font-weight:bold;transition:all 0.2s;">Tümü</button>`;
+        regions.forEach(r => {
+            const active = window.activeRegionId === r.id;
+            html += `<button onclick="setRegionFilter(${r.id})" style="padding:3px 10px;border-radius:12px;border:2px solid ${escapeHtml(r.color)};background:${active?escapeHtml(r.color):'transparent'};color:${active?'white':escapeHtml(r.color)};cursor:pointer;font-size:11px;font-weight:bold;transition:all 0.2s;">${escapeHtml(r.name)}</button>`;
+        });
+        container.innerHTML = html;
+    }
+
+    window.setRegionFilter = function(regionId) {
+        window.activeRegionId = regionId;
+        updateRegionFilters();
+        updateGroupsPanel();
+    };
+
     function updateGroupsPanel() {
         const groupsList = document.getElementById('groupsList');
         if (!groupsList) return;
         
         let html = '';
+        const activeRegion = window.activeRegionId;
+
         for (let groupId in window.groupsData) {
             const group = window.groupsData[groupId];
+            // Bölge filtresi
+            if (activeRegion !== null && group.region_id !== activeRegion) continue;
+
             const color = group.color || '#4CAF50';
+            // Butonları role'e göre oluştur
+            const adminButtons = IS_ADMIN ? `
+                <button class="assign-btn" onclick="assignSelectedToGroup(${groupId})"><i class="fas fa-arrow-right"></i> Seçilileri Ata</button>
+                <button class="delete-btn" onclick="deleteGroup(${groupId})" title="Sil"><i class="fas fa-trash"></i></button>
+            ` : '';
+
             html += `
                 <div class="group-item-panel" id="group-panel-${groupId}" style="border-left: 4px solid ${escapeHtml(color)};">
                     <div class="group-item-header">
@@ -833,26 +883,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${escapeHtml(group.name)}
                         </span>
                         <div style="display:flex; align-items:center; gap:6px;">
-                            <input type="color" value="${escapeHtml(color)}" title="Grup rengi" style="width:28px;height:28px;padding:0;border:none;cursor:pointer;border-radius:4px;" onchange="changeGroupColor(${groupId}, this.value)">
+                            ${IS_ADMIN ? `<input type="color" value="${escapeHtml(color)}" title="Grup rengi" style="width:28px;height:28px;padding:0;border:none;cursor:pointer;border-radius:4px;" onchange="changeGroupColor(${groupId}, this.value)">` : ''}
                             <span class="group-item-count" style="background:${escapeHtml(color)};">${group.machines.length}</span>
                         </div>
                     </div>
+                    ${IS_ADMIN ? `
                     <div class="group-machine-input">
                         <input type="text" id="machine-input-${groupId}" placeholder="Makine no girin" onkeypress="handleMachineInput(event, ${groupId})">
                         <button onclick="addMachineToGroup(${groupId})"><i class="fas fa-plus"></i></button>
-                    </div>
+                    </div>` : ''}
                     <div class="group-machine-list" id="machine-list-${groupId}">${getMachineListHtml(group.machines, groupId)}</div>
                     <div class="group-actions">
-                        <button class="assign-btn" onclick="assignSelectedToGroup(${groupId})"><i class="fas fa-arrow-right"></i> Seçilileri Ata</button>
+                        ${adminButtons}
                         <button class="export-btn" onclick="exportGroup(${groupId})" title="Excel aktar"><i class="fas fa-file-excel"></i></button>
                         <button class="show-btn" onclick="showGroup(${groupId})" title="Göster"><i class="fas fa-eye"></i></button>
-                        <button class="delete-btn" onclick="deleteGroup(${groupId})" title="Sil"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             `;
         }
         if (html === '') {
-            html = '<div style="padding: 20px; text-align: center; color: #999;">Henüz grup yok</div>';
+            html = '<div style="padding: 20px; text-align: center; color: #999;">Bu bölgede grup yok</div>';
         }
         groupsList.innerHTML = html;
     }
@@ -868,7 +918,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const hubSw = machine ? machine.getAttribute('data-hub-sw') === '1' : false;
             const hubSwCable = machine ? (machine.getAttribute('data-hub-sw-cable') || '') : '';
             const hubSwLabel = hubSw ? `<span style="color:#FF9800; font-weight:bold;" title="Hub SW${hubSwCable ? ': ' + escapeHtml(hubSwCable) : ''}"> 🔌${hubSwCable ? '<small> → ' + escapeHtml(hubSwCable) + '</small>' : ''}</span>` : '';
-            html += `<div class="group-machine-item"><span>${escapeHtml(machineNo)}${hubSwLabel}</span><button onclick="removeMachineFromGroup(${id}, ${groupId})"><i class="fas fa-times"></i></button></div>`;
+            const removeBtn = IS_ADMIN ? `<button onclick="removeMachineFromGroup(${id}, ${groupId})"><i class="fas fa-times"></i></button>` : '';
+            html += `<div class="group-machine-item"><span>${escapeHtml(machineNo)}${hubSwLabel}</span>${removeBtn}</div>`;
         });
         return html;
     }

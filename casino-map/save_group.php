@@ -24,11 +24,18 @@ $color = isset($_POST['color']) && preg_match('/^#[0-9A-Fa-f]{6}$/', $_POST['col
     ? $conn->real_escape_string($_POST['color'])
     : $auto_color;
 
+$region_id = isset($_POST['region_id']) && intval($_POST['region_id']) > 0
+    ? intval($_POST['region_id'])
+    : null;
+
 $conn->begin_transaction();
 
 try {
-    $conn->query("INSERT INTO machine_groups (group_name, color) VALUES ('$group_name', '$color')");
+    $stmt = $conn->prepare("INSERT INTO machine_groups (group_name, color, region_id) VALUES (?, ?, ?)");
+    $stmt->bind_param("ssi", $group_name, $color, $region_id);
+    $stmt->execute();
     $group_id = $conn->insert_id;
+    $stmt->close();
     
     if (!empty($machine_ids)) {
         foreach($machine_ids as $machine_id) {

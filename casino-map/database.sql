@@ -56,3 +56,15 @@ ALTER TABLE machines ADD COLUMN IF NOT EXISTS drscreen_ip VARCHAR(50) DEFAULT NU
 
 -- Migration: users created_at (eğer eski şemadan geçiş yapıyorsanız)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+-- Migration: bölgeler (regions) tablosu
+CREATE TABLE IF NOT EXISTS regions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(20) DEFAULT '#607D8B',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Migration: makine gruplarına bölge ilişkisi
+ALTER TABLE machine_groups ADD COLUMN IF NOT EXISTS region_id INT DEFAULT NULL;
+ALTER TABLE machine_groups ADD CONSTRAINT IF NOT EXISTS fk_group_region FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL;
