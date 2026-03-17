@@ -23,20 +23,30 @@ $messages = [];
 
 /**
  * SQL çalıştır ve sonucu $messages dizisine ekle.
- * MySQL hata 1060 (duplicate column) ve 1050 (table exists) bilgi olarak işaretlenir.
+ * MySQL hata 1060 (duplicate column), 1050 (table exists), 1061 (duplicate key) bilgi olarak işaretlenir.
+ * PHP mysqli exception modu aktifse (XAMPP varsayılanı) mysqli_sql_exception da yakalanır.
  */
 function runMigration(mysqli $conn, string $sql, string $description): void
 {
     global $messages;
-    if ($conn->query($sql)) {
-        $messages[] = ['type' => 'success', 'text' => "✅ $description"];
-    } else {
-        $errNo = $conn->errno;
+    try {
+        if ($conn->query($sql)) {
+            $messages[] = ['type' => 'success', 'text' => "✅ $description"];
+        } else {
+            $errNo = $conn->errno;
+            if ($errNo === 1060 || $errNo === 1050 || $errNo === 1061) {
+                $messages[] = ['type' => 'info', 'text' => "ℹ️ $description (zaten mevcut, atlandı)"];
+            } else {
+                $messages[] = ['type' => 'error', 'text' => "❌ $description: " . $conn->error];
+            }
+        }
+    } catch (mysqli_sql_exception $e) {
+        $errNo = $e->getCode();
+        // 1060 Duplicate column, 1050 Table already exists, 1061 Duplicate key name
         if ($errNo === 1060 || $errNo === 1050 || $errNo === 1061) {
-            // 1060 Duplicate column, 1050 Table already exists, 1061 Duplicate key name
             $messages[] = ['type' => 'info', 'text' => "ℹ️ $description (zaten mevcut, atlandı)"];
         } else {
-            $messages[] = ['type' => 'error', 'text' => "❌ $description: " . $conn->error];
+            $messages[] = ['type' => 'error', 'text' => "❌ $description: " . $e->getMessage()];
         }
     }
 }
