@@ -10,6 +10,7 @@ include("config.php");
 
 // Toplu silme
 if(isset($_POST['bulk_delete'])){
+    csrf_verify();
     if(isset($_POST['selected_machines']) && is_array($_POST['selected_machines'])){
         $selected_ids = implode(',', array_map('intval', $_POST['selected_machines']));
         $conn->query("DELETE FROM machines WHERE id IN ($selected_ids)");
@@ -21,6 +22,7 @@ if(isset($_POST['bulk_delete'])){
 
 // Toplu Z koordinatı güncelleme
 if(isset($_POST['bulk_update_z'])){
+    csrf_verify();
     if(isset($_POST['selected_machines']) && is_array($_POST['selected_machines']) && isset($_POST['new_z'])){
         $new_z = intval($_POST['new_z']);
         $selected_ids = implode(',', array_map('intval', $_POST['selected_machines']));
@@ -33,11 +35,15 @@ if(isset($_POST['bulk_update_z'])){
 
 // Toplu not ekleme/güncelleme
 if(isset($_POST['bulk_update_note'])){
+    csrf_verify();
     if(isset($_POST['selected_machines']) && is_array($_POST['selected_machines']) && isset($_POST['bulk_note'])){
-        $bulk_note = $conn->real_escape_string($_POST['bulk_note']);
+        $bulk_note = $_POST['bulk_note'];
         $selected_ids = implode(',', array_map('intval', $_POST['selected_machines']));
-        $conn->query("UPDATE machines SET note = '$bulk_note' WHERE id IN ($selected_ids)");
-        $updated_count = $conn->affected_rows;
+        $stmt = $conn->prepare("UPDATE machines SET note = ? WHERE id IN ($selected_ids)");
+        $stmt->bind_param("s", $bulk_note);
+        $stmt->execute();
+        $updated_count = $stmt->affected_rows;
+        $stmt->close();
         header("Location: machine_edit.php?updated_note=$updated_count");
         exit;
     }
@@ -45,24 +51,19 @@ if(isset($_POST['bulk_update_note'])){
 
 // Toplu kopyalama
 if(isset($_POST['bulk_duplicate'])){
+    csrf_verify();
     if(isset($_POST['selected_machines']) && is_array($_POST['selected_machines'])){
-        foreach($_POST['selected_machines'] as $id){
-            $id = intval($id);
-            $result = $conn->query("SELECT * FROM machines WHERE id = $id");
-            if($row = $result->fetch_assoc()){
-                $machine_no = $conn->real_escape_string($row['machine_no'] . ' (Kopya)');
-                $ip = $conn->real_escape_string($row['ip']);
-                $mac = $conn->real_escape_string($row['mac']);
-                $pos_x = intval($row['pos_x']) + 20;
-                $pos_y = intval($row['pos_y']) + 20;
-                $pos_z = intval($row['pos_z']);
-                $rotation = intval($row['rotation']);
-                $note = $conn->real_escape_string($row['note'] . ' (Kopya)');
-                
-                $conn->query("INSERT INTO machines (machine_no, ip, mac, pos_x, pos_y, pos_z, rotation, note) 
-                              VALUES ('$machine_no', '$ip', '$mac', $pos_x, $pos_y, $pos_z, $rotation, '$note')");
-            }
+        $dup_stmt = $conn->prepare(
+            "INSERT INTO machines (machine_no, ip, mac, pos_x, pos_y, pos_z, rotation, note)
+             SELECT CONCAT(machine_no, ' (Kopya)'), ip, mac, pos_x + 20, pos_y + 20, pos_z, rotation, CONCAT(COALESCE(note,''), ' (Kopya)')
+             FROM machines WHERE id = ?"
+        );
+        foreach($_POST['selected_machines'] as $dup_id){
+            $dup_id = intval($dup_id);
+            $dup_stmt->bind_param("i", $dup_id);
+            $dup_stmt->execute();
         }
+        $dup_stmt->close();
         $duplicated_count = count($_POST['selected_machines']);
         header("Location: machine_edit.php?duplicated=$duplicated_count");
         exit;
@@ -72,28 +73,38 @@ if(isset($_POST['bulk_duplicate'])){
 // Tekil silme
 if(isset($_GET['delete'])){
     $id = intval($_GET['delete']);
-    $conn->query("DELETE FROM machines WHERE id = $id");
+    $stmt = $conn->prepare("DELETE FROM machines WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
     header("Location: machine_edit.php?deleted=1");
     exit;
 }
 
 // Tekil ekleme/güncelleme
 if(isset($_POST['save'])){
-    $machine_no = $conn->real_escape_string($_POST['machine_no']);
-    $ip = $conn->real_escape_string($_POST['ip']);
-    $mac = $conn->real_escape_string($_POST['mac']);
-    $pos_z = intval($_POST['pos_z']);
-    $note = $conn->real_escape_string($_POST['note']);
-    
+    csrf_verify();
+    $machine_no = $_POST['machine_no'];
+    $ip         = $_POST['ip'];
+    $mac        = $_POST['mac'];
+    $pos_z      = intval($_POST['pos_z']);
+    $note       = $_POST['note'];
+
     if(isset($_POST['id']) && !empty($_POST['id'])){
         $id = intval($_POST['id']);
-        $conn->query("UPDATE machines SET machine_no='$machine_no', ip='$ip', mac='$mac', pos_z=$pos_z, note='$note' WHERE id=$id");
+        $stmt = $conn->prepare("UPDATE machines SET machine_no=?, ip=?, mac=?, pos_z=?, note=? WHERE id=?");
+        $stmt->bind_param("sssisi", $machine_no, $ip, $mac, $pos_z, $note, $id);
+        $stmt->execute();
+        $stmt->close();
         $message = "Makine güncellendi";
     } else {
-        $conn->query("INSERT INTO machines (machine_no, ip, mac, pos_z, note) VALUES ('$machine_no', '$ip', '$mac', $pos_z, '$note')");
+        $stmt = $conn->prepare("INSERT INTO machines (machine_no, ip, mac, pos_z, note) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssis", $machine_no, $ip, $mac, $pos_z, $note);
+        $stmt->execute();
+        $stmt->close();
         $message = "Yeni makine eklendi";
     }
-    
+
     header("Location: machine_edit.php?success=" . urlencode($message));
     exit;
 }
@@ -102,18 +113,30 @@ $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
-$search = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
-$where = '';
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
 if(!empty($search)){
-    $where = "WHERE machine_no LIKE '%$search%' OR ip LIKE '%$search%' OR mac LIKE '%$search%' OR note LIKE '%$search%'";
+    $like = '%' . $search . '%';
+    $count_stmt = $conn->prepare("SELECT COUNT(*) as count FROM machines WHERE machine_no LIKE ? OR ip LIKE ? OR mac LIKE ? OR note LIKE ?");
+    $count_stmt->bind_param("ssss", $like, $like, $like, $like);
+    $count_stmt->execute();
+    $total_machines = $count_stmt->get_result()->fetch_assoc()['count'];
+    $count_stmt->close();
+
+    $data_stmt = $conn->prepare("SELECT * FROM machines WHERE machine_no LIKE ? OR ip LIKE ? OR mac LIKE ? OR note LIKE ? ORDER BY pos_z, machine_no LIMIT ?, ?");
+    $data_stmt->bind_param("ssssii", $like, $like, $like, $like, $offset, $limit);
+    $data_stmt->execute();
+    $machines = $data_stmt->get_result();
+    $data_stmt->close();
+} else {
+    $total_machines = $conn->query("SELECT COUNT(*) as count FROM machines")->fetch_assoc()['count'];
+    $data_stmt = $conn->prepare("SELECT * FROM machines ORDER BY pos_z, machine_no LIMIT ?, ?");
+    $data_stmt->bind_param("ii", $offset, $limit);
+    $data_stmt->execute();
+    $machines = $data_stmt->get_result();
+    $data_stmt->close();
 }
 
-$total_result = $conn->query("SELECT COUNT(*) as count FROM machines $where");
-$total_row = $total_result->fetch_assoc();
-$total_machines = $total_row['count'];
 $total_pages = ceil($total_machines / $limit);
-
-$machines = $conn->query("SELECT * FROM machines $where ORDER BY pos_z, machine_no LIMIT $offset, $limit");
 
 $z_levels = [
     0 => 'Yüksek Tavan',
@@ -124,8 +147,9 @@ $z_levels = [
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
+    <meta charset="UTF-8">
     <title>Makine Düzenle</title>
     <style>
         body { font-family: Arial; background: #f5f5f5; margin: 0; padding: 20px; }
@@ -219,6 +243,7 @@ $z_levels = [
         <div class="form-box">
             <h3>Yeni Makine Ekle / Düzenle</h3>
             <form method="post" id="machineForm">
+                <?php echo csrf_field(); ?>
                 <input type="hidden" name="id" id="edit_id">
                 <div class="form-group">
                     <label>Makine No:</label>
@@ -328,6 +353,14 @@ $z_levels = [
     </div>
     
     <script>
+        const CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
+        
+        function addCsrf(form) {
+            const inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = 'csrf_token'; inp.value = CSRF_TOKEN;
+            form.appendChild(inp);
+        }
+        
         let selectedMachines = new Set();
         document.addEventListener('DOMContentLoaded', function() { updateSelection(); });
         
@@ -382,6 +415,7 @@ $z_levels = [
             if(confirm(`${selectedMachines.size} makinenin Z katmanını güncellemek istediğinize emin misiniz?`)) {
                 const form = document.createElement('form');
                 form.method = 'POST'; form.style.display = 'none';
+                addCsrf(form);
                 selectedMachines.forEach(id => {
                     const input = document.createElement('input');
                     input.type = 'hidden'; input.name = 'selected_machines[]'; input.value = id;
@@ -404,6 +438,7 @@ $z_levels = [
             if(confirm(`${selectedMachines.size} makinenin notunu güncellemek istediğinize emin misiniz?`)) {
                 const form = document.createElement('form');
                 form.method = 'POST'; form.style.display = 'none';
+                addCsrf(form);
                 selectedMachines.forEach(id => {
                     const input = document.createElement('input');
                     input.type = 'hidden'; input.name = 'selected_machines[]'; input.value = id;
@@ -425,6 +460,7 @@ $z_levels = [
             if(confirm(`${selectedMachines.size} makineyi kalıcı olarak silmek istediğinize emin misiniz?`)) {
                 const form = document.createElement('form');
                 form.method = 'POST'; form.style.display = 'none';
+                addCsrf(form);
                 selectedMachines.forEach(id => {
                     const input = document.createElement('input');
                     input.type = 'hidden'; input.name = 'selected_machines[]'; input.value = id;
@@ -443,6 +479,7 @@ $z_levels = [
             if(confirm(`${selectedMachines.size} makineyi kopyalamak istediğinize emin misiniz?`)) {
                 const form = document.createElement('form');
                 form.method = 'POST'; form.style.display = 'none';
+                addCsrf(form);
                 selectedMachines.forEach(id => {
                     const input = document.createElement('input');
                     input.type = 'hidden'; input.name = 'selected_machines[]'; input.value = id;

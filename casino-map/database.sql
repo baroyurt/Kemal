@@ -18,7 +18,8 @@ CREATE TABLE users(
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE,
     password VARCHAR(255),
-    role ENUM('admin', 'personel') DEFAULT 'personel'
+    role ENUM('admin', 'personel') DEFAULT 'personel',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE machine_groups (
@@ -52,3 +53,6 @@ ALTER TABLE machines ADD COLUMN IF NOT EXISTS game_type VARCHAR(100) DEFAULT NUL
 
 -- Migration: DRscreen IP
 ALTER TABLE machines ADD COLUMN IF NOT EXISTS drscreen_ip VARCHAR(50) DEFAULT NULL;
+
+-- Migration: users created_at (eğer eski şemadan geçiş yapıyorsanız)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;

@@ -4,7 +4,7 @@ session_start();
 include("config.php");
 
 if(isset($_POST['user'])){
-    
+    csrf_verify();
     $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
     $stmt->bind_param("s", $_POST['user']);
     $stmt->execute();
@@ -18,6 +18,8 @@ if(isset($_POST['user'])){
             $_SESSION['login'] = true;
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
+            $_SESSION['last_activity'] = time();
+            session_regenerate_id(true);
             
             header("Location: map.php");
             exit;
@@ -32,6 +34,7 @@ if(isset($_POST['user'])){
 
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Casino Map Login</title>
     <style>
         body {
@@ -87,7 +90,12 @@ if(isset($_POST['user'])){
     <div class="login-box">
         <h2>Casino Map Giriş</h2>
         
+        <?php if(isset($_GET['timeout'])): ?>
+            <div class="error" style="color: #e67e22;">Oturum zaman aşımına uğradı. Lütfen tekrar giriş yapın.</div>
+        <?php endif; ?>
+        
         <form method="post">
+            <?php echo csrf_field(); ?>
             <input type="text" name="user" placeholder="Kullanıcı Adı" required>
             <input type="password" name="pass" placeholder="Şifre" required>
             <button type="submit">Giriş Yap</button>

@@ -9,27 +9,39 @@ if(!isset($_SESSION['login']) || $_SESSION['role'] != 'admin'){
 include("config.php");
 
 if(isset($_POST['create_group'])){
-    $group_name = $conn->real_escape_string($_POST['group_name']);
-    $description = $conn->real_escape_string($_POST['description']);
-    $conn->query("INSERT INTO machine_groups (group_name, description) VALUES ('$group_name', '$description')");
+    csrf_verify();
+    $stmt = $conn->prepare("INSERT INTO machine_groups (group_name, description) VALUES (?, ?)");
+    $stmt->bind_param("ss", $_POST['group_name'], $_POST['description']);
+    $stmt->execute();
+    $stmt->close();
     $success = "Grup oluşturuldu!";
 }
 
 if(isset($_GET['delete_group'])){
     $group_id = intval($_GET['delete_group']);
-    $conn->query("DELETE FROM machine_groups WHERE id = $group_id");
+    $stmt = $conn->prepare("DELETE FROM machine_groups WHERE id = ?");
+    $stmt->bind_param("i", $group_id);
+    $stmt->execute();
+    $stmt->close();
     header("Location: machine_groups.php?deleted=1");
     exit;
 }
 
 if(isset($_POST['update_group_machines'])){
+    csrf_verify();
     $group_id = intval($_POST['group_id']);
-    $conn->query("DELETE FROM machine_group_relations WHERE group_id = $group_id");
+    $stmt = $conn->prepare("DELETE FROM machine_group_relations WHERE group_id = ?");
+    $stmt->bind_param("i", $group_id);
+    $stmt->execute();
+    $stmt->close();
     if(isset($_POST['machines']) && is_array($_POST['machines'])){
+        $stmt = $conn->prepare("INSERT INTO machine_group_relations (machine_id, group_id) VALUES (?, ?)");
         foreach($_POST['machines'] as $machine_id){
             $machine_id = intval($machine_id);
-            $conn->query("INSERT INTO machine_group_relations (machine_id, group_id) VALUES ($machine_id, $group_id)");
+            $stmt->bind_param("ii", $machine_id, $group_id);
+            $stmt->execute();
         }
+        $stmt->close();
     }
     header("Location: machine_groups.php?updated=1&group_id=$group_id");
     exit;
@@ -40,8 +52,9 @@ $all_machines = $conn->query("SELECT * FROM machines ORDER BY machine_no");
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
+    <meta charset="UTF-8">
     <title>Makine Grupları</title>
     <style>
         body { font-family: Arial; background: #f5f5f5; margin: 0; padding: 20px; }
@@ -88,6 +101,7 @@ $all_machines = $conn->query("SELECT * FROM machines ORDER BY machine_no");
             <div class="left-panel">
                 <h3>Yeni Grup Oluştur</h3>
                 <form method="post">
+                    <?php echo csrf_field(); ?>
                     <div class="form-group"><label>Grup Adı:</label><input type="text" name="group_name" required></div>
                     <div class="form-group"><label>Açıklama:</label><textarea name="description" rows="3"></textarea></div>
                     <button type="submit" name="create_group">Grup Oluştur</button>
@@ -122,6 +136,7 @@ $all_machines = $conn->query("SELECT * FROM machines ORDER BY machine_no");
                     <p><?php echo htmlspecialchars($group['description']); ?></p>
                     
                     <form method="post">
+                        <?php echo csrf_field(); ?>
                         <input type="hidden" name="group_id" value="<?php echo $group_id; ?>">
                         <div class="machine-list">
                             <?php $all_machines->data_seek(0); while($machine = $all_machines->fetch_assoc()): 

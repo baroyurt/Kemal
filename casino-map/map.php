@@ -13,9 +13,11 @@ $result = $conn->query("SELECT * FROM machines ORDER BY pos_z, machine_no");
 $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
 ?>
 
-<html>
+<!DOCTYPE html>
+<html lang="tr">
 <head>
-    <title>Machine Map</title>
+    <meta charset="UTF-8">
+    <title>Makine Haritası</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>

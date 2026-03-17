@@ -13,6 +13,7 @@ $username = $_SESSION['username'];
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Casino Map Panel</title>
     <style>
         body {
@@ -139,6 +140,20 @@ $username = $_SESSION['username'];
                     <a href="fix_positions.php">
                         📍 Koordinat Düzeltme
                         <small style="color: #666; display: block;">Tüm salon makinelerini orijinal koordinatlarla senkronize et</small>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="users.php">
+                        👤 Kullanıcı Yönetimi
+                        <small style="color: #666; display: block;">Kullanıcı ekle, sil ve şifre değiştir</small>
+                    </a>
+                </div>
+
+                <div class="menu-item">
+                    <a href="group_topology.php">
+                        🌐 Ağ Topolojisi
+                        <small style="color: #666; display: block;">Hub/switch bağlantı haritasını görüntüle</small>
                     </a>
                 </div>
             <?php endif; ?>
