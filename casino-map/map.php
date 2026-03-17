@@ -158,41 +158,36 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         .floor-tab:hover:not(.active) { background: #c8e6c9; color: #2e7d32; }
         .dark-theme .floor-tab { background: #444; color: #ccc; }
         .dark-theme .floor-tab.active { background: #4CAF50; color: white; }
-        /* Multi-floor tek sayfa görünümü — 4 kat tek bir canvas üzerinde grup çerçevesi stiliyle */
+        /* Tüm Katlar — tek kanvas görünümü, salon sınırları çizgilerle */
         #multi-floor-container {
             width: 100%; height: 100%;
             display: none;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 0; padding: 12px;
-            background: #f8f8f8;
+            gap: 3px;
+            background: rgba(76,175,80,0.35); /* ince bölücü çizgiler = gap rengi */
+            padding: 0;
             box-sizing: border-box;
         }
         .floor-panel {
-            background: rgba(76,175,80,0.04);
-            border: 2px solid #4CAF50;
+            background: #ececec;
             overflow: hidden; display: flex; flex-direction: column;
-            cursor: pointer; transition: background 0.2s, border-color 0.2s;
+            cursor: pointer; transition: background 0.15s;
             position: relative;
+            border: none; border-radius: 0;
         }
-        /* İç kenarlık yerine tek paylaşılan çizgi ile birleşik görünüm */
-        .floor-panel:nth-child(1) { border-radius: 10px 0 0 0; border-right: 1px solid #4CAF50; border-bottom: 1px solid #4CAF50; }
-        .floor-panel:nth-child(2) { border-radius: 0 10px 0 0; border-left: 1px solid #4CAF50; border-bottom: 1px solid #4CAF50; }
-        .floor-panel:nth-child(3) { border-radius: 0 0 0 10px; border-right: 1px solid #4CAF50; border-top: 1px solid #4CAF50; }
-        .floor-panel:nth-child(4) { border-radius: 0 0 10px 0; border-left: 1px solid #4CAF50; border-top: 1px solid #4CAF50; }
-        .floor-panel:hover { background: rgba(76,175,80,0.10); border-color: #2e7d32; }
+        .floor-panel:hover { background: #e2f0e2; }
         .floor-panel-title {
-            padding: 5px 14px; font-weight: bold; font-size: 12px;
-            background: rgba(76,175,80,0.18); color: #2e7d32;
+            padding: 4px 12px; font-weight: bold; font-size: 11px;
+            background: rgba(76,175,80,0.12); color: #2e7d32;
             text-align: center; flex-shrink: 0; letter-spacing: 0.3px;
-            border-bottom: 1px solid rgba(76,175,80,0.3);
+            border-bottom: 1px solid rgba(76,175,80,0.2);
         }
         .floor-panel-map { flex: 1; position: relative; overflow: hidden; background: transparent; }
-        .dark-theme #multi-floor-container { background: #1a1a1a; }
-        .dark-theme .floor-panel { background: rgba(76,175,80,0.06); border-color: #388E3C; }
-        .dark-theme .floor-panel:hover { background: rgba(76,175,80,0.12); }
-        .dark-theme .floor-panel-title { background: rgba(76,175,80,0.15); color: #81c784; border-color: rgba(76,175,80,0.25); }
-        .dark-theme .floor-panel-map { background: transparent; }
+        .dark-theme #multi-floor-container { background: rgba(76,175,80,0.25); }
+        .dark-theme .floor-panel { background: #1e1e1e; }
+        .dark-theme .floor-panel:hover { background: #222; }
+        .dark-theme .floor-panel-title { background: rgba(76,175,80,0.10); color: #81c784; border-color: rgba(76,175,80,0.15); }
         .note-indicator {
             position: absolute; top: -5px; right: -5px; width: 14px; height: 14px; background: #ff4444;
             border-radius: 50%; border: 2px solid white; animation: pulse 1.5s infinite; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
@@ -563,32 +558,20 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             <?php if($role == 'admin'): ?>
             <div class="sidebar-item">
                 <a href="excel_import.php">
-                    📁 CSV / Excel Yükle
-                    <small>Yeni makineleri toplu yükle</small>
+                    📁 CSV / Excel Yükle & İndir
+                    <small>Makineleri toplu yükle veya aktar</small>
                 </a>
             </div>
             <div class="sidebar-item">
-                <a href="machine_edit.php">
-                    ✏️ Makine Düzenle
-                    <small>Makineleri ekle, sil, güncelle</small>
+                <a href="machine_settings.php">
+                    ⚙️ Makine Ayarları
+                    <small>Makine düzenle ve grup yönetimi</small>
                 </a>
             </div>
             <div class="sidebar-item">
-                <a href="machine_groups.php">
-                    👥 Makine Grupları
-                    <small>Gruplar oluştur ve Excel aktar</small>
-                </a>
-            </div>
-            <div class="sidebar-item">
-                <a href="update_database.php">
-                    🔧 Veritabanı Güncelle
-                    <small>Şema migrasyonları ve CSV makine yükleme</small>
-                </a>
-            </div>
-            <div class="sidebar-item">
-                <a href="fix_positions.php">
-                    📍 Koordinat Düzeltme
-                    <small>Tüm salon makinelerini senkronize et</small>
+                <a href="users.php">
+                    👤 Kullanıcı Yönetimi
+                    <small>Kullanıcı ekle, sil ve şifre değiştir</small>
                 </a>
             </div>
             <?php endif; ?>

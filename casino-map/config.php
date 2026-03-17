@@ -13,10 +13,11 @@ if ($conn->connect_error) {
 // Türkçe karakter desteği için UTF-8 charset
 $conn->set_charset("utf8mb4");
 
-// Oturum zaman aşımı kontrolü (30 dakika)
+define('SESSION_TIMEOUT_SECONDS', 1800); // 30 dakika
+
+// Oturum zaman aşımı kontrolü
 if (session_status() === PHP_SESSION_ACTIVE) {
-    $timeout = 1800; // 30 dakika
-    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout) {
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_TIMEOUT_SECONDS) {
         session_unset();
         session_destroy();
         header("Location: login.php?timeout=1");
