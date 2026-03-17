@@ -128,6 +128,13 @@ $username = $_SESSION['username'];
                         <small style="color: #666; display: block;">Kullanıcı ekle, sil ve şifre değiştir</small>
                     </a>
                 </div>
+
+                <div class="menu-item">
+                    <a href="update_database.php">
+                        🔧 Veritabanı Güncelle
+                        <small style="color: #666; display: block;">Yeni sürüm migration'larını uygula (bölge altyapısı vb.)</small>
+                    </a>
+                </div>
             <?php endif; ?>
         </div>
         
