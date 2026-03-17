@@ -906,15 +906,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button class="assign-btn" onclick="assignSelectedToGroup(${groupId})"><i class="fas fa-arrow-right"></i> Seçilileri Ata</button>
                 <button class="delete-btn" onclick="deleteGroup(${groupId})" title="Sil"><i class="fas fa-trash"></i></button>
             ` : '';
+            // Grup adı: admin ise inline düzenlenebilir input, değilse sadece metin
+            const nameHtml = IS_ADMIN
+                ? `<input type="text" value="${escapeHtml(group.name)}"
+                        style="border:none;background:transparent;font-weight:bold;font-size:13px;
+                               width:100%;outline:none;padding:0;cursor:text;"
+                        onblur="renameGroup(${groupId}, this.value)"
+                        onkeydown="if(event.key==='Enter')this.blur();">`
+                : escapeHtml(group.name);
             return `
                 <div class="group-item-panel" id="group-panel-${groupId}" style="border-left: 4px solid ${escapeHtml(color)};">
                     <div class="group-item-header">
-                        <span class="group-item-name" style="display:flex; align-items:center; gap:8px;">
-                            <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:${escapeHtml(color)};"></span>
-                            ${escapeHtml(group.name)}
+                        <span class="group-item-name" style="display:flex; align-items:center; gap:6px; flex:1; min-width:0;">
+                            <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:${escapeHtml(color)}; flex-shrink:0;"></span>
+                            ${nameHtml}
                         </span>
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            ${IS_ADMIN ? `<input type="color" value="${escapeHtml(color)}" title="Grup rengi" style="width:28px;height:28px;padding:0;border:none;cursor:pointer;border-radius:4px;" onchange="changeGroupColor(${groupId}, this.value)">` : ''}
+                        <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                            ${IS_ADMIN ? `<input type="color" value="${escapeHtml(color)}" title="Grup rengi" style="width:24px;height:24px;padding:0;border:none;cursor:pointer;border-radius:4px;" onchange="changeGroupColor(${groupId}, this.value)">` : ''}
                             <span class="group-item-count" style="background:${escapeHtml(color)};">${group.machines.length}</span>
                         </div>
                     </div>
@@ -939,8 +947,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (groupIds.length === 0) return;
             const label = FLOOR_LABELS[floorKey] || '📋 Diğer';
             const bodyId = 'floor-body-' + floorKey;
-            html += `<div class="floor-section-header" onclick="toggleFloorSection('${bodyId}', this)">${label}</div>`;
-            html += `<div class="floor-section-body" id="${bodyId}" style="max-height:2000px;">`;
+            // Başlangıçta kapalı (collapsed) olarak render et
+            html += `<div class="floor-section-header collapsed" onclick="toggleFloorSection('${bodyId}', this)">${label}</div>`;
+            html += `<div class="floor-section-body collapsed" id="${bodyId}" style="max-height:0;">`;
             groupIds.forEach(gid => { html += buildGroupCard(gid); });
             html += `</div>`;
         });
@@ -969,14 +978,45 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateGroupFilter() {
-        const filter = document.getElementById('group-filter');
-        if (!filter) return;
-        
-        let options = '<option value="all">Tüm Gruplar</option>';
-        for (let groupId in window.groupsData) {
-            options += `<option value="${groupId}">${escapeHtml(window.groupsData[groupId].name)}</option>`;
+        const datalist = document.getElementById('group-filter-list');
+        if (!datalist) return;
+
+        const FLOOR_LABELS = {
+            '0': '🏛 Yüksek Tavan',
+            '1': '🏠 Alçak Tavan',
+            '2': '👑 Yeni VIP Salon',
+            '3': '🎰 Alt Salon',
+        };
+        const FLOOR_ORDER = ['0', '1', '2', '3'];
+
+        function getGroupFloor(group) {
+            const floorCount = {};
+            group.machines.forEach(id => {
+                const m = document.querySelector(`#map .machine[data-id="${id}"]`);
+                if (m) { const z = m.getAttribute('data-z') || '?'; floorCount[z] = (floorCount[z] || 0) + 1; }
+            });
+            const keys = Object.keys(floorCount);
+            if (keys.length === 0) return 'other';
+            return keys.reduce((a, b) => floorCount[a] >= floorCount[b] ? a : b);
         }
-        filter.innerHTML = options;
+
+        // Kat bazlı bucket
+        const buckets = { '0': [], '1': [], '2': [], '3': [], 'other': [] };
+        for (let groupId in window.groupsData) {
+            const floor = getGroupFloor(window.groupsData[groupId]);
+            const key = FLOOR_ORDER.includes(floor) ? floor : 'other';
+            buckets[key].push({ id: groupId, name: window.groupsData[groupId].name, floor: key });
+        }
+
+        let html = '<option value="Tüm Gruplar">';
+        [...FLOOR_ORDER, 'other'].forEach(fk => {
+            if (buckets[fk].length === 0) return;
+            const label = FLOOR_LABELS[fk] || 'Diğer';
+            buckets[fk].forEach(g => {
+                html += `<option value="${escapeHtml(g.name)}" data-id="${escapeHtml(g.id)}" data-floor="${escapeHtml(label)}">`;
+            });
+        });
+        datalist.innerHTML = html;
     }
     
     function updateGroupIcons() {
@@ -1366,6 +1406,30 @@ document.addEventListener('DOMContentLoaded', function() {
         // Re-center view on the now-visible machines
         requestAnimationFrame(function() { fitFloorToView(currentFloor); });
     };
+
+    // Yazılabilir group-filter input handler
+    window.filterByGroupInput = function(value) {
+        const trimmed = value.trim();
+        if (!trimmed || trimmed === 'Tüm Gruplar') {
+            window.filterByGroup('all');
+            return;
+        }
+        // Grup adı ile eşleş (case-insensitive)
+        for (let gId in window.groupsData) {
+            if (window.groupsData[gId].name.toLowerCase() === trimmed.toLowerCase()) {
+                window.filterByGroup(gId);
+                return;
+            }
+        }
+        // Eşleşme yoksa tümünü göster
+        window.filterByGroup('all');
+    };
+
+    window.clearGroupFilter = function() {
+        const inp = document.getElementById('group-filter');
+        if (inp) inp.value = '';
+        window.filterByGroup('all');
+    };
     
     window.deleteGroup = function(groupId) {
         if (!confirm('Grubu silmek istediğinize emin misiniz?')) return;
@@ -1404,6 +1468,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!body) return;
         const collapsed = body.classList.toggle('collapsed');
         if (headerEl) headerEl.classList.toggle('collapsed', collapsed);
+        // Açılınca max-height'ı ger, kapanınca 0
+        body.style.maxHeight = collapsed ? '0' : '2000px';
     };
     
     // ========== NOT FONKSİYONLARI ==========
@@ -1986,6 +2052,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 showStatus('Grup rengi güncellendi!');
             }
         });
+    };
+
+    window.renameGroup = function(groupId, newName) {
+        const trimmed = newName.trim();
+        if (!trimmed || !window.groupsData[groupId]) return;
+        if (trimmed === window.groupsData[groupId].name) return; // değişmedi
+        const formData = new FormData();
+        formData.append('group_id', groupId);
+        formData.append('group_name', trimmed);
+        fetch('update_group.php', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.groupsData[groupId].name = trimmed;
+                    updateGroupFilter();
+                    showStatus('Grup adı güncellendi!');
+                }
+            });
     };
     
     // ========== SAĞ TIK BAĞLAM MENÜSÜ ==========

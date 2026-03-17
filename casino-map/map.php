@@ -89,7 +89,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         body.dark-theme .machine.selected { border: 3px solid yellow !important; }
         body.dark-theme input, body.dark-theme select, body.dark-theme textarea { background: #444; color: #fff; border-color: #666; }
         
-        .toolbar { padding: 6px 10px; transition: all 0.3s ease; z-index: 1000; display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; justify-content: space-between; overflow-x: auto; flex-shrink: 0; position: sticky; top: 0; }
+        .toolbar { padding: 6px 10px; transition: all 0.3s ease; z-index: 1000; display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; justify-content: space-between; overflow: hidden; flex-shrink: 0; position: sticky; top: 0; }
         .toolbar-left { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; flex: 1; min-width: 0; overflow: visible; }
         .toolbar-right { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
         .toolbar-btn {
@@ -286,35 +286,35 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         }
         
         .groups-panel {
-            position: fixed; right: 20px; top: 80px; width: 350px; background: white;
+            position: fixed; right: 20px; top: 80px; width: 260px; background: white;
             border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); z-index: 2000;
-            max-height: calc(100vh - 100px); overflow-y: auto;
+            max-height: 55vh; overflow-y: auto;
         }
         .dark-theme .groups-panel { background: #2d2d2d; color: white; border: 1px solid #444; }
-        .groups-panel-header { padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: inherit; }
-        .groups-panel-header button { background: #4CAF50; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
-        .groups-panel-header .panel-close-btn { background: #f44336; padding: 5px 8px; }
-        .groups-list { padding: 10px; }
+        .groups-panel-header { padding: 8px 12px; border-bottom: 1px solid #eee; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: inherit; z-index: 1; }
+        .groups-panel-header button { background: #4CAF50; color: white; border: none; border-radius: 5px; padding: 4px 8px; cursor: pointer; font-size: 11px; }
+        .groups-panel-header .panel-close-btn { background: #f44336; padding: 4px 7px; }
+        .groups-list { padding: 6px; }
         
         .group-item-panel {
-            padding: 15px; border-bottom: 1px solid #eee; margin-bottom: 10px;
-            background: #f9f9f9; border-radius: 8px;
+            padding: 8px 10px; border-bottom: 1px solid #eee; margin-bottom: 6px;
+            background: #f9f9f9; border-radius: 6px;
         }
         .dark-theme .group-item-panel { background: #3d3d3d; }
-        .group-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .group-item-name { font-weight: bold; font-size: 16px; }
-        .group-item-count { background: #4CAF50; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-        .group-machine-input { display: flex; gap: 5px; margin-bottom: 10px; }
-        .group-machine-input input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
-        .group-machine-input button { padding: 8px 12px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .group-machine-list { max-height: 150px; overflow-y: auto; margin-bottom: 10px; font-size: 12px; border: 1px solid #eee; border-radius: 5px; padding: 5px; }
-        .group-machine-item { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; }
-        .group-machine-item button { background: #f44336; color: white; border: none; border-radius: 3px; padding: 2px 5px; cursor: pointer; font-size: 10px; }
+        .group-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .group-item-name { font-weight: bold; font-size: 13px; }
+        .group-item-count { background: #4CAF50; color: white; padding: 1px 6px; border-radius: 10px; font-size: 11px; }
+        .group-machine-input { display: flex; gap: 4px; margin-bottom: 6px; }
+        .group-machine-input input { flex: 1; padding: 5px 7px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; }
+        .group-machine-input button { padding: 5px 9px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .group-machine-list { max-height: 110px; overflow-y: auto; margin-bottom: 6px; font-size: 11px; border: 1px solid #eee; border-radius: 5px; padding: 4px; }
+        .group-machine-item { display: flex; justify-content: space-between; align-items: center; padding: 3px 4px; border-bottom: 1px solid #eee; }
+        .group-machine-item button { background: #f44336; color: white; border: none; border-radius: 3px; padding: 1px 4px; cursor: pointer; font-size: 10px; }
         
-        .group-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+        .group-actions { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
         .group-actions button {
-            flex: 1; padding: 8px 5px; border: none; border-radius: 5px; cursor: pointer;
-            font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.2s;
+            flex: 1; padding: 5px 3px; border: none; border-radius: 5px; cursor: pointer;
+            font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;
         }
         .group-actions .assign-btn { background: #9C27B0; color: white; flex: 2; }
         .group-actions .export-btn { background: #4CAF50; color: white; }
@@ -533,15 +533,17 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
 
         <div class="toolbar-right">
             <?php if($role == 'admin'): ?>
-            <select id="group-filter" onchange="filterByGroup(this.value)">
-                <option value="all">Tüm Gruplar</option>
-                <?php
-                $groups->data_seek(0);
-                while($group = $groups->fetch_assoc()):
-                ?>
-                <option value="<?php echo $group['id']; ?>"><?php echo htmlspecialchars($group['group_name']); ?></option>
-                <?php endwhile; ?>
-            </select>
+            <div style="position:relative; display:flex; align-items:center; gap:2px;">
+                <input id="group-filter" type="text" list="group-filter-list"
+                    placeholder="Tüm Gruplar" autocomplete="off"
+                    oninput="filterByGroupInput(this.value)"
+                    style="padding:5px 10px; border:1px solid #ddd; border-radius:16px; font-size:12px; min-width:130px; height:34px; box-sizing:border-box;">
+                <datalist id="group-filter-list">
+                    <option value="Tüm Gruplar">
+                </datalist>
+                <button onclick="clearGroupFilter()" title="Tüm grupları göster"
+                    style="width:26px;height:26px;border:none;border-radius:50%;background:#f44336;color:white;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+            </div>
             <?php endif; ?>
             <button class="toolbar-btn dashboard" onclick="toggleSidebar()" title="Menü"><i class="fas fa-bars"></i><span class="tooltip-text">Menü</span></button>
             <button class="toolbar-btn theme" onclick="toggleTheme()" title="Tema değiştir"><i class="fas fa-moon"></i><span class="tooltip-text">Tema değiştir</span></button>
