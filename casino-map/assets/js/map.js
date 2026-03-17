@@ -938,8 +938,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const groupIds = buckets[floorKey];
             if (groupIds.length === 0) return;
             const label = FLOOR_LABELS[floorKey] || '📋 Diğer';
-            html += `<div class="floor-section-header">${label}</div>`;
+            const bodyId = 'floor-body-' + floorKey;
+            html += `<div class="floor-section-header" onclick="toggleFloorSection('${bodyId}', this)">${label}</div>`;
+            html += `<div class="floor-section-body" id="${bodyId}" style="max-height:2000px;">`;
             groupIds.forEach(gid => { html += buildGroupCard(gid); });
+            html += `</div>`;
         });
 
         if (html === '') {
@@ -1395,6 +1398,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     };
+
+    window.toggleFloorSection = function(bodyId, headerEl) {
+        const body = document.getElementById(bodyId);
+        if (!body) return;
+        const collapsed = body.classList.toggle('collapsed');
+        if (headerEl) headerEl.classList.toggle('collapsed', collapsed);
+    };
     
     // ========== NOT FONKSİYONLARI ==========
     
@@ -1737,7 +1747,35 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.resetZoom = function() {
-        mapScale = 1; mapTranslateX = 0; mapTranslateY = 0;
+        const MACH_W  = 60;
+        const MACH_H  = 60;
+        const PADDING = 40;
+        const selector = currentFloor === 'all'
+            ? '#map .machine'
+            : '#map .machine[data-z="' + currentFloor + '"]';
+        const floorMachines = Array.from(document.querySelectorAll(selector))
+            .filter(function(m) { return m.style.display !== 'none'; });
+        if (floorMachines.length === 0) {
+            mapScale = 1; mapTranslateX = 0; mapTranslateY = 0;
+            applyMapTransform(); return;
+        }
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        floorMachines.forEach(function(m) {
+            const x = parseFloat(m.style.left) || 0;
+            const y = parseFloat(m.style.top)  || 0;
+            if (x           < minX) minX = x;
+            if (x + MACH_W  > maxX) maxX = x + MACH_W;
+            if (y           < minY) minY = y;
+            if (y + MACH_H  > maxY) maxY = y + MACH_H;
+        });
+        const container = document.getElementById('map-container');
+        const cw = container.clientWidth;
+        const ch = container.clientHeight;
+        const contentW = (maxX - minX) + PADDING * 2;
+        const contentH = (maxY - minY) + PADDING * 2;
+        mapScale = Math.max(MAP_SCALE_MIN, Math.min(MAP_SCALE_MAX, cw / contentW, ch / contentH));
+        mapTranslateX = (cw - contentW * mapScale) / 2 + (PADDING - minX) * mapScale;
+        mapTranslateY = (ch - contentH * mapScale) / 2 + (PADDING - minY) * mapScale;
         applyMapTransform();
     };
 

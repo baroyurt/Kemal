@@ -89,7 +89,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         body.dark-theme .machine.selected { border: 3px solid yellow !important; }
         body.dark-theme input, body.dark-theme select, body.dark-theme textarea { background: #444; color: #fff; border-color: #666; }
         
-        .toolbar { padding: 6px 10px; transition: all 0.3s ease; z-index: 1000; display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; justify-content: space-between; overflow-x: auto; }
+        .toolbar { padding: 6px 10px; transition: all 0.3s ease; z-index: 1000; display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; justify-content: space-between; overflow-x: auto; flex-shrink: 0; position: sticky; top: 0; }
         .toolbar-left { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; flex: 1; min-width: 0; overflow: visible; }
         .toolbar-right { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
         .toolbar-btn {
@@ -117,7 +117,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         
         #search, #z-filter, #group-filter { padding: 5px 10px; border: 1px solid #ddd; border-radius: 16px; font-size: 12px; min-width: 110px; height: 34px; }
         
-        #map-container { flex: 1; position: relative; overflow: hidden; margin: 10px; border-radius: 10px; cursor: default; }
+        #map-container { flex: 1; position: relative; overflow: hidden; cursor: default; }
         #map { width: 100%; height: 100%; position: relative; background-size: cover; transition: background-color 0.3s ease; transform-origin: 0 0; }
         
         .machine {
@@ -435,8 +435,13 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             letter-spacing: 0.6px; text-transform: uppercase;
             background: rgba(76,175,80,0.18); color: #81c784;
             border-top: 1px solid rgba(255,255,255,0.1);
-            margin-top: 4px;
+            margin-top: 4px; cursor: pointer; user-select: none;
+            display: flex; align-items: center; justify-content: space-between;
         }
+        .floor-section-header::after { content: '▲'; font-size: 9px; opacity: 0.7; transition: transform 0.2s; }
+        .floor-section-header.collapsed::after { transform: rotate(180deg); }
+        .floor-section-body { overflow: hidden; transition: max-height 0.3s ease; }
+        .floor-section-body.collapsed { max-height: 0 !important; }
         .dark-theme .floor-section-header { background: rgba(76,175,80,0.12); }
 
         /* Düzenle — sağa kayan araç çubuğu */
@@ -451,9 +456,15 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         .edit-slide-group { display: flex; gap: 2px; align-items: center; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 8px; flex-shrink: 0; }
         .edit-slide-divider { width: 1px; height: 22px; background: #ccc; margin: 0 2px; flex-shrink: 0; }
         .dark-theme .edit-slide-divider { background: #555; }
-        /* Makina Ekle butonu */
+        /* Makina Ekle + Grup butonları — sağa kayan wrapper */
+        #addMachineWrapper { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
         #addMachineBtn { width: 34px; height: 34px; padding: 0; gap: 0; background: #4CAF50; }
-        /* Eski dropdown CSS'i kaldırıldı */
+        #addMachineSlide {
+            display: flex; gap: 2px; align-items: center; overflow: hidden;
+            max-width: 0; opacity: 0;
+            transition: max-width 0.35s ease, opacity 0.25s ease;
+        }
+        #addMachineSlide.open { max-width: 300px; opacity: 1; }
     </style>
 </head>
 
@@ -504,18 +515,18 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                     </div>
                 </div>
 
-                <!-- Makina Ekle (popup modal) -->
-                <button class="toolbar-btn" id="addMachineBtn" onclick="openAddMachineModal()" title="Makina Ekle">
-                    <i class="fas fa-plus"></i>
-                    <span class="tooltip-text">Makina Ekle</span>
-                </button>
-
-                <div class="toolbar-divider"></div>
-
-                <div class="toolbar-group">
-                    <button class="toolbar-btn purple" onclick="toggleGroupsPanel()" title="Gruplar"><i class="fas fa-users"></i><span class="tooltip-text">Gruplar</span></button>
-                    <button class="toolbar-btn orange" onclick="startGroupCreate()" title="Grup oluştur"><i class="fas fa-plus-circle"></i><span class="tooltip-text">Grup oluştur</span></button>
-                    <button class="toolbar-btn purple" onclick="showAssignGroupModal()" title="Seçilileri gruba ata"><i class="fas fa-object-group"></i><span class="tooltip-text">Gruba Ata</span></button>
+                <!-- Makina Ekle + Grup butonları sağa kayan panel -->
+                <div id="addMachineWrapper">
+                    <button class="toolbar-btn" id="addMachineBtn" onclick="toggleAddMachineSlide()" title="Ekle">
+                        <i class="fas fa-plus"></i>
+                        <span class="tooltip-text">Ekle</span>
+                    </button>
+                    <div id="addMachineSlide">
+                        <button class="toolbar-btn" onclick="openAddMachineModal()" title="Makina Ekle"><i class="fas fa-desktop"></i><span class="tooltip-text">Makina Ekle</span></button>
+                        <button class="toolbar-btn purple" onclick="toggleGroupsPanel()" title="Gruplar"><i class="fas fa-users"></i><span class="tooltip-text">Gruplar</span></button>
+                        <button class="toolbar-btn orange" onclick="startGroupCreate()" title="Grup oluştur"><i class="fas fa-plus-circle"></i><span class="tooltip-text">Grup oluştur</span></button>
+                        <button class="toolbar-btn purple" onclick="showAssignGroupModal()" title="Seçilileri gruba ata"><i class="fas fa-object-group"></i><span class="tooltip-text">Gruba Ata</span></button>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>
@@ -883,13 +894,30 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         var slide = document.getElementById('editToolsSlide');
         if (!slide) return;
         slide.classList.toggle('open');
+        // Diğer slide açıksa kapat
+        document.getElementById('addMachineSlide')?.classList.remove('open');
     }
-    // Dışarı tıklanınca kapat
+
+    // ── Ekle sağa kayan açma/kapama ────────────────────────────────────────
+    function toggleAddMachineSlide() {
+        var slide = document.getElementById('addMachineSlide');
+        if (!slide) return;
+        slide.classList.toggle('open');
+        // Diğer slide açıksa kapat
+        document.getElementById('editToolsSlide')?.classList.remove('open');
+    }
+
+    // Dışarı tıklanınca her iki slide'ı da kapat
     document.addEventListener('click', function(e) {
-        var wrapper = document.getElementById('editToolsWrapper');
-        var slide   = document.getElementById('editToolsSlide');
-        if (slide && wrapper && !wrapper.contains(e.target)) {
-            slide.classList.remove('open');
+        var editWrapper = document.getElementById('editToolsWrapper');
+        var editSlide   = document.getElementById('editToolsSlide');
+        if (editSlide && editWrapper && !editWrapper.contains(e.target)) {
+            editSlide.classList.remove('open');
+        }
+        var addWrapper = document.getElementById('addMachineWrapper');
+        var addSlide   = document.getElementById('addMachineSlide');
+        if (addSlide && addWrapper && !addWrapper.contains(e.target)) {
+            addSlide.classList.remove('open');
         }
     });
 
