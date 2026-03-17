@@ -541,8 +541,6 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                 <datalist id="group-filter-list">
                     <option value="Tüm Gruplar">
                 </datalist>
-                <button onclick="clearGroupFilter()" title="Tüm grupları göster"
-                    style="width:26px;height:26px;border:none;border-radius:50%;background:#f44336;color:white;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
             </div>
             <?php endif; ?>
             <button class="toolbar-btn dashboard" onclick="toggleSidebar()" title="Menü"><i class="fas fa-bars"></i><span class="tooltip-text">Menü</span></button>
