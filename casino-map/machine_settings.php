@@ -478,11 +478,16 @@ if($tab === 'groups'){
                 <form method="post" action="machine_settings.php?tab=groups&group_id=<?php echo $group_id; ?>">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="group_id" value="<?php echo $group_id; ?>">
+                    <div style="margin-bottom:10px; display:flex; align-items:center; gap:10px;">
+                        <button type="button" id="toggleAllMachinesBtn" onclick="toggleAllMachines()" style="font-size:12px; padding:5px 12px; background:#607D8B; color:white; border:none; border-radius:5px; cursor:pointer;">➕ Tüm Makineleri Göster</button>
+                        <input type="text" id="machineSearchInput" placeholder="Makine ara..." oninput="filterMachineList()" style="padding:5px 10px; border:1px solid #ddd; border-radius:5px; font-size:13px; flex:1;">
+                    </div>
                     <div class="machine-list">
                         <?php $all_machines->data_seek(0); while($machine = $all_machines->fetch_assoc()):
                             $checked = in_array($machine['id'], $group_machines) ? 'checked' : '';
+                            $inGroup = in_array($machine['id'], $group_machines) ? 'data-in-group="1"' : 'data-in-group="0"';
                         ?>
-                        <div class="machine-item">
+                        <div class="machine-item" <?php echo $inGroup; ?> <?php echo !$checked ? 'style="display:none"' : ''; ?>>
                             <label>
                                 <input type="checkbox" name="machines[]" value="<?php echo $machine['id']; ?>" <?php echo $checked; ?>>
                                 <strong><?php echo htmlspecialchars($machine['machine_no']); ?></strong> — <?php echo htmlspecialchars($machine['ip']); ?> (Z:<?php echo $machine['pos_z']; ?>)
@@ -495,6 +500,25 @@ if($tab === 'groups'){
                         <button type="button" onclick="window.location='export_group.php?group_id=<?php echo $group_id; ?>'" style="background:#2196F3;">📥 Excel Aktar</button>
                     </div>
                 </form>
+                <script>
+                let showingAll = false;
+                function toggleAllMachines() {
+                    showingAll = !showingAll;
+                    const btn = document.getElementById('toggleAllMachinesBtn');
+                    btn.textContent = showingAll ? '🔽 Sadece Grup Makineleri' : '➕ Tüm Makineleri Göster';
+                    btn.style.background = showingAll ? '#4CAF50' : '#607D8B';
+                    filterMachineList();
+                }
+                function filterMachineList() {
+                    const query = document.getElementById('machineSearchInput').value.toLowerCase();
+                    document.querySelectorAll('.machine-list .machine-item').forEach(function(item) {
+                        const inGroup = item.getAttribute('data-in-group') === '1';
+                        const label = item.textContent.toLowerCase();
+                        const visible = (showingAll || inGroup) && (!query || label.includes(query));
+                        item.style.display = visible ? '' : 'none';
+                    });
+                }
+                </script>
                 <div class="group-stats">
                     <strong>Grup İstatistikleri:</strong><br>
                     Toplam Makine: <?php echo count($group_machines); ?><br>

@@ -15,28 +15,25 @@ include("config.php");
 
 // ── CSV Şablon İndirme ────────────────────────────────────────────────────────
 if(isset($_GET['download_template'])){
-    header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="makine_sablonu.csv"');
-    header('Cache-Control: no-cache, no-store, must-revalidate');
-    echo "\xEF\xBB\xBF"; // UTF-8 BOM
-    echo "machine_no,ip,mac\n";
-    echo "MAKINE001,192.168.1.100,AA:BB:CC:DD:EE:FF\n";
-    echo "MAKINE002,192.168.1.101,AA:BB:CC:DD:EE:00\n";
-    exit;
+    include_once("xlsx_helper.php");
+    $headers = ['machine_no', 'ip', 'mac'];
+    $rows = [
+        ['MAKINE001', '192.168.1.100', 'AA:BB:CC:DD:EE:FF'],
+        ['MAKINE002', '192.168.1.101', 'AA:BB:CC:DD:EE:00'],
+    ];
+    send_xlsx('makine_sablonu.xlsx', $headers, $rows);
 }
 
-// ── Mevcut Makineleri CSV Olarak Dışa Aktar ───────────────────────────────────
+// ── Mevcut Makineleri Excel Olarak Dışa Aktar ─────────────────────────────────
 if(isset($_GET['export_machines'])){
-    header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="makineler_' . date('Y-m-d') . '.csv"');
-    header('Cache-Control: no-cache, no-store, must-revalidate');
-    echo "\xEF\xBB\xBF"; // UTF-8 BOM
-    echo "machine_no,ip,mac,pos_z,pos_x,pos_y,rotation,note\n";
+    include_once("xlsx_helper.php");
+    $headers = ['machine_no', 'ip', 'mac', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
+    $rows = [];
     $exp = $conn->query("SELECT machine_no,ip,mac,pos_z,pos_x,pos_y,rotation,note FROM machines ORDER BY pos_z, machine_no");
     while($r = $exp->fetch_assoc()){
-        echo implode(',', array_map(function($v){ return '"' . str_replace('"', '""', $v ?? '') . '"'; }, $r)) . "\n";
+        $rows[] = array_values($r);
     }
-    exit;
+    send_xlsx('makineler_' . date('Y-m-d') . '.xlsx', $headers, $rows);
 }
 
 // ── CSV Yükleme ───────────────────────────────────────────────────────────────
@@ -165,8 +162,8 @@ if(isset($_POST['upload'])){
     <div class="card">
         <h3>📥 İndir</h3>
         <div class="btn-row">
-            <a href="?download_template=1" class="btn btn-blue">📋 CSV Şablonu İndir</a>
-            <a href="?export_machines=1" class="btn btn-gray">💾 Tüm Makineleri CSV Olarak İndir</a>
+            <a href="?download_template=1" class="btn btn-blue">📋 Excel Şablonu İndir</a>
+            <a href="?export_machines=1" class="btn btn-gray">💾 Tüm Makineleri Excel Olarak İndir</a>
         </div>
     </div>
 </div>

@@ -1268,6 +1268,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         updateGroupIcons();
+        // Re-center view on the now-visible machines
+        requestAnimationFrame(function() { fitFloorToView(currentFloor); });
     };
     
     window.deleteGroup = function(groupId) {
