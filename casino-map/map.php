@@ -439,22 +439,21 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         }
         .dark-theme .floor-section-header { background: rgba(76,175,80,0.12); }
 
-        /* Düzenle açılır menü */
-        #editDropdownWrapper { position: relative; flex-shrink: 0; }
-        #editDropdown {
-            display: none; position: absolute; top: 40px; left: 0;
-            background: white; border: 1px solid #ddd; border-radius: 10px;
-            padding: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.18);
-            z-index: 5000; min-width: 230px;
+        /* Düzenle — sağa kayan araç çubuğu */
+        #editToolsWrapper { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
+        #editDropdownBtn { width: 34px; height: 34px; padding: 0; gap: 0; font-size: 15px; }
+        #editToolsSlide {
+            display: flex; gap: 2px; align-items: center; overflow: hidden;
+            max-width: 0; opacity: 0;
+            transition: max-width 0.35s ease, opacity 0.25s ease;
         }
-        .dark-theme #editDropdown { background: #2d2d2d; border-color: #555; color: #eee; }
-        .edit-dd-section {
-            font-size: 10px; color: #999; font-weight: bold; text-transform: uppercase;
-            letter-spacing: 0.5px; margin: 8px 0 4px; padding-left: 2px;
-        }
-        .dark-theme .edit-dd-section { color: #888; }
-        .edit-dd-row { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 4px; }
-        #editDropdownBtn { min-width: 78px; width: auto; padding: 0 8px; gap: 4px; font-size: 12px; font-weight: bold; }
+        #editToolsSlide.open { max-width: 700px; opacity: 1; }
+        .edit-slide-group { display: flex; gap: 2px; align-items: center; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 8px; flex-shrink: 0; }
+        .edit-slide-divider { width: 1px; height: 22px; background: #ccc; margin: 0 2px; flex-shrink: 0; }
+        .dark-theme .edit-slide-divider { background: #555; }
+        /* Makina Ekle butonu */
+        #addMachineBtn { width: 34px; height: 34px; padding: 0; gap: 0; background: #4CAF50; }
+        /* Eski dropdown CSS'i kaldırıldı */
     </style>
 </head>
 
@@ -471,22 +470,20 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             </div>
 
             <?php if($role == 'admin'): ?>
-                <!-- Düzenle açılır menü (döndür / hizala / konum) -->
-                <div id="editDropdownWrapper">
+                <!-- Düzenle butonu + sağa kayan araç çubuğu -->
+                <div id="editToolsWrapper">
                     <button class="toolbar-btn" id="editDropdownBtn" onclick="toggleEditDropdown()" title="Düzenle araçları">
                         <i class="fas fa-edit"></i>
-                        <span>Düzenle</span>
-                        <i class="fas fa-chevron-down" id="editDropdownArrow" style="font-size:9px;"></i>
+                        <span class="tooltip-text">Düzenle</span>
                     </button>
-                    <div id="editDropdown">
-                        <div class="edit-dd-section">Döndür</div>
-                        <div class="edit-dd-row">
+                    <div id="editToolsSlide">
+                        <div class="edit-slide-group">
                             <button class="toolbar-btn" onclick="rotateSelected(45)" title="45° döndür"><i class="fas fa-redo-alt"></i><span class="tooltip-text">45° döndür</span></button>
                             <button class="toolbar-btn" onclick="rotateSelected(90)" title="90° döndür"><i class="fas fa-undo-alt"></i><span class="tooltip-text">90° döndür</span></button>
                             <button class="toolbar-btn" onclick="rotateSelected(180)" title="180° döndür"><i class="fas fa-sync-alt"></i><span class="tooltip-text">180° döndür</span></button>
                         </div>
-                        <div class="edit-dd-section">Hizala</div>
-                        <div class="edit-dd-row">
+                        <div class="edit-slide-divider"></div>
+                        <div class="edit-slide-group">
                             <button class="toolbar-btn purple" onclick="alignSelected('left')" title="Sola hizala"><i class="fas fa-align-left"></i><span class="tooltip-text">Sola hizala</span></button>
                             <button class="toolbar-btn purple" onclick="alignSelected('right')" title="Sağa hizala"><i class="fas fa-align-right"></i><span class="tooltip-text">Sağa hizala</span></button>
                             <button class="toolbar-btn purple" onclick="alignSelected('top')" title="Üste hizala"><i class="fas fa-align-justify" style="transform:rotate(90deg);"></i><span class="tooltip-text">Üste hizala</span></button>
@@ -496,8 +493,8 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                             <button class="toolbar-btn purple" onclick="alignSelected('distributeH')" title="Yatay dağıt"><i class="fas fa-arrows-alt-h" style="transform:rotate(90deg);"></i><span class="tooltip-text">Yatay dağıt</span></button>
                             <button class="toolbar-btn purple" onclick="alignSelected('distributeV')" title="Dikey dağıt"><i class="fas fa-arrows-alt-v" style="transform:rotate(90deg);"></i><span class="tooltip-text">Dikey dağıt</span></button>
                         </div>
-                        <div class="edit-dd-section">Konum / Ayar</div>
-                        <div class="edit-dd-row">
+                        <div class="edit-slide-divider"></div>
+                        <div class="edit-slide-group">
                             <button class="toolbar-btn orange" onclick="openPositionModal()" title="Konum ayarla"><i class="fas fa-map-marker-alt"></i><span class="tooltip-text">Konum ayarla</span></button>
                             <button class="toolbar-btn orange" onclick="openNoteModal()" title="Not ekle"><i class="fas fa-sticky-note"></i><span class="tooltip-text">Not ekle</span></button>
                             <button class="toolbar-btn orange" onclick="openHubSwModal()" title="Hub SW ayarla"><i class="fas fa-network-wired"></i><span class="tooltip-text">Hub SW</span></button>
@@ -507,11 +504,11 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                     </div>
                 </div>
 
-                <!-- Makina Ekle -->
-                <a href="machine_settings.php?tab=edit" class="toolbar-btn" style="min-width:90px;width:auto;padding:0 8px;text-decoration:none;gap:4px;font-size:12px;font-weight:bold;" title="Yeni makine ekle">
+                <!-- Makina Ekle (popup modal) -->
+                <button class="toolbar-btn" id="addMachineBtn" onclick="openAddMachineModal()" title="Makina Ekle">
                     <i class="fas fa-plus"></i>
-                    <span>Makina Ekle</span>
-                </a>
+                    <span class="tooltip-text">Makina Ekle</span>
+                </button>
 
                 <div class="toolbar-divider"></div>
 
@@ -796,6 +793,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
     <script>
         // PHP → JS yetki köprüsü
         const IS_ADMIN = <?php echo ($role === 'admin') ? 'true' : 'false'; ?>;
+        const CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
     </script>
     <script src="assets/js/map.js"></script>
 
@@ -838,25 +836,147 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         </div>
     </div>
 
+    <!-- Makina Ekle Modal -->
+    <div id="addMachineModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> Yeni Makine Ekle / Düzenle</h3>
+                <span class="close" onclick="closeAddMachineModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Makine No:</label>
+                    <input type="text" id="newMachineNo" placeholder="">
+                </div>
+                <div class="form-group">
+                    <label>IP Adresi:</label>
+                    <input type="text" id="newMachineIp" placeholder="">
+                </div>
+                <div class="form-group">
+                    <label>MAC Adresi:</label>
+                    <input type="text" id="newMachineMac" placeholder="">
+                </div>
+                <div class="form-group">
+                    <label>Z Koordinatı (Kat):</label>
+                    <select id="newMachineZ">
+                        <option value="0">Yüksek Tavan</option>
+                        <option value="1">Alçak Tavan</option>
+                        <option value="2">Yeni Vip Salon</option>
+                        <option value="3">Alt Salon</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Not:</label>
+                    <textarea id="newMachineNote" placeholder="Makine hakkında notlar..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" onclick="clearAddMachineForm()">Temizle</button>
+                <button class="save-btn" onclick="submitAddMachine()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-    // Düzenle açılır menü toggle
+    // ── Düzenle sağa kayan açma/kapama ─────────────────────────────────────
     function toggleEditDropdown() {
-        var dd = document.getElementById('editDropdown');
-        var arrow = document.getElementById('editDropdownArrow');
-        var open = dd.style.display === 'block';
-        dd.style.display = open ? 'none' : 'block';
-        if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+        var slide = document.getElementById('editToolsSlide');
+        if (!slide) return;
+        slide.classList.toggle('open');
     }
     // Dışarı tıklanınca kapat
     document.addEventListener('click', function(e) {
-        var btn = document.getElementById('editDropdownWrapper');
-        var dd  = document.getElementById('editDropdown');
-        if (dd && btn && !btn.contains(e.target)) {
-            dd.style.display = 'none';
-            var arrow = document.getElementById('editDropdownArrow');
-            if (arrow) arrow.style.transform = '';
+        var wrapper = document.getElementById('editToolsWrapper');
+        var slide   = document.getElementById('editToolsSlide');
+        if (slide && wrapper && !wrapper.contains(e.target)) {
+            slide.classList.remove('open');
         }
     });
+
+    // ── Makina Ekle Modal ───────────────────────────────────────────────────
+    function openAddMachineModal() {
+        document.getElementById('addMachineModal').style.display = 'block';
+    }
+    function closeAddMachineModal() {
+        document.getElementById('addMachineModal').style.display = 'none';
+    }
+    function clearAddMachineForm() {
+        ['newMachineNo','newMachineIp','newMachineMac','newMachineNote'].forEach(function(id) {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('newMachineZ').value = '0';
+    }
+    function submitAddMachine() {
+        var no   = document.getElementById('newMachineNo').value.trim();
+        var ip   = document.getElementById('newMachineIp').value.trim();
+        var mac  = document.getElementById('newMachineMac').value.trim();
+        var z    = document.getElementById('newMachineZ').value;
+        var note = document.getElementById('newMachineNote').value.trim();
+
+        if (!no || !ip || !mac) {
+            alert('Makine No, IP Adresi ve MAC Adresi zorunludur!');
+            return;
+        }
+
+        var fd = new FormData();
+        fd.append('csrf_token', CSRF_TOKEN);
+        fd.append('machine_no', no);
+        fd.append('ip', ip);
+        fd.append('mac', mac);
+        fd.append('pos_z', z);
+        fd.append('note', note);
+
+        fetch('add_machine_ajax.php', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    closeAddMachineModal();
+                    clearAddMachineForm();
+                    _addMachineToMap(data);
+                    if (typeof showStatus === 'function') showStatus('Makine eklendi: ' + data.machine_no);
+                } else {
+                    alert(data.error || 'Hata oluştu.');
+                }
+            })
+            .catch(function() { alert('Bağlantı hatası.'); });
+    }
+
+    function _addMachineToMap(data) {
+        var map = document.getElementById('map');
+        if (!map) return;
+        // Escape helper (may not yet be defined when this runs)
+        function esc(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        var div = document.createElement('div');
+        div.className = 'machine';
+        div.setAttribute('data-id', data.id);
+        div.setAttribute('data-rotation', '0');
+        div.setAttribute('data-note', data.note || '');
+        div.setAttribute('data-x', '0');
+        div.setAttribute('data-y', '0');
+        div.setAttribute('data-z', String(data.pos_z));
+        div.setAttribute('data-machine-no', data.machine_no);
+        div.setAttribute('data-ip', data.ip);
+        div.setAttribute('data-mac', data.mac);
+        div.setAttribute('data-drscreen-ip', '');
+        div.setAttribute('data-hub-sw', '0');
+        div.setAttribute('data-hub-sw-cable', '');
+        div.style.left = '20px';
+        div.style.top  = '20px';
+        div.style.transform = 'rotate(0deg)';
+        div.innerHTML =
+            '<div class="machine-inner">' +
+            '<span class="machine-label">' + esc(data.machine_no) + '</span>' +
+            '<span class="machine-ip">' + esc(data.ip) + '</span>' +
+            '<span class="z-level">Z:' + esc(data.pos_z) + '</span>' +
+            '</div>';
+        map.appendChild(div);
+        // Attach all event listeners (drag, click, contextmenu, tooltip)
+        if (typeof window._setupMachineEl === 'function') {
+            window._setupMachineEl(div);
+        }
+    }
     </script>
 </body>
 </html>

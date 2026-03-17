@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Makine sayısı:', machines.length);
 
     // Her makineye olay dinleyicileri ekle
-    machines.forEach(machine => {
+    function setupMachineEl(machine) {
         // Click: handle selection here only (NOT in mousedown to avoid Ctrl double-toggle)
         machine.addEventListener('click', function(e) {
             if (suppressNextClick) { suppressNextClick = false; return; }
@@ -140,7 +140,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Drag'i engelle
         machine.addEventListener('dragstart', (e) => e.preventDefault());
-    });
+    }
+    machines.forEach(setupMachineEl);
+    // Yeni eklenen makineler için de kullanılabilir (map.php tarafından çağrılır)
+    window._setupMachineEl = setupMachineEl;
 
     // Fare hareketi - SÜRÜKLEME İÇİN
     document.addEventListener('mousemove', function(e) {
