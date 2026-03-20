@@ -194,9 +194,9 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             content: '♠ POKER'; position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
             font-size: 7px; font-weight: bold; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; white-space: nowrap;
         }
-        /* Rulet — rounded rectangle */
+        /* Rulet — rounded rectangle (barbut kadar geniş) */
         .machine[data-game-type="rulet"] {
-            width: 55px; height: 38px; border-radius: 5px;
+            width: 70px; height: 38px; border-radius: 5px;
             background: linear-gradient(135deg, #7B1FA2 0%, #B71C1C 100%);
             border: 2px solid #FFD700 !important;
             box-shadow: 0 0 10px rgba(183,28,28,0.6), 2px 2px 5px rgba(0,0,0,0.5);
@@ -225,7 +225,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             width: 100%; height: 100%;
             display: none;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
             gap: 3px;
             background: rgba(76,175,80,0.35); /* ince bölücü çizgiler = gap rengi */
             padding: 0;
@@ -540,8 +540,10 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                 <button class="floor-tab active" data-z="all" onclick="switchFloor('all')">Tüm Slot</button>
                 <button class="floor-tab" data-z="0" onclick="switchFloor('0')">Yüksek Tavan</button>
                 <button class="floor-tab" data-z="1" onclick="switchFloor('1')">Alçak Tavan</button>
-                <button class="floor-tab" data-z="2" onclick="switchFloor('2')">Yeni Vip Salon</button>
+                <button class="floor-tab" data-z="2" onclick="switchFloor('2')">Yeni VIP Salon</button>
                 <button class="floor-tab" data-z="3" onclick="switchFloor('3')">Alt Salon</button>
+                <button class="floor-tab" data-z="4" onclick="switchFloor('4')">🌿 Balkon</button>
+                <button class="floor-tab" data-z="5" onclick="switchFloor('5')">👑 Eski VIP Salon</button>
             </div>
 
             <?php if($role == 'admin'): ?>
@@ -695,7 +697,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             </div>
             <div id="info-panel-body"></div>
         </div>
-        <!-- 4-panel multi-floor overview (shown when "Tüm Katlar" is active) -->
+        <!-- 6-panel multi-floor overview (shown when "Tüm Katlar" is active) -->
         <div id="multi-floor-container">
             <div class="floor-panel" onclick="switchFloor('0')">
                 <div class="floor-panel-title">🏛 Yüksek Tavan</div>
@@ -712,6 +714,14 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             <div class="floor-panel" onclick="switchFloor('3')">
                 <div class="floor-panel-title">🎰 Alt Salon</div>
                 <div class="floor-panel-map" id="mini-map-3"></div>
+            </div>
+            <div class="floor-panel" onclick="switchFloor('4')">
+                <div class="floor-panel-title">🌿 Balkon</div>
+                <div class="floor-panel-map" id="mini-map-4"></div>
+            </div>
+            <div class="floor-panel" onclick="switchFloor('5')">
+                <div class="floor-panel-title">👑 Eski VIP Salon</div>
+                <div class="floor-panel-map" id="mini-map-5"></div>
             </div>
         </div>
         <div id="map">
@@ -804,8 +814,10 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                     <select id="posZ">
                         <option value="0">Yüksek Tavan</option>
                         <option value="1">Alçak Tavan</option>
-                        <option value="2">Yeni Vip Salon</option>
+                        <option value="2">Yeni VIP Salon</option>
                         <option value="3">Alt Salon</option>
+                        <option value="4">🌿 Balkon</option>
+                        <option value="5">👑 Eski VIP Salon</option>
                         <option value="10">🎲 Canlı Masa (Casino)</option>
                     </select>
                 </div>
@@ -938,8 +950,10 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                     <select id="newMachineZ" onchange="toggleGameTypeField(this.value)">
                         <option value="0">Yüksek Tavan</option>
                         <option value="1">Alçak Tavan</option>
-                        <option value="2">Yeni Vip Salon</option>
+                        <option value="2">Yeni VIP Salon</option>
                         <option value="3">Alt Salon</option>
+                        <option value="4">🌿 Balkon</option>
+                        <option value="5">👑 Eski VIP Salon</option>
                         <option value="10">🎲 Canlı Masa (Casino)</option>
                     </select>
                 </div>

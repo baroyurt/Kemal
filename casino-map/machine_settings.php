@@ -157,7 +157,7 @@ if($tab === 'edit'){
     }
     $total_pages = ceil($total_machines / $limit);
 
-    $z_levels = [0=>'Yüksek Tavan', 1=>'Alçak Tavan', 2=>'Yeni Vip Salon', 3=>'Alt Salon'];
+    $z_levels = [0=>'Yüksek Tavan', 1=>'Alçak Tavan', 2=>'Yeni VIP Salon', 3=>'Alt Salon', 4=>'Balkon', 5=>'Eski VIP Salon', 10=>'Canlı Masa'];
 }
 
 /* ══════════════════════════════════════════════

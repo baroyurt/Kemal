@@ -609,11 +609,11 @@ document.addEventListener('DOMContentLoaded', function() {
         map.style.display = 'block';
 
         if (zValue === 'all') {
-            // Show only slot machines (pos_z 0–3); hide casino tables (pos_z 10)
+            // Show only slot machines (pos_z 0–9); hide casino tables (pos_z 10)
             mapContainer.classList.remove('casino-mode');
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 const mz = parseInt(machine.getAttribute('data-z'), 10);
-                machine.style.display = (mz <= 3) ? 'flex' : 'none';
+                machine.style.display = (mz < 10) ? 'flex' : 'none';
             });
             // Remove any existing floor dividers then redraw them
             document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
@@ -1416,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('#map .machine').forEach(machine => {
                 if (currentFloor === 'all') {
                     const mz = parseInt(machine.getAttribute('data-z'), 10);
-                    machine.style.display = (mz <= 3) ? 'flex' : 'none';
+                    machine.style.display = (mz < 10) ? 'flex' : 'none';
                 } else if (currentFloor === 'casino') {
                     machine.style.display = 'flex';
                 } else {
