@@ -85,8 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectMachine(this);
             }
 
-            // Open info panel for the clicked machine
-            if (!e.ctrlKey && !e.shiftKey) {
+            // Open info panel for the clicked machine (not in casino mode)
+            if (!e.ctrlKey && !e.shiftKey && currentFloor !== 'casino') {
                 showMachineInfoPanel(this);
             }
         });
@@ -611,6 +611,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (zValue === 'all') {
             // Show only slot machines (pos_z 0–9); hide casino tables (pos_z 10)
             mapContainer.classList.remove('casino-mode');
+            // Remove casino upper-floor label if present
+            var ul = document.getElementById('casino-upper-floor-label'); if (ul) ul.remove();
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 const mz = parseInt(machine.getAttribute('data-z'), 10);
                 machine.style.display = (mz < 10) ? 'flex' : 'none';
@@ -628,13 +630,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 machine.style.display = 'flex';
             });
             mapContainer.classList.add('casino-mode');
+            // Add upper-floor label above casino tables
+            var existingLbl = document.getElementById('casino-upper-floor-label');
+            if (!existingLbl) {
+                var lbl = document.createElement('div');
+                lbl.id = 'casino-upper-floor-label';
+                lbl.textContent = '🎲 CANLI MASALAR — ÜST KAT';
+                document.getElementById('map').appendChild(lbl);
+            }
             resizeMapToFitMachines();
+            // Position the label near the topmost casino table
+            (function positionLabel() {
+                var label = document.getElementById('casino-upper-floor-label');
+                if (!label) return;
+                var tables = document.querySelectorAll('#map .machine[data-z="10"]');
+                if (!tables.length) { label.style.top = '20px'; return; }
+                var minY = Infinity;
+                tables.forEach(function(t) { var y = parseFloat(t.style.top) || 0; if (y < minY) minY = y; });
+                label.style.top = Math.max(4, minY - 28) + 'px';
+            })();
             updateGroupIcons();
             // Fit the entire map into view so both slots and casino tables are visible
             requestAnimationFrame(function() { fitFloorToView('all'); });
         } else {
             // Single-floor view — remove dividers; also hide casino tables
             mapContainer.classList.remove('casino-mode');
+            // Remove casino upper-floor label if present
+            var ul2 = document.getElementById('casino-upper-floor-label'); if (ul2) ul2.remove();
             document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 machine.style.display = (machine.getAttribute('data-z') === String(zValue)) ? 'flex' : 'none';
@@ -2346,7 +2368,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const hubSwCable   = machine.getAttribute('data-hub-sw-cable') || '';
         const machineId    = parseInt(machine.getAttribute('data-id'));
 
-        const floorNames = { '0': '🏛 Yüksek Tavan', '1': '🏠 Alçak Tavan', '2': '👑 Yeni VIP Salon', '3': '🎰 Alt Salon' };
+        const floorNames = { '0': '🏛 Yüksek Tavan', '1': '🏠 Alçak Tavan', '2': '👑 Yeni VIP Salon', '3': '🎰 Alt Salon', '4': '🌿 Balkon', '5': '👑 Eski VIP Salon', '10': '🎲 Canlı Masalar' };
 
         const groupTags = Object.entries(window.groupsData)
             .filter(([, g]) => g.machines.includes(machineId))

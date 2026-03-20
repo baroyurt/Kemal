@@ -165,8 +165,25 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         /* ===== CASINO MODE — slot machines locked (visible but not interactive) ===== */
         #map-container.casino-mode .machine:not([data-z="10"]) {
             pointer-events: none !important;
-            opacity: 0.75;
+            opacity: 0.20 !important;
+            filter: grayscale(70%);
             cursor: default !important;
+        }
+        /* Casino tables in casino mode — elevated "upper floor" appearance */
+        #map-container.casino-mode .machine[data-z="10"] {
+            z-index: 100 !important;
+            transform: scale(1.10);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.4) !important;
+            filter: drop-shadow(0 0 7px rgba(255,215,0,0.35));
+        }
+        /* Upper-floor label shown in casino mode */
+        #casino-upper-floor-label {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(90deg, rgba(123,31,162,0.92), rgba(183,28,28,0.92));
+            color: #FFD700; font-weight: bold; font-size: 11px; letter-spacing: 0.8px;
+            padding: 4px 18px; border-radius: 20px; z-index: 200;
+            border: 1px solid rgba(255,215,0,0.5); pointer-events: none; white-space: nowrap;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.4);
         }
         /* ===== CASINO TABLE TYPES ===== */
         /* Remove the black separator bar for casino tables */
@@ -542,8 +559,6 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                 <button class="floor-tab" data-z="1" onclick="switchFloor('1')">Alçak Tavan</button>
                 <button class="floor-tab" data-z="2" onclick="switchFloor('2')">Yeni VIP Salon</button>
                 <button class="floor-tab" data-z="3" onclick="switchFloor('3')">Alt Salon</button>
-                <button class="floor-tab" data-z="4" onclick="switchFloor('4')">🌿 Balkon</button>
-                <button class="floor-tab" data-z="5" onclick="switchFloor('5')">👑 Eski VIP Salon</button>
             </div>
 
             <?php if($role == 'admin'): ?>
