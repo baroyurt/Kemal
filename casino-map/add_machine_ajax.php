@@ -25,8 +25,8 @@ $mac        = trim($_POST['mac']        ?? '');
 $pos_z      = intval($_POST['pos_z']    ?? 0);
 $note       = trim($_POST['note']       ?? '');
 $game_type  = trim($_POST['game_type']  ?? '');
-// Validate game_type for casino floor (pos_z=10)
-$allowed_types = ['', 'poker', 'rulet', 'barbut'];
+// Validate game_type — all floors can have a type (slot = normal machine, others = live tables)
+$allowed_types = ['', 'slot', 'poker', 'rulet', 'barbut'];
 if (!in_array($game_type, $allowed_types, true)) {
     $game_type = '';
 }

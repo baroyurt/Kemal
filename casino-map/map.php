@@ -962,19 +962,20 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                 </div>
                 <div class="form-group">
                     <label>Z Koordinatı (Kat):</label>
-                    <select id="newMachineZ" onchange="toggleGameTypeField(this.value)">
+                    <select id="newMachineZ" onchange="onZChange(this.value)">
                         <option value="0">Yüksek Tavan</option>
                         <option value="1">Alçak Tavan</option>
                         <option value="2">Yeni VIP Salon</option>
                         <option value="3">Alt Salon</option>
-                        <option value="4">🌿 Balkon</option>
+                        <option value="4" selected>🌿 Balkon</option>
                         <option value="5">👑 Eski VIP Salon</option>
                         <option value="10">🎲 Canlı Masa (Casino)</option>
                     </select>
                 </div>
-                <div class="form-group" id="gameTypeGroup" style="display:none;">
+                <div class="form-group" id="gameTypeGroup">
                     <label>Masa Tipi:</label>
                     <select id="newMachineGameType">
+                        <option value="slot" selected>🎰 Slot</option>
                         <option value="poker">♠ Poker</option>
                         <option value="rulet">⭕ Rulet</option>
                         <option value="barbut">🎲 Barbut</option>
@@ -1036,20 +1037,33 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         ['newMachineNo','newMachineIp','newMachineMac','newMachineNote'].forEach(function(id) {
             document.getElementById(id).value = '';
         });
-        document.getElementById('newMachineZ').value = '0';
-        document.getElementById('newMachineGameType').value = 'poker';
-        document.getElementById('gameTypeGroup').style.display = 'none';
+        document.getElementById('newMachineZ').value = '4';
+        document.getElementById('newMachineGameType').value = 'slot';
     }
-    function toggleGameTypeField(zVal) {
-        document.getElementById('gameTypeGroup').style.display = (zVal === '10') ? '' : 'none';
+    // Kat seçimi değişince: Masa Tipi'ni güncelle + haritada o kata geç
+    function onZChange(zVal) {
+        var gameTypeEl = document.getElementById('newMachineGameType');
+        if (zVal === '10') {
+            // Casino: Slot seçiliyse Poker'e geç (casino masaları için)
+            if (gameTypeEl.value === 'slot') gameTypeEl.value = 'poker';
+        } else {
+            // Diğer katlar: varsayılan Slot
+            gameTypeEl.value = 'slot';
+        }
+        // Haritada seçilen kata geç (casino özel görünüm, diğerleri direkt kat)
+        if (typeof window.switchFloor === 'function') {
+            window.switchFloor(zVal === '10' ? 'casino' : zVal);
+        }
     }
+    // Backward compat alias
+    function toggleGameTypeField(zVal) { onZChange(zVal); }
     function submitAddMachine() {
         var no       = document.getElementById('newMachineNo').value.trim();
         var ip       = document.getElementById('newMachineIp').value.trim();
         var mac      = document.getElementById('newMachineMac').value.trim();
         var z        = document.getElementById('newMachineZ').value;
         var note     = document.getElementById('newMachineNote').value.trim();
-        var gameType = (z === '10') ? document.getElementById('newMachineGameType').value : '';
+        var gameType = document.getElementById('newMachineGameType').value;
 
         if (!no || !ip || !mac) {
             alert('Makine No, IP Adresi ve MAC Adresi zorunludur!');
@@ -1102,8 +1116,23 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         div.setAttribute('data-drscreen-ip', '');
         div.setAttribute('data-hub-sw', '0');
         div.setAttribute('data-hub-sw-cable', '');
-        div.style.left = '20px';
-        div.style.top  = '20px';
+
+        // Auto-position: place near the bottom-most existing machine on the same floor
+        var zStr = String(data.pos_z);
+        var existing = Array.from(document.querySelectorAll('#map .machine[data-z="' + zStr + '"]'));
+        var placeX = 20, placeY = 20;
+        if (existing.length > 0) {
+            var bestY = -Infinity, bestX = 20;
+            existing.forEach(function(m) {
+                var y = parseFloat(m.style.top)  || 0;
+                var x = parseFloat(m.style.left) || 0;
+                if (y > bestY) { bestY = y; bestX = x; }
+            });
+            placeX = bestX;
+            placeY = bestY + 70; // below the bottom-most machine
+        }
+        div.style.left = placeX + 'px';
+        div.style.top  = placeY + 'px';
         div.style.transform = 'rotate(0deg)';
         div.innerHTML =
             '<div class="machine-inner">' +
@@ -1115,6 +1144,10 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         // Attach all event listeners (drag, click, contextmenu, tooltip)
         if (typeof window._setupMachineEl === 'function') {
             window._setupMachineEl(div);
+        }
+        // Switch to the floor where the machine was added and focus it
+        if (typeof window.switchFloor === 'function') {
+            window.switchFloor(zStr === '10' ? 'casino' : zStr);
         }
     }
     </script>
