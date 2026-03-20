@@ -199,12 +199,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             padding: 3px 10px; border-radius: 5px;
             letter-spacing: 0.5px;
         }
-        /* In casino mode, hide non-live-table machines in live-table zones (z=2,4,5) */
-        #map-container.casino-mode .machine[data-z="4"]:not([data-game-type="poker"]):not([data-game-type="rulet"]):not([data-game-type="barbut"]),
-        #map-container.casino-mode .machine[data-z="2"]:not([data-game-type="poker"]):not([data-game-type="rulet"]):not([data-game-type="barbut"]),
-        #map-container.casino-mode .machine[data-z="5"]:not([data-game-type="poker"]):not([data-game-type="rulet"]):not([data-game-type="barbut"]) {
-            display: none !important;
-        }
+
         /* ===== CASINO TABLE TYPES ===== */
         /* Remove the black separator bar for casino tables */
         .machine[data-game-type="poker"]::before,

@@ -723,8 +723,9 @@ document.addEventListener('DOMContentLoaded', function() {
         map.appendChild(hDiv);
     }
 
-    // Draw zone rectangles + labels for Balkon, VIP, Eski VIP in casino mode.
-    // Bounding box computed from LIVE TABLES only (poker/rulet/barbut) in each zone.
+    // Draw zone rectangles + labels in casino mode.
+    // Balkon (z=4): tight box around LIVE TABLES only (the canlı masa area inside the room).
+    // VIP (z=2) & Eski VIP (z=5): box around ALL machines in that zone (shows the physical room).
     function drawCasinoZoneOverlays() {
         const map = document.getElementById('map');
         if (!map) return;
@@ -732,21 +733,29 @@ document.addEventListener('DOMContentLoaded', function() {
         map.querySelectorAll('.casino-zone-overlay, .casino-zone-label').forEach(d => d.remove());
 
         const ZONES = [
-            { z: '4',  name: '🌿 Balkon',    color: '#4CAF50', fillColor: 'rgba(76,175,80,0.08)',  border: '2.5px solid #4CAF50' },
-            { z: '2',  name: '👑 Yeni VIP',  color: '#9C27B0', fillColor: 'rgba(156,39,176,0.08)', border: '2.5px solid #9C27B0' },
-            { z: '5',  name: '👑 Eski VIP',  color: '#FF9800', fillColor: 'rgba(255,152,0,0.08)',   border: '2.5px solid #FF9800' },
+            { z: '4',  name: '🌿 Balkon',    color: '#4CAF50', fillColor: 'rgba(76,175,80,0.08)',  border: '2.5px solid #4CAF50', liveOnly: true  },
+            { z: '2',  name: '👑 Yeni VIP',  color: '#9C27B0', fillColor: 'rgba(156,39,176,0.08)', border: '2.5px solid #9C27B0', liveOnly: false },
+            { z: '5',  name: '👑 Eski VIP',  color: '#FF9800', fillColor: 'rgba(255,152,0,0.08)',   border: '2.5px solid #FF9800', liveOnly: false },
         ];
         const PADDING = 28;
-        const MACH_W  = 70;   // wider to account for rulet/barbut
+        const MACH_W  = 70;
         const MACH_H  = 60;
 
         ZONES.forEach(function(zone) {
-            // Only include machines that are live tables (poker/rulet/barbut)
-            var machines = Array.from(map.querySelectorAll(
-                '.machine[data-z="' + zone.z + '"][data-game-type="poker"],' +
-                '.machine[data-z="' + zone.z + '"][data-game-type="rulet"],' +
-                '.machine[data-z="' + zone.z + '"][data-game-type="barbut"]'
-            )).filter(function(m) { return m.style.display !== 'none'; });
+            var machines;
+            if (zone.liveOnly) {
+                // Balkon: only live tables define the box boundary
+                machines = Array.from(map.querySelectorAll(
+                    '.machine[data-z="' + zone.z + '"][data-game-type="poker"],' +
+                    '.machine[data-z="' + zone.z + '"][data-game-type="rulet"],' +
+                    '.machine[data-z="' + zone.z + '"][data-game-type="barbut"]'
+                )).filter(function(m) { return m.style.display !== 'none'; });
+            } else {
+                // VIP / Eski VIP: all machines in the zone define the room boundary
+                machines = Array.from(map.querySelectorAll(
+                    '.machine[data-z="' + zone.z + '"]'
+                )).filter(function(m) { return m.style.display !== 'none'; });
+            }
 
             if (machines.length === 0) return;
 
