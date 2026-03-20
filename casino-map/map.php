@@ -188,7 +188,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             border: 1px solid rgba(255,215,0,0.5); pointer-events: none; white-space: nowrap;
             box-shadow: 0 3px 12px rgba(0,0,0,0.4);
         }
-        /* Casino zone overlay boxes (Balkon / VIP / Eski VIP) */
+        /* Casino zone overlay box (Balkon only — drawn ON the map canvas) */
         .casino-zone-overlay {
             position: absolute; pointer-events: none; z-index: 50;
             border-radius: 10px;
@@ -198,6 +198,25 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             font-size: 12px; font-weight: bold; white-space: nowrap;
             padding: 3px 10px; border-radius: 5px;
             letter-spacing: 0.5px;
+        }
+        /* Casino side-room panels (Eski VIP left · Yeni VIP right) — fixed in #map-container */
+        .casino-room-panel {
+            position: absolute; z-index: 60; pointer-events: none;
+            background: rgba(255,255,255,0.94);
+            border-radius: 8px; overflow: hidden;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.22);
+        }
+        .dark-theme .casino-room-panel { background: rgba(40,40,40,0.94); }
+        .casino-room-panel-title {
+            font-size: 11px; font-weight: bold; text-align: center;
+            padding: 4px 8px; white-space: nowrap;
+            border-bottom: 1.5px solid currentColor;
+            letter-spacing: 0.4px;
+        }
+        .casino-room-panel-map { position: relative; overflow: hidden; }
+        .casino-room-panel .mini-dot {
+            position: absolute; border-radius: 3px;
+            background: rgba(120,120,120,0.55);
         }
 
         /* ===== CASINO TABLE TYPES ===== */
