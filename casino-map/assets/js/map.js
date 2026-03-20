@@ -599,9 +599,10 @@ document.addEventListener('DOMContentLoaded', function() {
         map.style.display = 'block';
 
         if (zValue === 'all') {
-            // Show ALL machines on the single canvas
+            // Show only slot machines (pos_z 0–3); hide casino tables (pos_z 10)
             document.querySelectorAll('#map .machine').forEach(function(machine) {
-                machine.style.display = 'flex';
+                const mz = parseInt(machine.getAttribute('data-z'), 10);
+                machine.style.display = (mz <= 3) ? 'flex' : 'none';
             });
             // Remove any existing floor dividers then redraw them
             document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
@@ -609,8 +610,17 @@ document.addEventListener('DOMContentLoaded', function() {
             resizeMapToFitMachines();
             updateGroupIcons();
             requestAnimationFrame(function() { fitFloorToView('all'); });
+        } else if (zValue === 'casino') {
+            // Show only casino live tables (pos_z 10)
+            document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
+            document.querySelectorAll('#map .machine').forEach(function(machine) {
+                machine.style.display = (machine.getAttribute('data-z') === '10') ? 'flex' : 'none';
+            });
+            resizeMapToFitMachines();
+            updateGroupIcons();
+            requestAnimationFrame(function() { fitFloorToView('casino'); });
         } else {
-            // Single-floor view — remove dividers
+            // Single-floor view — remove dividers; also hide casino tables
             document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 machine.style.display = (machine.getAttribute('data-z') === String(zValue)) ? 'flex' : 'none';
@@ -868,8 +878,9 @@ document.addEventListener('DOMContentLoaded', function() {
             '1': '🏠 Alçak Tavan',
             '2': '👑 Yeni VIP Salon',
             '3': '🎰 Alt Salon',
+            '10': '🎲 Canlı Masa',
         };
-        const FLOOR_ORDER = ['0', '1', '2', '3'];
+        const FLOOR_ORDER = ['0', '1', '2', '3', '10'];
 
         const activeRegion = window.activeRegionId;
 
@@ -986,8 +997,9 @@ document.addEventListener('DOMContentLoaded', function() {
             '1': '🏠 Alçak Tavan',
             '2': '👑 Yeni VIP Salon',
             '3': '🎰 Alt Salon',
+            '10': '🎲 Canlı Masa',
         };
-        const FLOOR_ORDER = ['0', '1', '2', '3'];
+        const FLOOR_ORDER = ['0', '1', '2', '3', '10'];
 
         function getGroupFloor(group) {
             const floorCount = {};

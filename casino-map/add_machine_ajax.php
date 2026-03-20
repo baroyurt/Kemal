@@ -24,6 +24,12 @@ $ip         = trim($_POST['ip']         ?? '');
 $mac        = trim($_POST['mac']        ?? '');
 $pos_z      = intval($_POST['pos_z']    ?? 0);
 $note       = trim($_POST['note']       ?? '');
+$game_type  = trim($_POST['game_type']  ?? '');
+// Validate game_type for casino floor (pos_z=10)
+$allowed_types = ['', 'poker', 'rulet', 'barbut'];
+if (!in_array($game_type, $allowed_types, true)) {
+    $game_type = '';
+}
 
 if ($machine_no === '' || $ip === '' || $mac === '') {
     header('Content-Type: application/json');
@@ -32,9 +38,9 @@ if ($machine_no === '' || $ip === '' || $mac === '') {
 }
 
 $stmt = $conn->prepare(
-    "INSERT INTO machines (machine_no, ip, mac, pos_z, pos_x, pos_y, rotation, note) VALUES (?, ?, ?, ?, 0, 0, 0, ?)"
+    "INSERT INTO machines (machine_no, ip, mac, pos_z, pos_x, pos_y, rotation, note, game_type) VALUES (?, ?, ?, ?, 0, 0, 0, ?, ?)"
 );
-$stmt->bind_param("sssis", $machine_no, $ip, $mac, $pos_z, $note);
+$stmt->bind_param("sssiss", $machine_no, $ip, $mac, $pos_z, $note, $game_type);
 
 if ($stmt->execute()) {
     $new_id = $conn->insert_id;
@@ -48,6 +54,7 @@ if ($stmt->execute()) {
         'mac'        => $mac,
         'pos_z'      => $pos_z,
         'note'       => $note,
+        'game_type'  => $game_type,
     ]);
 } else {
     $stmt->close();

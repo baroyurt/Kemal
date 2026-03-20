@@ -157,6 +157,53 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         .floor-tab:hover:not(.active) { background: #c8e6c9; color: #2e7d32; }
         .dark-theme .floor-tab { background: #444; color: #ccc; }
         .dark-theme .floor-tab.active { background: #4CAF50; color: white; }
+        /* Casino tab — distinct red/gold style */
+        .floor-tab.casino-tab { background: #B71C1C; color: #FFD700; border: 1px solid #FFD700; }
+        .floor-tab.casino-tab.active { background: #7B1FA2; color: #FFD700; box-shadow: 0 2px 8px rgba(123,31,162,0.5); border-color: #FFD700; }
+        .floor-tab.casino-tab:hover:not(.active) { background: #c62828; color: #FFD700; }
+        .dark-theme .floor-tab.casino-tab { background: #4a0000; color: #FFD700; }
+        /* ===== CASINO TABLE TYPES ===== */
+        /* Remove the black separator bar for casino tables */
+        .machine[data-game-type="poker"]::before,
+        .machine[data-game-type="rulet"]::before,
+        .machine[data-game-type="barbut"]::before { display: none; }
+        /* Poker — Texas Hold'em oval green table */
+        .machine[data-game-type="poker"] {
+            width: 120px; height: 64px; border-radius: 32px;
+            background: linear-gradient(160deg, #256b3a 0%, #1B5E20 100%);
+            border: 3px solid #795548 !important;
+            box-shadow: 0 0 18px rgba(27,94,32,0.7), 4px 4px 8px rgba(0,0,0,0.5);
+        }
+        .machine[data-game-type="poker"]::after {
+            content: '♠ POKER'; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+            font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.75); letter-spacing: 1px; white-space: nowrap;
+        }
+        /* Rulet — red/black roulette table */
+        .machine[data-game-type="rulet"] {
+            width: 110px; height: 64px; border-radius: 10px;
+            background: linear-gradient(135deg, #7B1FA2 0%, #B71C1C 100%);
+            border: 3px solid #FFD700 !important;
+            box-shadow: 0 0 18px rgba(183,28,28,0.6), 4px 4px 8px rgba(0,0,0,0.5);
+        }
+        .machine[data-game-type="rulet"]::after {
+            content: '⭕ RULET'; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+            font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.75); letter-spacing: 1px; white-space: nowrap;
+        }
+        /* Barbut — craps oval green table */
+        .machine[data-game-type="barbut"] {
+            width: 140px; height: 70px; border-radius: 35px;
+            background: linear-gradient(160deg, #2E7D32 0%, #1B5E20 100%);
+            border: 3px solid #8D6E63 !important;
+            box-shadow: 0 0 18px rgba(27,94,32,0.7), 4px 4px 8px rgba(0,0,0,0.5);
+        }
+        .machine[data-game-type="barbut"]::after {
+            content: '🎲 BARBUT'; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+            font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.75); letter-spacing: 1px; white-space: nowrap;
+        }
+        /* inner padding-top override for casino tables so label sits below icon */
+        .machine[data-game-type="poker"] .machine-inner,
+        .machine[data-game-type="rulet"] .machine-inner,
+        .machine[data-game-type="barbut"] .machine-inner { padding-top: 18px; }
         /* Tüm Katlar — tek kanvas görünümü, salon sınırları çizgilerle */
         #multi-floor-container {
             width: 100%; height: 100%;
@@ -473,11 +520,12 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         <div class="toolbar-left">
             <input id="search" placeholder="Makine ara...">
             <div class="floor-tabs" id="floor-tabs">
-                <button class="floor-tab active" data-z="all" onclick="switchFloor('all')">Tüm Katlar</button>
+                <button class="floor-tab active" data-z="all" onclick="switchFloor('all')">Tüm Slot</button>
                 <button class="floor-tab" data-z="0" onclick="switchFloor('0')">Yüksek Tavan</button>
                 <button class="floor-tab" data-z="1" onclick="switchFloor('1')">Alçak Tavan</button>
                 <button class="floor-tab" data-z="2" onclick="switchFloor('2')">Yeni Vip Salon</button>
                 <button class="floor-tab" data-z="3" onclick="switchFloor('3')">Alt Salon</button>
+                <button class="floor-tab casino-tab" data-z="casino" onclick="switchFloor('casino')">🎲 Tüm Casino</button>
             </div>
 
             <?php if($role == 'admin'): ?>
@@ -665,6 +713,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                      data-x="<?php echo $row['pos_x']; ?>"
                      data-y="<?php echo $row['pos_y']; ?>"
                      data-z="<?php echo $row['pos_z']; ?>"
+                     data-game-type="<?php echo htmlspecialchars($row['game_type'] ?? '', ENT_QUOTES); ?>"
                      data-machine-no="<?php echo htmlspecialchars($row['machine_no'], ENT_QUOTES); ?>"
                      data-ip="<?php echo htmlspecialchars($row['ip'], ENT_QUOTES); ?>"
                      data-mac="<?php echo htmlspecialchars($row['mac'], ENT_QUOTES); ?>"
@@ -741,6 +790,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                         <option value="1">Alçak Tavan</option>
                         <option value="2">Yeni Vip Salon</option>
                         <option value="3">Alt Salon</option>
+                        <option value="10">🎲 Canlı Masa (Casino)</option>
                     </select>
                 </div>
             </div>
@@ -869,11 +919,20 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                 </div>
                 <div class="form-group">
                     <label>Z Koordinatı (Kat):</label>
-                    <select id="newMachineZ">
+                    <select id="newMachineZ" onchange="toggleGameTypeField(this.value)">
                         <option value="0">Yüksek Tavan</option>
                         <option value="1">Alçak Tavan</option>
                         <option value="2">Yeni Vip Salon</option>
                         <option value="3">Alt Salon</option>
+                        <option value="10">🎲 Canlı Masa (Casino)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="gameTypeGroup" style="display:none;">
+                    <label>Masa Tipi:</label>
+                    <select id="newMachineGameType">
+                        <option value="poker">♠ Poker</option>
+                        <option value="rulet">⭕ Rulet</option>
+                        <option value="barbut">🎲 Barbut</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -933,13 +992,19 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             document.getElementById(id).value = '';
         });
         document.getElementById('newMachineZ').value = '0';
+        document.getElementById('newMachineGameType').value = 'poker';
+        document.getElementById('gameTypeGroup').style.display = 'none';
+    }
+    function toggleGameTypeField(zVal) {
+        document.getElementById('gameTypeGroup').style.display = (zVal === '10') ? '' : 'none';
     }
     function submitAddMachine() {
-        var no   = document.getElementById('newMachineNo').value.trim();
-        var ip   = document.getElementById('newMachineIp').value.trim();
-        var mac  = document.getElementById('newMachineMac').value.trim();
-        var z    = document.getElementById('newMachineZ').value;
-        var note = document.getElementById('newMachineNote').value.trim();
+        var no       = document.getElementById('newMachineNo').value.trim();
+        var ip       = document.getElementById('newMachineIp').value.trim();
+        var mac      = document.getElementById('newMachineMac').value.trim();
+        var z        = document.getElementById('newMachineZ').value;
+        var note     = document.getElementById('newMachineNote').value.trim();
+        var gameType = (z === '10') ? document.getElementById('newMachineGameType').value : '';
 
         if (!no || !ip || !mac) {
             alert('Makine No, IP Adresi ve MAC Adresi zorunludur!');
@@ -953,6 +1018,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         fd.append('mac', mac);
         fd.append('pos_z', z);
         fd.append('note', note);
+        fd.append('game_type', gameType);
 
         fetch('add_machine_ajax.php', { method: 'POST', body: fd })
             .then(function(r) { return r.json(); })
@@ -984,6 +1050,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         div.setAttribute('data-x', '0');
         div.setAttribute('data-y', '0');
         div.setAttribute('data-z', String(data.pos_z));
+        div.setAttribute('data-game-type', data.game_type || '');
         div.setAttribute('data-machine-no', data.machine_no);
         div.setAttribute('data-ip', data.ip);
         div.setAttribute('data-mac', data.mac);
