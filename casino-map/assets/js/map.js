@@ -648,30 +648,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('map').appendChild(lbl);
             }
             resizeMapToFitMachines();
-            // Position the label to the LEFT of the Balkon zone (z=4 machines)
+            // Position the label to the RIGHT of the Balkon zone (z=4 live tables)
             (function positionLabel() {
                 var label = document.getElementById('casino-upper-floor-label');
                 if (!label) return;
-                var balkonMachines = Array.from(document.querySelectorAll('#map .machine[data-z="4"]'));
-                var z10Tables = document.querySelectorAll('#map .machine[data-z="10"]');
-                if (balkonMachines.length > 0) {
-                    var minX = Infinity, minY = Infinity, maxY = -Infinity;
-                    balkonMachines.forEach(function(m) {
-                        var x = parseFloat(m.style.left) || 0;
-                        var y = parseFloat(m.style.top)  || 0;
-                        if (x < minX) minX = x;
-                        if (y < minY) minY = y;
-                        if (y + 60 > maxY) maxY = y + 60;
+                // Find live tables in Balkon (z=4)
+                var balkonTables = Array.from(document.querySelectorAll(
+                    '#map .machine[data-z="4"][data-game-type="poker"],' +
+                    '#map .machine[data-z="4"][data-game-type="rulet"],' +
+                    '#map .machine[data-z="4"][data-game-type="barbut"]'
+                )).filter(function(m) { return m.style.display !== 'none'; });
+                var z10Tables = Array.from(document.querySelectorAll('#map .machine[data-z="10"]'))
+                    .filter(function(m) { return m.style.display !== 'none'; });
+                var refTables = balkonTables.length ? balkonTables : z10Tables;
+                if (refTables.length) {
+                    var maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                    refTables.forEach(function(t) {
+                        var x = parseFloat(t.style.left) || 0;
+                        var y = parseFloat(t.style.top)  || 0;
+                        if (x + 70  > maxX) maxX = x + 70;
+                        if (y       < minY) minY = y;
+                        if (y + 60  > maxY) maxY = y + 60;
                     });
                     var centerY = (minY + maxY) / 2;
-                    label.style.left = Math.max(4, minX - 160) + 'px';
-                    label.style.top  = Math.round(centerY) + 'px';
+                    label.style.left      = (maxX + 18) + 'px';
+                    label.style.top       = Math.round(centerY) + 'px';
                     label.style.transform = 'translateY(-50%)';
-                } else if (z10Tables.length) {
-                    var minY2 = Infinity;
-                    z10Tables.forEach(function(t) { var y = parseFloat(t.style.top) || 0; if (y < minY2) minY2 = y; });
-                    label.style.left = '50%';
-                    label.style.top  = Math.max(4, minY2 - 28) + 'px';
+                } else {
+                    label.style.left      = '50%';
+                    label.style.top       = '20px';
                     label.style.transform = 'translateX(-50%)';
                 }
             })();
@@ -718,8 +723,8 @@ document.addEventListener('DOMContentLoaded', function() {
         map.appendChild(hDiv);
     }
 
-    // Draw dashed zone rectangles + labels for Balkon, VIP, Eski VIP in casino mode.
-    // Each zone's bounding box is computed from its actual machine positions.
+    // Draw zone rectangles + labels for Balkon, VIP, Eski VIP in casino mode.
+    // Bounding box computed from LIVE TABLES only (poker/rulet/barbut) in each zone.
     function drawCasinoZoneOverlays() {
         const map = document.getElementById('map');
         if (!map) return;
@@ -727,17 +732,22 @@ document.addEventListener('DOMContentLoaded', function() {
         map.querySelectorAll('.casino-zone-overlay, .casino-zone-label').forEach(d => d.remove());
 
         const ZONES = [
-            { z: '4',  name: '🌿 Balkon',    color: '#4CAF50', border: '2px dashed #4CAF50' },
-            { z: '2',  name: '👑 Yeni VIP',  color: '#9C27B0', border: '2px dashed #9C27B0' },
-            { z: '5',  name: '👑 Eski VIP',  color: '#FF9800', border: '2px dashed #FF9800' },
+            { z: '4',  name: '🌿 Balkon',    color: '#4CAF50', fillColor: 'rgba(76,175,80,0.08)',  border: '2.5px solid #4CAF50' },
+            { z: '2',  name: '👑 Yeni VIP',  color: '#9C27B0', fillColor: 'rgba(156,39,176,0.08)', border: '2.5px solid #9C27B0' },
+            { z: '5',  name: '👑 Eski VIP',  color: '#FF9800', fillColor: 'rgba(255,152,0,0.08)',   border: '2.5px solid #FF9800' },
         ];
-        const PADDING = 22;
-        const MACH_W  = 60;
+        const PADDING = 28;
+        const MACH_W  = 70;   // wider to account for rulet/barbut
         const MACH_H  = 60;
 
         ZONES.forEach(function(zone) {
-            var machines = Array.from(map.querySelectorAll('.machine[data-z="' + zone.z + '"]'))
-                .filter(function(m) { return m.style.display !== 'none'; });
+            // Only include machines that are live tables (poker/rulet/barbut)
+            var machines = Array.from(map.querySelectorAll(
+                '.machine[data-z="' + zone.z + '"][data-game-type="poker"],' +
+                '.machine[data-z="' + zone.z + '"][data-game-type="rulet"],' +
+                '.machine[data-z="' + zone.z + '"][data-game-type="barbut"]'
+            )).filter(function(m) { return m.style.display !== 'none'; });
+
             if (machines.length === 0) return;
 
             var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -750,26 +760,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (y + MACH_H   > maxY) maxY = y + MACH_H;
             });
 
-            // Dashed border rectangle
+            // Zone rectangle with fill + solid border
             var rect = document.createElement('div');
             rect.className = 'casino-zone-overlay';
             rect.style.cssText = [
-                'left:'   + (minX - PADDING) + 'px',
-                'top:'    + (minY - PADDING) + 'px',
-                'width:'  + (maxX - minX + PADDING * 2) + 'px',
-                'height:' + (maxY - minY + PADDING * 2) + 'px',
-                'border:' + zone.border,
+                'left:'             + (minX - PADDING) + 'px',
+                'top:'              + (minY - PADDING) + 'px',
+                'width:'            + (maxX - minX + PADDING * 2) + 'px',
+                'height:'           + (maxY - minY + PADDING * 2) + 'px',
+                'border:'           + zone.border,
+                'background:'       + zone.fillColor,
+                'box-shadow:inset 0 0 0 1px ' + zone.color.replace(')', ',0.3)').replace('rgb','rgba'),
             ].join(';');
             map.appendChild(rect);
 
-            // Zone label placed horizontally outside the left edge of the rectangle
+            // Zone label above the rectangle
             var lbl = document.createElement('div');
             lbl.className = 'casino-zone-label';
             lbl.textContent = zone.name;
             lbl.style.cssText = [
-                'left:'  + (minX - PADDING) + 'px',
-                'top:'   + (minY - PADDING - 20) + 'px',
-                'color:' + zone.color,
+                'left:'       + (minX - PADDING) + 'px',
+                'top:'        + (minY - PADDING - 22) + 'px',
+                'color:'      + zone.color,
+                'background:rgba(0,0,0,0.75)',
+                'border:1px solid ' + zone.color,
             ].join(';');
             map.appendChild(lbl);
         });

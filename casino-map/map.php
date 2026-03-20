@@ -191,13 +191,19 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         /* Casino zone overlay boxes (Balkon / VIP / Eski VIP) */
         .casino-zone-overlay {
             position: absolute; pointer-events: none; z-index: 50;
-            border-radius: 8px;
+            border-radius: 10px;
         }
         .casino-zone-label {
-            position: absolute; pointer-events: none; z-index: 51;
-            font-size: 11px; font-weight: bold; white-space: nowrap;
-            padding: 2px 8px; border-radius: 4px;
-            background: rgba(0,0,0,0.72);
+            position: absolute; pointer-events: none; z-index: 52;
+            font-size: 12px; font-weight: bold; white-space: nowrap;
+            padding: 3px 10px; border-radius: 5px;
+            letter-spacing: 0.5px;
+        }
+        /* In casino mode, hide non-live-table machines in live-table zones (z=2,4,5) */
+        #map-container.casino-mode .machine[data-z="4"]:not([data-game-type="poker"]):not([data-game-type="rulet"]):not([data-game-type="barbut"]),
+        #map-container.casino-mode .machine[data-z="2"]:not([data-game-type="poker"]):not([data-game-type="rulet"]):not([data-game-type="barbut"]),
+        #map-container.casino-mode .machine[data-z="5"]:not([data-game-type="poker"]):not([data-game-type="rulet"]):not([data-game-type="barbut"]) {
+            display: none !important;
         }
         /* ===== CASINO TABLE TYPES ===== */
         /* Remove the black separator bar for casino tables */
