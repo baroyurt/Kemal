@@ -162,6 +162,13 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         .floor-tab.casino-tab.active { background: #7B1FA2; color: #FFD700; box-shadow: 0 2px 8px rgba(123,31,162,0.5); border-color: #FFD700; }
         .floor-tab.casino-tab:hover:not(.active) { background: #c62828; color: #FFD700; }
         .dark-theme .floor-tab.casino-tab { background: #4a0000; color: #FFD700; }
+        /* ===== CASINO MODE — slot machines locked (visible but not interactive) ===== */
+        #map-container.casino-mode .machine:not([data-z="10"]) {
+            pointer-events: none !important;
+            opacity: 0.35;
+            filter: grayscale(60%);
+            cursor: default !important;
+        }
         /* ===== CASINO TABLE TYPES ===== */
         /* Remove the black separator bar for casino tables */
         .machine[data-game-type="poker"]::before,
@@ -520,12 +527,12 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         <div class="toolbar-left">
             <input id="search" placeholder="Makine ara...">
             <div class="floor-tabs" id="floor-tabs">
+                <button class="floor-tab casino-tab" data-z="casino" onclick="switchFloor('casino')">🎲 Tüm Casino</button>
                 <button class="floor-tab active" data-z="all" onclick="switchFloor('all')">Tüm Slot</button>
                 <button class="floor-tab" data-z="0" onclick="switchFloor('0')">Yüksek Tavan</button>
                 <button class="floor-tab" data-z="1" onclick="switchFloor('1')">Alçak Tavan</button>
                 <button class="floor-tab" data-z="2" onclick="switchFloor('2')">Yeni Vip Salon</button>
                 <button class="floor-tab" data-z="3" onclick="switchFloor('3')">Alt Salon</button>
-                <button class="floor-tab casino-tab" data-z="casino" onclick="switchFloor('casino')">🎲 Tüm Casino</button>
             </div>
 
             <?php if($role == 'admin'): ?>

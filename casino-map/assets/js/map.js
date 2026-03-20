@@ -95,6 +95,8 @@ document.addEventListener('DOMContentLoaded', function() {
         machine.addEventListener('mousedown', function(e) {
             if (e.button !== 0) return;
             if (!IS_ADMIN) return;   // personel sürükleyemez
+            // Casino modunda slot makineleri (pos_z != 10) sürüklenemez
+            if (currentFloor === 'casino' && this.getAttribute('data-z') !== '10') return;
             e.preventDefault();
             e.stopPropagation();
 
@@ -404,6 +406,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Only operate on machines that belong to the current floor
         function isOnCurrentFloor(machine) {
             if (currentFloor === 'all') return true;
+            // Casino modunda yalnızca canlı masalar seçilebilir
+            if (currentFloor === 'casino') return machine.getAttribute('data-z') === '10';
             return machine.getAttribute('data-z') === currentFloor;
         }
 
@@ -539,7 +543,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function selectAllMachines() {
         document.querySelectorAll('#map .machine').forEach(machine => {
-            const onFloor = currentFloor === 'all' || machine.getAttribute('data-z') === currentFloor;
+            let onFloor;
+            if (currentFloor === 'casino') {
+                onFloor = machine.getAttribute('data-z') === '10';
+            } else {
+                onFloor = currentFloor === 'all' || machine.getAttribute('data-z') === currentFloor;
+            }
             if (onFloor && machine.style.display !== 'none' && !machine.classList.contains('selected')) {
                 selectMachine(machine);
             }
@@ -593,6 +602,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const map = document.getElementById('map');
         const multi = document.getElementById('multi-floor-container');
+        const mapContainer = document.getElementById('map-container');
 
         // Always hide the 4-panel container (kept in DOM for backward compatibility but no longer shown)
         if (multi) multi.style.display = 'none';
@@ -600,6 +610,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (zValue === 'all') {
             // Show only slot machines (pos_z 0–3); hide casino tables (pos_z 10)
+            mapContainer.classList.remove('casino-mode');
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 const mz = parseInt(machine.getAttribute('data-z'), 10);
                 machine.style.display = (mz <= 3) ? 'flex' : 'none';
@@ -611,16 +622,19 @@ document.addEventListener('DOMContentLoaded', function() {
             updateGroupIcons();
             requestAnimationFrame(function() { fitFloorToView('all'); });
         } else if (zValue === 'casino') {
-            // Show only casino live tables (pos_z 10)
+            // Show ALL machines (slots + casino tables) — slots are locked via CSS casino-mode
             document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
             document.querySelectorAll('#map .machine').forEach(function(machine) {
-                machine.style.display = (machine.getAttribute('data-z') === '10') ? 'flex' : 'none';
+                machine.style.display = 'flex';
             });
+            mapContainer.classList.add('casino-mode');
             resizeMapToFitMachines();
             updateGroupIcons();
-            requestAnimationFrame(function() { fitFloorToView('casino'); });
+            // Fit the entire map into view so both slots and casino tables are visible
+            requestAnimationFrame(function() { fitFloorToView('all'); });
         } else {
             // Single-floor view — remove dividers; also hide casino tables
+            mapContainer.classList.remove('casino-mode');
             document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 machine.style.display = (machine.getAttribute('data-z') === String(zValue)) ? 'flex' : 'none';
@@ -661,7 +675,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const MACH_H  = 60;
         const PADDING = 40;
 
-        const selector = (zValue === 'all')
+        const selector = (zValue === 'all' || zValue === 'casino')
             ? '#map .machine'
             : '#map .machine[data-z="' + zValue + '"]';
 
@@ -1401,6 +1415,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Restore floor-specific visibility (don't blindly show every floor's machines)
             document.querySelectorAll('#map .machine').forEach(machine => {
                 if (currentFloor === 'all') {
+                    const mz = parseInt(machine.getAttribute('data-z'), 10);
+                    machine.style.display = (mz <= 3) ? 'flex' : 'none';
+                } else if (currentFloor === 'casino') {
                     machine.style.display = 'flex';
                 } else {
                     machine.style.display = (machine.getAttribute('data-z') === currentFloor) ? 'flex' : 'none';
@@ -1410,13 +1427,18 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('#map .machine').forEach(machine => {
                 const machineId = machine.getAttribute('data-id');
                 const inGroup = window.groupsData[groupId] && window.groupsData[groupId].machines.includes(parseInt(machineId));
-                const onFloor = currentFloor === 'all' || machine.getAttribute('data-z') === currentFloor;
+                let onFloor;
+                if (currentFloor === 'casino') {
+                    onFloor = machine.getAttribute('data-z') === '10';
+                } else {
+                    onFloor = currentFloor === 'all' || machine.getAttribute('data-z') === currentFloor;
+                }
                 machine.style.display = (inGroup && onFloor) ? 'flex' : 'none';
             });
         }
         updateGroupIcons();
         // Re-center view on the now-visible machines
-        requestAnimationFrame(function() { fitFloorToView(currentFloor); });
+        requestAnimationFrame(function() { fitFloorToView(currentFloor === 'casino' ? 'all' : currentFloor); });
     };
 
     // Yazılabilir group-filter input handler
@@ -1828,7 +1850,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const MACH_W  = 60;
         const MACH_H  = 60;
         const PADDING = 40;
-        const selector = currentFloor === 'all'
+        const selector = (currentFloor === 'all' || currentFloor === 'casino')
             ? '#map .machine'
             : '#map .machine[data-z="' + currentFloor + '"]';
         const floorMachines = Array.from(document.querySelectorAll(selector))
