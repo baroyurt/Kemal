@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global değişkenler
     window.selectedMachines = [];
     window.groupsData = {};
+    window.regionsData = [];       // bölge listesi
+    window.activeRegionId = null;  // seçili bölge filtresi
 
     // Track currently active floor ('all', '0', '1', '2', '3')
     let currentFloor = 'all';
@@ -65,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Makine sayısı:', machines.length);
 
     // Her makineye olay dinleyicileri ekle
-    machines.forEach(machine => {
+    function setupMachineEl(machine) {
         // Click: handle selection here only (NOT in mousedown to avoid Ctrl double-toggle)
         machine.addEventListener('click', function(e) {
             if (suppressNextClick) { suppressNextClick = false; return; }
@@ -138,7 +140,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Drag'i engelle
         machine.addEventListener('dragstart', (e) => e.preventDefault());
-    });
+    }
+    machines.forEach(setupMachineEl);
+    // Yeni eklenen makineler için de kullanılabilir (map.php tarafından çağrılır)
+    window._setupMachineEl = setupMachineEl;
 
     // Fare hareketi - SÜRÜKLEME İÇİN
     document.addEventListener('mousemove', function(e) {
@@ -342,30 +347,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Harita pan + seçim sürükleme — #map-container üzerinde
+    // Harita pan (sağ fare tuşu) + seçim sürükleme (sol fare tuşu) — #map-container üzerinde
     document.getElementById('map-container').addEventListener('mousedown', function(e) {
-        if (e.button !== 0) return;
         if (isMoving) return;
-        // Only start on empty background (not on a machine, UI overlay, or the info panel)
         if (e.target.closest('.machine')) return;
         if (e.target.closest('#machine-info-panel')) return;
         if (e.target.closest('.group-icon')) return;
         if (e.target.closest('.group-highlight')) return;
         if (e.target.closest('#multi-floor-container')) return;
 
-        if (e.ctrlKey) {
-            // Ctrl+sürükleme = seçim kutusu (4-panel genel görünümde çalışmaz)
-            if (currentFloor === 'all') return;
-            selectionStart = { x: e.clientX, y: e.clientY };
-            selectionDragStarted = false;
-            selectionBox = document.createElement('div');
-            selectionBox.className = 'selection-box';
-            selectionBox.style.display = 'none';
-            this.appendChild(selectionBox);
-        } else {
-            // Normal sürükleme = harita pan
+        if (e.button === 2) {
+            // Sağ fare tuşu = harita pan
             const map = document.getElementById('map');
-            if (!map || map.style.display === 'none') return; // 4-panel genel görünümde çalışmaz
+            if (!map || map.style.display === 'none') return;
             isPanning = true;
             panMoved = false;
             panStartX = e.clientX;
@@ -374,6 +368,14 @@ document.addEventListener('DOMContentLoaded', function() {
             panStartTY = mapTranslateY;
             this.style.cursor = 'grabbing';
             e.preventDefault();
+        } else if (e.button === 0) {
+            // Sol fare tuşu = seçim kutusu (toplu seçim)
+            selectionStart = { x: e.clientX, y: e.clientY };
+            selectionDragStarted = false;
+            selectionBox = document.createElement('div');
+            selectionBox.className = 'selection-box';
+            selectionBox.style.display = 'none';
+            this.appendChild(selectionBox);
         }
     });
 
@@ -592,26 +594,56 @@ document.addEventListener('DOMContentLoaded', function() {
         const map = document.getElementById('map');
         const multi = document.getElementById('multi-floor-container');
 
+        // Always hide the 4-panel container (kept in DOM for backward compatibility but no longer shown)
+        if (multi) multi.style.display = 'none';
+        map.style.display = 'block';
+
         if (zValue === 'all') {
-            // Show 4-panel overview; hide the single-canvas map
-            map.style.display = 'none';
-            multi.style.display = 'grid';
-            // Use rAF so the grid has dimensions when populateMiniMaps reads them
-            requestAnimationFrame(populateMiniMaps);
+            // Show ALL machines on the single canvas
+            document.querySelectorAll('#map .machine').forEach(function(machine) {
+                machine.style.display = 'flex';
+            });
+            // Remove any existing floor dividers then redraw them
+            document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
+            drawFloorDividers();
+            resizeMapToFitMachines();
+            updateGroupIcons();
+            requestAnimationFrame(function() { fitFloorToView('all'); });
         } else {
-            // Single-floor view
-            multi.style.display = 'none';
-            map.style.display = 'block';
+            // Single-floor view — remove dividers
+            document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 machine.style.display = (machine.getAttribute('data-z') === String(zValue)) ? 'flex' : 'none';
             });
-            // Expand the map to contain all machines before computing the view
             resizeMapToFitMachines();
             updateGroupIcons();
-            // Auto-fit: zoom/pan so ALL machines on this floor are visible
             requestAnimationFrame(function() { fitFloorToView(zValue); });
         }
     };
+
+    // Draw thin separator lines to indicate floor boundaries in "Tüm Katlar" view.
+    // Vertical line at X=2080 (between Z=0,1 on left and Z=2,3 on right)
+    // Horizontal line at Y=1130 (between Z=1 top-left and Z=0 bottom-left)
+    // Opacity 0.13 is subtle enough to not distract from machine icons but visible on light bg.
+    function drawFloorDividers() {
+        const map = document.getElementById('map');
+        if (!map) return;
+        const mapW = parseInt(map.style.width)  || 8000;
+        const mapH = parseInt(map.style.height) || 4000;
+        const DIVIDER_COLOR = 'rgba(0,0,0,0.13)';
+
+        // Vertical divider
+        const vDiv = document.createElement('div');
+        vDiv.className = 'floor-divider';
+        vDiv.style.cssText = 'position:absolute;left:2080px;top:0;width:2px;height:' + mapH + 'px;background:' + DIVIDER_COLOR + ';pointer-events:none;z-index:0;';
+        map.appendChild(vDiv);
+
+        // Horizontal divider (spans full width)
+        const hDiv = document.createElement('div');
+        hDiv.className = 'floor-divider';
+        hDiv.style.cssText = 'position:absolute;left:0;top:1130px;width:' + mapW + 'px;height:2px;background:' + DIVIDER_COLOR + ';pointer-events:none;z-index:0;';
+        map.appendChild(hDiv);
+    }
 
     // Tüm makineleri kattaki bounding box'a sığdıracak şekilde zoom/pan ayarla
     function fitFloorToView(zValue) {
@@ -619,9 +651,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const MACH_H  = 60;
         const PADDING = 40;
 
-        const floorMachines = Array.from(
-            document.querySelectorAll('#map .machine[data-z="' + zValue + '"]')
-        );
+        const selector = (zValue === 'all')
+            ? '#map .machine'
+            : '#map .machine[data-z="' + zValue + '"]';
+
+        const floorMachines = Array.from(document.querySelectorAll(selector))
+            .filter(function(m) { return m.style.display !== 'none'; });
         if (floorMachines.length === 0) { resetZoom(); return; }
 
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -780,49 +815,147 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(groups => {
                 window.groupsData = groups;
-                updateGroupsPanel();
+                // Bölgeleri de yükle
+                fetch('get_regions.php')
+                    .then(r => r.json())
+                    .then(regions => {
+                        window.regionsData = regions;
+                        updateRegionFilters();
+                        updateGroupsPanel();
+                    })
+                    .catch(() => {
+                        window.regionsData = [];
+                        updateRegionFilters();
+                        updateGroupsPanel();
+                    });
                 updateGroupIcons();
                 updateGroupFilter();
             })
             .catch(error => console.log('Grup yüklenemedi:', error));
     }
     
+    function updateRegionFilters() {
+        const container = document.getElementById('regionFilters');
+        if (!container) return;
+
+        const regions = window.regionsData || [];
+        if (regions.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'flex';
+
+        let html = `<button onclick="setRegionFilter(null)" style="padding:3px 10px;border-radius:12px;border:2px solid rgba(255,255,255,0.5);background:${window.activeRegionId===null?'rgba(255,255,255,0.3)':'transparent'};color:white;cursor:pointer;font-size:11px;font-weight:bold;transition:all 0.2s;">Tümü</button>`;
+        regions.forEach(r => {
+            const active = window.activeRegionId === r.id;
+            html += `<button onclick="setRegionFilter(${r.id})" style="padding:3px 10px;border-radius:12px;border:2px solid ${escapeHtml(r.color)};background:${active?escapeHtml(r.color):'transparent'};color:${active?'white':escapeHtml(r.color)};cursor:pointer;font-size:11px;font-weight:bold;transition:all 0.2s;">${escapeHtml(r.name)}</button>`;
+        });
+        container.innerHTML = html;
+    }
+
+    window.setRegionFilter = function(regionId) {
+        window.activeRegionId = regionId;
+        updateRegionFilters();
+        updateGroupsPanel();
+    };
+
     function updateGroupsPanel() {
         const groupsList = document.getElementById('groupsList');
         if (!groupsList) return;
-        
-        let html = '';
+
+        const FLOOR_LABELS = {
+            '0': '🏛 Yüksek Tavan',
+            '1': '🏠 Alçak Tavan',
+            '2': '👑 Yeni VIP Salon',
+            '3': '🎰 Alt Salon',
+        };
+        const FLOOR_ORDER = ['0', '1', '2', '3'];
+
+        const activeRegion = window.activeRegionId;
+
+        // Grubun baskın katını (Z) makine data-z değerlerine göre hesapla
+        function getGroupFloor(group) {
+            const floorCount = {};
+            group.machines.forEach(id => {
+                const machine = document.querySelector(`#map .machine[data-id="${id}"]`);
+                if (machine) {
+                    const z = machine.getAttribute('data-z') || '?';
+                    floorCount[z] = (floorCount[z] || 0) + 1;
+                }
+            });
+            const keys = Object.keys(floorCount);
+            if (keys.length === 0) return 'other';
+            return keys.reduce((a, b) => floorCount[a] >= floorCount[b] ? a : b);
+        }
+
+        // Grupları kata göre demetlere ayır
+        const buckets = { '0': [], '1': [], '2': [], '3': [], 'other': [] };
         for (let groupId in window.groupsData) {
             const group = window.groupsData[groupId];
+            if (activeRegion !== null && group.region_id !== activeRegion) continue;
+            const floor = getGroupFloor(group);
+            const key = FLOOR_ORDER.includes(floor) ? floor : 'other';
+            buckets[key].push(groupId);
+        }
+
+        // Grup kartı HTML'i oluştur
+        function buildGroupCard(groupId) {
+            const group = window.groupsData[groupId];
             const color = group.color || '#4CAF50';
-            html += `
+            const adminButtons = IS_ADMIN ? `
+                <button class="assign-btn" onclick="assignSelectedToGroup(${groupId})"><i class="fas fa-arrow-right"></i> Seçilileri Ata</button>
+                <button class="delete-btn" onclick="deleteGroup(${groupId})" title="Sil"><i class="fas fa-trash"></i></button>
+            ` : '';
+            // Grup adı: admin ise inline düzenlenebilir input, değilse sadece metin
+            const nameHtml = IS_ADMIN
+                ? `<input type="text" value="${escapeHtml(group.name)}"
+                        style="border:none;background:transparent;font-weight:bold;font-size:13px;
+                               width:100%;outline:none;padding:0;cursor:text;"
+                        onblur="renameGroup(${groupId}, this.value)"
+                        onkeydown="if(event.key==='Enter')this.blur();">`
+                : escapeHtml(group.name);
+            return `
                 <div class="group-item-panel" id="group-panel-${groupId}" style="border-left: 4px solid ${escapeHtml(color)};">
                     <div class="group-item-header">
-                        <span class="group-item-name" style="display:flex; align-items:center; gap:8px;">
-                            <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:${escapeHtml(color)};"></span>
-                            ${escapeHtml(group.name)}
+                        <span class="group-item-name" style="display:flex; align-items:center; gap:6px; flex:1; min-width:0;">
+                            <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:${escapeHtml(color)}; flex-shrink:0;"></span>
+                            ${nameHtml}
                         </span>
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <input type="color" value="${escapeHtml(color)}" title="Grup rengi" style="width:28px;height:28px;padding:0;border:none;cursor:pointer;border-radius:4px;" onchange="changeGroupColor(${groupId}, this.value)">
+                        <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                            ${IS_ADMIN ? `<input type="color" value="${escapeHtml(color)}" title="Grup rengi" style="width:24px;height:24px;padding:0;border:none;cursor:pointer;border-radius:4px;" onchange="changeGroupColor(${groupId}, this.value)">` : ''}
                             <span class="group-item-count" style="background:${escapeHtml(color)};">${group.machines.length}</span>
                         </div>
                     </div>
+                    ${IS_ADMIN ? `
                     <div class="group-machine-input">
                         <input type="text" id="machine-input-${groupId}" placeholder="Makine no girin" onkeypress="handleMachineInput(event, ${groupId})">
                         <button onclick="addMachineToGroup(${groupId})"><i class="fas fa-plus"></i></button>
-                    </div>
+                    </div>` : ''}
                     <div class="group-machine-list" id="machine-list-${groupId}">${getMachineListHtml(group.machines, groupId)}</div>
                     <div class="group-actions">
-                        <button class="assign-btn" onclick="assignSelectedToGroup(${groupId})"><i class="fas fa-arrow-right"></i> Seçilileri Ata</button>
+                        ${adminButtons}
                         <button class="export-btn" onclick="exportGroup(${groupId})" title="Excel aktar"><i class="fas fa-file-excel"></i></button>
                         <button class="show-btn" onclick="showGroup(${groupId})" title="Göster"><i class="fas fa-eye"></i></button>
-                        <button class="delete-btn" onclick="deleteGroup(${groupId})" title="Sil"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             `;
         }
+
+        let html = '';
+        [...FLOOR_ORDER, 'other'].forEach(floorKey => {
+            const groupIds = buckets[floorKey];
+            if (groupIds.length === 0) return;
+            const label = FLOOR_LABELS[floorKey] || '📋 Diğer';
+            const bodyId = 'floor-body-' + floorKey;
+            // Başlangıçta kapalı (collapsed) olarak render et
+            html += `<div class="floor-section-header collapsed" onclick="toggleFloorSection('${bodyId}', this)">${label}</div>`;
+            html += `<div class="floor-section-body collapsed" id="${bodyId}" style="max-height:0;">`;
+            groupIds.forEach(gid => { html += buildGroupCard(gid); });
+            html += `</div>`;
+        });
+
         if (html === '') {
-            html = '<div style="padding: 20px; text-align: center; color: #999;">Henüz grup yok</div>';
+            html = '<div style="padding: 20px; text-align: center; color: #999;">Bu bölgede grup yok</div>';
         }
         groupsList.innerHTML = html;
     }
@@ -838,20 +971,52 @@ document.addEventListener('DOMContentLoaded', function() {
             const hubSw = machine ? machine.getAttribute('data-hub-sw') === '1' : false;
             const hubSwCable = machine ? (machine.getAttribute('data-hub-sw-cable') || '') : '';
             const hubSwLabel = hubSw ? `<span style="color:#FF9800; font-weight:bold;" title="Hub SW${hubSwCable ? ': ' + escapeHtml(hubSwCable) : ''}"> 🔌${hubSwCable ? '<small> → ' + escapeHtml(hubSwCable) + '</small>' : ''}</span>` : '';
-            html += `<div class="group-machine-item"><span>${escapeHtml(machineNo)}${hubSwLabel}</span><button onclick="removeMachineFromGroup(${id}, ${groupId})"><i class="fas fa-times"></i></button></div>`;
+            const removeBtn = IS_ADMIN ? `<button onclick="removeMachineFromGroup(${id}, ${groupId})"><i class="fas fa-times"></i></button>` : '';
+            html += `<div class="group-machine-item"><span>${escapeHtml(machineNo)}${hubSwLabel}</span>${removeBtn}</div>`;
         });
         return html;
     }
     
     function updateGroupFilter() {
-        const filter = document.getElementById('group-filter');
-        if (!filter) return;
-        
-        let options = '<option value="all">Tüm Gruplar</option>';
-        for (let groupId in window.groupsData) {
-            options += `<option value="${groupId}">${escapeHtml(window.groupsData[groupId].name)}</option>`;
+        const datalist = document.getElementById('group-filter-list');
+        if (!datalist) return;
+
+        const FLOOR_LABELS = {
+            '0': '🏛 Yüksek Tavan',
+            '1': '🏠 Alçak Tavan',
+            '2': '👑 Yeni VIP Salon',
+            '3': '🎰 Alt Salon',
+        };
+        const FLOOR_ORDER = ['0', '1', '2', '3'];
+
+        function getGroupFloor(group) {
+            const floorCount = {};
+            group.machines.forEach(id => {
+                const m = document.querySelector(`#map .machine[data-id="${id}"]`);
+                if (m) { const z = m.getAttribute('data-z') || '?'; floorCount[z] = (floorCount[z] || 0) + 1; }
+            });
+            const keys = Object.keys(floorCount);
+            if (keys.length === 0) return 'other';
+            return keys.reduce((a, b) => floorCount[a] >= floorCount[b] ? a : b);
         }
-        filter.innerHTML = options;
+
+        // Kat bazlı bucket
+        const buckets = { '0': [], '1': [], '2': [], '3': [], 'other': [] };
+        for (let groupId in window.groupsData) {
+            const floor = getGroupFloor(window.groupsData[groupId]);
+            const key = FLOOR_ORDER.includes(floor) ? floor : 'other';
+            buckets[key].push({ id: groupId, name: window.groupsData[groupId].name, floor: key });
+        }
+
+        let html = '<option value="Tüm Gruplar">';
+        [...FLOOR_ORDER, 'other'].forEach(fk => {
+            if (buckets[fk].length === 0) return;
+            const label = FLOOR_LABELS[fk] || 'Diğer';
+            buckets[fk].forEach(g => {
+                html += `<option value="${escapeHtml(g.name)}" data-id="${escapeHtml(g.id)}" data-floor="${escapeHtml(label)}">`;
+            });
+        });
+        datalist.innerHTML = html;
     }
     
     function updateGroupIcons() {
@@ -877,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Only include machines on the active floor; ignore the 'all' overview
                 // Also skip hidden machines (filtered out by search / group filter)
                 if (machine && machine.style.display !== 'none' &&
-                    currentFloor !== 'all' && machine.getAttribute('data-z') === currentFloor) {
+                    (currentFloor === 'all' || machine.getAttribute('data-z') === currentFloor)) {
                     visibleCount++;
                     const x = parseFloat(machine.style.left);
                     const y = parseFloat(machine.style.top);
@@ -1238,6 +1403,32 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         updateGroupIcons();
+        // Re-center view on the now-visible machines
+        requestAnimationFrame(function() { fitFloorToView(currentFloor); });
+    };
+
+    // Yazılabilir group-filter input handler
+    window.filterByGroupInput = function(value) {
+        const trimmed = value.trim();
+        if (!trimmed || trimmed === 'Tüm Gruplar') {
+            window.filterByGroup('all');
+            return;
+        }
+        // Grup adı ile eşleş (case-insensitive)
+        for (let gId in window.groupsData) {
+            if (window.groupsData[gId].name.toLowerCase() === trimmed.toLowerCase()) {
+                window.filterByGroup(gId);
+                return;
+            }
+        }
+        // Eşleşme yoksa tümünü göster
+        window.filterByGroup('all');
+    };
+
+    window.clearGroupFilter = function() {
+        const inp = document.getElementById('group-filter');
+        if (inp) inp.value = '';
+        window.filterByGroup('all');
     };
     
     window.deleteGroup = function(groupId) {
@@ -1270,6 +1461,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadGroups();
             }
         }
+    };
+
+    window.toggleFloorSection = function(bodyId, headerEl) {
+        const body = document.getElementById(bodyId);
+        if (!body) return;
+        const collapsed = body.classList.toggle('collapsed');
+        if (headerEl) headerEl.classList.toggle('collapsed', collapsed);
+        // Açılınca max-height'ı ger, kapanınca 0
+        body.style.maxHeight = collapsed ? '0' : '2000px';
     };
     
     // ========== NOT FONKSİYONLARI ==========
@@ -1613,7 +1813,35 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.resetZoom = function() {
-        mapScale = 1; mapTranslateX = 0; mapTranslateY = 0;
+        const MACH_W  = 60;
+        const MACH_H  = 60;
+        const PADDING = 40;
+        const selector = currentFloor === 'all'
+            ? '#map .machine'
+            : '#map .machine[data-z="' + currentFloor + '"]';
+        const floorMachines = Array.from(document.querySelectorAll(selector))
+            .filter(function(m) { return m.style.display !== 'none'; });
+        if (floorMachines.length === 0) {
+            mapScale = 1; mapTranslateX = 0; mapTranslateY = 0;
+            applyMapTransform(); return;
+        }
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        floorMachines.forEach(function(m) {
+            const x = parseFloat(m.style.left) || 0;
+            const y = parseFloat(m.style.top)  || 0;
+            if (x           < minX) minX = x;
+            if (x + MACH_W  > maxX) maxX = x + MACH_W;
+            if (y           < minY) minY = y;
+            if (y + MACH_H  > maxY) maxY = y + MACH_H;
+        });
+        const container = document.getElementById('map-container');
+        const cw = container.clientWidth;
+        const ch = container.clientHeight;
+        const contentW = (maxX - minX) + PADDING * 2;
+        const contentH = (maxY - minY) + PADDING * 2;
+        mapScale = Math.max(MAP_SCALE_MIN, Math.min(MAP_SCALE_MAX, cw / contentW, ch / contentH));
+        mapTranslateX = (cw - contentW * mapScale) / 2 + (PADDING - minX) * mapScale;
+        mapTranslateY = (ch - contentH * mapScale) / 2 + (PADDING - minY) * mapScale;
         applyMapTransform();
     };
 
@@ -1824,6 +2052,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 showStatus('Grup rengi güncellendi!');
             }
         });
+    };
+
+    window.renameGroup = function(groupId, newName) {
+        const trimmed = newName.trim();
+        if (!trimmed || !window.groupsData[groupId]) return;
+        if (trimmed === window.groupsData[groupId].name) return; // değişmedi
+        const formData = new FormData();
+        formData.append('group_id', groupId);
+        formData.append('group_name', trimmed);
+        fetch('update_group.php', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    window.groupsData[groupId].name = trimmed;
+                    updateGroupFilter();
+                    showStatus('Grup adı güncellendi!');
+                }
+            });
     };
     
     // ========== SAĞ TIK BAĞLAM MENÜSÜ ==========
@@ -2041,7 +2287,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (menu && !menu.contains(e.target)) hideContextMenu();
     });
     document.addEventListener('contextmenu', function(e) {
-        if (!e.target.closest('.machine')) hideContextMenu();
+        if (e.target.closest('.machine')) return; // Let machine handler show context menu
+        // Empty map area: suppress browser context menu (right-click is used for panning)
+        e.preventDefault();
+        hideContextMenu();
     });
 
     // ========== MAKİNE BİLGİ PANELİ ==========

@@ -13,9 +13,11 @@ $result = $conn->query("SELECT * FROM machines ORDER BY pos_z, machine_no");
 $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
 ?>
 
-<html>
+<!DOCTYPE html>
+<html lang="tr">
 <head>
-    <title>Machine Map</title>
+    <meta charset="UTF-8">
+    <title>Makine Haritası</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -87,24 +89,24 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         body.dark-theme .machine.selected { border: 3px solid yellow !important; }
         body.dark-theme input, body.dark-theme select, body.dark-theme textarea { background: #444; color: #fff; border-color: #666; }
         
-        .toolbar { padding: 10px; transition: all 0.3s ease; z-index: 1000; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; justify-content: space-between; }
-        .toolbar-left { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; flex: 1; }
-        .toolbar-right { display: flex; gap: 5px; align-items: center; }
+        .toolbar { padding: 6px 10px; transition: all 0.3s ease; z-index: 1000; display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; justify-content: space-between; overflow: hidden; flex-shrink: 0; position: sticky; top: 0; }
+        .toolbar-left { display: flex; gap: 4px; flex-wrap: nowrap; align-items: center; flex: 1; min-width: 0; overflow: visible; }
+        .toolbar-right { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
         .toolbar-btn {
-            width: 40px; height: 40px; border-radius: 8px; background: #4CAF50; color: white;
-            border: none; cursor: pointer; font-size: 18px; display: flex; align-items: center;
-            justify-content: center; transition: all 0.2s; position: relative;
+            width: 34px; height: 34px; border-radius: 7px; background: #4CAF50; color: white;
+            border: none; cursor: pointer; font-size: 15px; display: flex; align-items: center;
+            justify-content: center; transition: all 0.2s; position: relative; flex-shrink: 0;
         }
-        .toolbar-btn:hover { background: #45a049; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .toolbar-btn:hover { background: #45a049; transform: translateY(-1px); box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
         .toolbar-btn.dashboard { background: #FF9800; }
         .toolbar-btn.theme { background: #666; }
-        .toolbar-btn.zoom { background: #2196F3; width: 35px; height: 35px; }
+        .toolbar-btn.zoom { background: #2196F3; width: 30px; height: 30px; }
         .toolbar-btn.purple { background: #9C27B0; }
         .toolbar-btn.orange { background: #FF9800; }
         .toolbar-btn.red { background: #f44336; }
-        .toolbar-divider { width: 1px; height: 30px; background: #ccc; margin: 0 10px; }
+        .toolbar-divider { width: 1px; height: 26px; background: #ccc; margin: 0 4px; flex-shrink: 0; }
         .dark-theme .toolbar-divider { background: #555; }
-        .toolbar-group { display: flex; gap: 3px; align-items: center; background: rgba(0,0,0,0.05); padding: 3px; border-radius: 10px; }
+        .toolbar-group { display: flex; gap: 2px; align-items: center; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 8px; flex-shrink: 0; }
         .tooltip-text {
             position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
             background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 4px;
@@ -113,9 +115,9 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         }
         .toolbar-btn:hover .tooltip-text { visibility: visible; opacity: 1; bottom: -40px; }
         
-        #search, #z-filter, #group-filter { padding: 8px 12px; border: 1px solid #ddd; border-radius: 20px; font-size: 13px; min-width: 150px; height: 40px; }
+        #search, #z-filter, #group-filter { padding: 5px 10px; border: 1px solid #ddd; border-radius: 16px; font-size: 12px; min-width: 110px; height: 34px; }
         
-        #map-container { flex: 1; position: relative; overflow: hidden; margin: 10px; border-radius: 10px; cursor: grab; }
+        #map-container { flex: 1; position: relative; overflow: hidden; cursor: default; }
         #map { width: 100%; height: 100%; position: relative; background-size: cover; transition: background-color 0.3s ease; transform-origin: 0 0; }
         
         .machine {
@@ -149,48 +151,42 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         .machine.has-hub-sw { border: 3px solid #FF9800 !important; box-shadow: 0 0 12px rgba(255,152,0,0.5); }
         .hub-sw-badge { position: absolute; top: -6px; left: -6px; width: 16px; height: 16px; background: #FF9800; border-radius: 50%; border: 2px solid white; font-size: 9px; display: flex; align-items: center; justify-content: center; color: white; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         .dark-theme .machine.has-hub-sw { border-color: #FF9800 !important; }
-        /* Floor tabs */
-        .floor-tabs { display: flex; gap: 3px; }
-        .floor-tab { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; background: #e0e0e0; color: #555; transition: all 0.2s; height: 36px; }
+        .floor-tabs { display: flex; gap: 2px; flex-shrink: 0; }
+        .floor-tab { padding: 4px 8px; border: none; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold; background: #e0e0e0; color: #555; transition: all 0.2s; height: 30px; white-space: nowrap; }
         .floor-tab.active { background: #4CAF50; color: white; box-shadow: 0 2px 8px rgba(76,175,80,0.4); }
         .floor-tab:hover:not(.active) { background: #c8e6c9; color: #2e7d32; }
         .dark-theme .floor-tab { background: #444; color: #ccc; }
         .dark-theme .floor-tab.active { background: #4CAF50; color: white; }
-        /* Multi-floor tek sayfa görünümü — 4 kat tek bir canvas üzerinde grup çerçevesi stiliyle */
+        /* Tüm Katlar — tek kanvas görünümü, salon sınırları çizgilerle */
         #multi-floor-container {
             width: 100%; height: 100%;
             display: none;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
-            gap: 0; padding: 12px;
-            background: #f8f8f8;
+            gap: 3px;
+            background: rgba(76,175,80,0.35); /* ince bölücü çizgiler = gap rengi */
+            padding: 0;
             box-sizing: border-box;
         }
         .floor-panel {
-            background: rgba(76,175,80,0.04);
-            border: 2px solid #4CAF50;
+            background: #ececec;
             overflow: hidden; display: flex; flex-direction: column;
-            cursor: pointer; transition: background 0.2s, border-color 0.2s;
+            cursor: pointer; transition: background 0.15s;
             position: relative;
+            border: none; border-radius: 0;
         }
-        /* İç kenarlık yerine tek paylaşılan çizgi ile birleşik görünüm */
-        .floor-panel:nth-child(1) { border-radius: 10px 0 0 0; border-right: 1px solid #4CAF50; border-bottom: 1px solid #4CAF50; }
-        .floor-panel:nth-child(2) { border-radius: 0 10px 0 0; border-left: 1px solid #4CAF50; border-bottom: 1px solid #4CAF50; }
-        .floor-panel:nth-child(3) { border-radius: 0 0 0 10px; border-right: 1px solid #4CAF50; border-top: 1px solid #4CAF50; }
-        .floor-panel:nth-child(4) { border-radius: 0 0 10px 0; border-left: 1px solid #4CAF50; border-top: 1px solid #4CAF50; }
-        .floor-panel:hover { background: rgba(76,175,80,0.10); border-color: #2e7d32; }
+        .floor-panel:hover { background: #e2f0e2; }
         .floor-panel-title {
-            padding: 5px 14px; font-weight: bold; font-size: 12px;
-            background: rgba(76,175,80,0.18); color: #2e7d32;
+            padding: 4px 12px; font-weight: bold; font-size: 11px;
+            background: rgba(76,175,80,0.12); color: #2e7d32;
             text-align: center; flex-shrink: 0; letter-spacing: 0.3px;
-            border-bottom: 1px solid rgba(76,175,80,0.3);
+            border-bottom: 1px solid rgba(76,175,80,0.2);
         }
         .floor-panel-map { flex: 1; position: relative; overflow: hidden; background: transparent; }
-        .dark-theme #multi-floor-container { background: #1a1a1a; }
-        .dark-theme .floor-panel { background: rgba(76,175,80,0.06); border-color: #388E3C; }
-        .dark-theme .floor-panel:hover { background: rgba(76,175,80,0.12); }
-        .dark-theme .floor-panel-title { background: rgba(76,175,80,0.15); color: #81c784; border-color: rgba(76,175,80,0.25); }
-        .dark-theme .floor-panel-map { background: transparent; }
+        .dark-theme #multi-floor-container { background: rgba(76,175,80,0.25); }
+        .dark-theme .floor-panel { background: #1e1e1e; }
+        .dark-theme .floor-panel:hover { background: #222; }
+        .dark-theme .floor-panel-title { background: rgba(76,175,80,0.10); color: #81c784; border-color: rgba(76,175,80,0.15); }
         .note-indicator {
             position: absolute; top: -5px; right: -5px; width: 14px; height: 14px; background: #ff4444;
             border-radius: 50%; border: 2px solid white; animation: pulse 1.5s infinite; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
@@ -290,35 +286,35 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         }
         
         .groups-panel {
-            position: fixed; right: 20px; top: 80px; width: 350px; background: white;
+            position: fixed; right: 20px; top: 80px; width: 260px; background: white;
             border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); z-index: 2000;
-            max-height: calc(100vh - 100px); overflow-y: auto;
+            max-height: 55vh; overflow-y: auto;
         }
         .dark-theme .groups-panel { background: #2d2d2d; color: white; border: 1px solid #444; }
-        .groups-panel-header { padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: inherit; }
-        .groups-panel-header button { background: #4CAF50; color: white; border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
-        .groups-panel-header .panel-close-btn { background: #f44336; padding: 5px 8px; }
-        .groups-list { padding: 10px; }
+        .groups-panel-header { padding: 8px 12px; border-bottom: 1px solid #eee; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: inherit; z-index: 1; }
+        .groups-panel-header button { background: #4CAF50; color: white; border: none; border-radius: 5px; padding: 4px 8px; cursor: pointer; font-size: 11px; }
+        .groups-panel-header .panel-close-btn { background: #f44336; padding: 4px 7px; }
+        .groups-list { padding: 6px; }
         
         .group-item-panel {
-            padding: 15px; border-bottom: 1px solid #eee; margin-bottom: 10px;
-            background: #f9f9f9; border-radius: 8px;
+            padding: 8px 10px; border-bottom: 1px solid #eee; margin-bottom: 6px;
+            background: #f9f9f9; border-radius: 6px;
         }
         .dark-theme .group-item-panel { background: #3d3d3d; }
-        .group-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .group-item-name { font-weight: bold; font-size: 16px; }
-        .group-item-count { background: #4CAF50; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-        .group-machine-input { display: flex; gap: 5px; margin-bottom: 10px; }
-        .group-machine-input input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
-        .group-machine-input button { padding: 8px 12px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .group-machine-list { max-height: 150px; overflow-y: auto; margin-bottom: 10px; font-size: 12px; border: 1px solid #eee; border-radius: 5px; padding: 5px; }
-        .group-machine-item { display: flex; justify-content: space-between; align-items: center; padding: 5px; border-bottom: 1px solid #eee; }
-        .group-machine-item button { background: #f44336; color: white; border: none; border-radius: 3px; padding: 2px 5px; cursor: pointer; font-size: 10px; }
+        .group-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .group-item-name { font-weight: bold; font-size: 13px; }
+        .group-item-count { background: #4CAF50; color: white; padding: 1px 6px; border-radius: 10px; font-size: 11px; }
+        .group-machine-input { display: flex; gap: 4px; margin-bottom: 6px; }
+        .group-machine-input input { flex: 1; padding: 5px 7px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; }
+        .group-machine-input button { padding: 5px 9px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .group-machine-list { max-height: 110px; overflow-y: auto; margin-bottom: 6px; font-size: 11px; border: 1px solid #eee; border-radius: 5px; padding: 4px; }
+        .group-machine-item { display: flex; justify-content: space-between; align-items: center; padding: 3px 4px; border-bottom: 1px solid #eee; }
+        .group-machine-item button { background: #f44336; color: white; border: none; border-radius: 3px; padding: 1px 4px; cursor: pointer; font-size: 10px; }
         
-        .group-actions { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+        .group-actions { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
         .group-actions button {
-            flex: 1; padding: 8px 5px; border: none; border-radius: 5px; cursor: pointer;
-            font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.2s;
+            flex: 1; padding: 5px 3px; border: none; border-radius: 5px; cursor: pointer;
+            font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;
         }
         .group-actions .assign-btn { background: #9C27B0; color: white; flex: 2; }
         .group-actions .export-btn { background: #4CAF50; color: white; }
@@ -432,6 +428,43 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             justify-content: center; margin-bottom: 6px; transition: opacity 0.15s;
         }
         .info-panel-btn:hover { opacity: 0.85; }
+
+        /* Gruplar paneli — kat başlıkları */
+        .floor-section-header {
+            padding: 5px 10px 3px; font-size: 11px; font-weight: bold;
+            letter-spacing: 0.6px; text-transform: uppercase;
+            background: rgba(76,175,80,0.18); color: #81c784;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 4px; cursor: pointer; user-select: none;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .floor-section-header::after { content: '▲'; font-size: 9px; opacity: 0.7; transition: transform 0.2s; }
+        .floor-section-header.collapsed::after { transform: rotate(180deg); }
+        .floor-section-body { overflow: hidden; transition: max-height 0.3s ease; }
+        .floor-section-body.collapsed { max-height: 0 !important; }
+        .dark-theme .floor-section-header { background: rgba(76,175,80,0.12); }
+
+        /* Düzenle — sağa kayan araç çubuğu */
+        #editToolsWrapper { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
+        #editDropdownBtn { width: 34px; height: 34px; padding: 0; gap: 0; font-size: 15px; }
+        #editToolsSlide {
+            display: flex; gap: 2px; align-items: center; overflow: hidden;
+            max-width: 0; opacity: 0;
+            transition: max-width 0.35s ease, opacity 0.25s ease;
+        }
+        #editToolsSlide.open { max-width: 700px; opacity: 1; }
+        .edit-slide-group { display: flex; gap: 2px; align-items: center; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 8px; flex-shrink: 0; }
+        .edit-slide-divider { width: 1px; height: 22px; background: #ccc; margin: 0 2px; flex-shrink: 0; }
+        .dark-theme .edit-slide-divider { background: #555; }
+        /* Makina Ekle + Grup butonları — sağa kayan wrapper */
+        #addMachineWrapper { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
+        #addMachineBtn { width: 34px; height: 34px; padding: 0; gap: 0; background: #4CAF50; }
+        #addMachineSlide {
+            display: flex; gap: 2px; align-items: center; overflow: hidden;
+            max-width: 0; opacity: 0;
+            transition: max-width 0.35s ease, opacity 0.25s ease;
+        }
+        #addMachineSlide.open { max-width: 300px; opacity: 1; }
     </style>
 </head>
 
@@ -448,82 +481,68 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             </div>
 
             <?php if($role == 'admin'): ?>
-                <div class="toolbar-group">
-                    <button class="toolbar-btn" onclick="rotateSelected(45)" title="45° döndür"><i class="fas fa-redo-alt"></i><span class="tooltip-text">45° döndür</span></button>
-                    <button class="toolbar-btn" onclick="rotateSelected(90)" title="90° döndür"><i class="fas fa-undo-alt"></i><span class="tooltip-text">90° döndür</span></button>
-                    <button class="toolbar-btn" onclick="rotateSelected(180)" title="180° döndür"><i class="fas fa-sync-alt"></i><span class="tooltip-text">180° döndür</span></button>
+                <!-- Düzenle butonu + sağa kayan araç çubuğu -->
+                <div id="editToolsWrapper">
+                    <button class="toolbar-btn" id="editDropdownBtn" onclick="toggleEditDropdown()" title="Düzenle araçları">
+                        <i class="fas fa-edit"></i>
+                        <span class="tooltip-text">Düzenle</span>
+                    </button>
+                    <div id="editToolsSlide">
+                        <div class="edit-slide-group">
+                            <button class="toolbar-btn" onclick="rotateSelected(45)" title="45° döndür"><i class="fas fa-redo-alt"></i><span class="tooltip-text">45° döndür</span></button>
+                            <button class="toolbar-btn" onclick="rotateSelected(90)" title="90° döndür"><i class="fas fa-undo-alt"></i><span class="tooltip-text">90° döndür</span></button>
+                            <button class="toolbar-btn" onclick="rotateSelected(180)" title="180° döndür"><i class="fas fa-sync-alt"></i><span class="tooltip-text">180° döndür</span></button>
+                        </div>
+                        <div class="edit-slide-divider"></div>
+                        <div class="edit-slide-group">
+                            <button class="toolbar-btn purple" onclick="alignSelected('left')" title="Sola hizala"><i class="fas fa-align-left"></i><span class="tooltip-text">Sola hizala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('right')" title="Sağa hizala"><i class="fas fa-align-right"></i><span class="tooltip-text">Sağa hizala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('top')" title="Üste hizala"><i class="fas fa-align-justify" style="transform:rotate(90deg);"></i><span class="tooltip-text">Üste hizala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('bottom')" title="Alta hizala"><i class="fas fa-align-justify" style="transform:rotate(-90deg);"></i><span class="tooltip-text">Alta hizala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('centerH')" title="Yatay ortala"><i class="fas fa-arrows-alt-h"></i><span class="tooltip-text">Yatay ortala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('centerV')" title="Dikey ortala"><i class="fas fa-arrows-alt-v"></i><span class="tooltip-text">Dikey ortala</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('distributeH')" title="Yatay dağıt"><i class="fas fa-arrows-alt-h" style="transform:rotate(90deg);"></i><span class="tooltip-text">Yatay dağıt</span></button>
+                            <button class="toolbar-btn purple" onclick="alignSelected('distributeV')" title="Dikey dağıt"><i class="fas fa-arrows-alt-v" style="transform:rotate(90deg);"></i><span class="tooltip-text">Dikey dağıt</span></button>
+                        </div>
+                        <div class="edit-slide-divider"></div>
+                        <div class="edit-slide-group">
+                            <button class="toolbar-btn orange" onclick="openPositionModal()" title="Konum ayarla"><i class="fas fa-map-marker-alt"></i><span class="tooltip-text">Konum ayarla</span></button>
+                            <button class="toolbar-btn orange" onclick="openNoteModal()" title="Not ekle"><i class="fas fa-sticky-note"></i><span class="tooltip-text">Not ekle</span></button>
+                            <button class="toolbar-btn orange" onclick="openHubSwModal()" title="Hub SW ayarla"><i class="fas fa-network-wired"></i><span class="tooltip-text">Hub SW</span></button>
+                            <button class="toolbar-btn orange" onclick="autoArrangeSelected()" title="Seçilileri düzenle (üst üste gelmesin)"><i class="fas fa-th"></i><span class="tooltip-text">Seçilileri düzenle</span></button>
+                            <button class="toolbar-btn orange" onclick="saveAllPositions()" title="Kaydet"><i class="fas fa-save"></i><span class="tooltip-text">Kaydet</span></button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="toolbar-group">
-    <button class="toolbar-btn purple" onclick="alignSelected('left')" title="Sola hizala">
-        <i class="fas fa-align-left"></i>
-        <span class="tooltip-text">Sola hizala</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('right')" title="Sağa hizala">
-        <i class="fas fa-align-right"></i>
-        <span class="tooltip-text">Sağa hizala</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('top')" title="Üste hizala">
-        <i class="fas fa-align-justify" style="transform: rotate(90deg);"></i>
-        <span class="tooltip-text">Üste hizala</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('bottom')" title="Alta hizala">
-        <i class="fas fa-align-justify" style="transform: rotate(-90deg);"></i>
-        <span class="tooltip-text">Alta hizala</span>
-    </button>
-</div>
-
-<div class="toolbar-group">
-    <button class="toolbar-btn purple" onclick="alignSelected('centerH')" title="Yatay ortala">
-        <i class="fas fa-arrows-alt-h"></i>
-        <span class="tooltip-text">Yatay ortala</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('centerV')" title="Dikey ortala">
-        <i class="fas fa-arrows-alt-v"></i>
-        <span class="tooltip-text">Dikey ortala</span>
-    </button>
-</div>
-
-<div class="toolbar-group">
-    <button class="toolbar-btn purple" onclick="alignSelected('distributeH')" title="Yatay dağıt">
-        <i class="fas fa-arrows-alt-h" style="transform: rotate(90deg);"></i>
-        <span class="tooltip-text">Yatay dağıt</span>
-    </button>
-    <button class="toolbar-btn purple" onclick="alignSelected('distributeV')" title="Dikey dağıt">
-        <i class="fas fa-arrows-alt-v" style="transform: rotate(90deg);"></i>
-        <span class="tooltip-text">Dikey dağıt</span>
-    </button>
-</div>
-
-                <div class="toolbar-group">
-                    <button class="toolbar-btn orange" onclick="openPositionModal()" title="Konum ayarla"><i class="fas fa-map-marker-alt"></i><span class="tooltip-text">Konum ayarla</span></button>
-                    <button class="toolbar-btn orange" onclick="openNoteModal()" title="Not ekle"><i class="fas fa-sticky-note"></i><span class="tooltip-text">Not ekle</span></button>
-                    <button class="toolbar-btn orange" onclick="openHubSwModal()" title="Hub SW ayarla"><i class="fas fa-network-wired"></i><span class="tooltip-text">Hub SW</span></button>
-                    <button class="toolbar-btn orange" onclick="autoArrangeSelected()" title="Seçilileri düzenle (üst üste gelmesin)"><i class="fas fa-th"></i><span class="tooltip-text">Seçilileri düzenle</span></button>
-                    <button class="toolbar-btn orange" onclick="saveAllPositions()" title="Kaydet"><i class="fas fa-save"></i><span class="tooltip-text">Kaydet</span></button>
+                <!-- Makina Ekle + Grup butonları sağa kayan panel -->
+                <div id="addMachineWrapper">
+                    <button class="toolbar-btn" id="addMachineBtn" onclick="toggleAddMachineSlide()" title="Ekle">
+                        <i class="fas fa-plus"></i>
+                        <span class="tooltip-text">Ekle</span>
+                    </button>
+                    <div id="addMachineSlide">
+                        <button class="toolbar-btn" onclick="openAddMachineModal()" title="Makina Ekle"><i class="fas fa-desktop"></i><span class="tooltip-text">Makina Ekle</span></button>
+                        <button class="toolbar-btn purple" onclick="toggleGroupsPanel()" title="Gruplar"><i class="fas fa-users"></i><span class="tooltip-text">Gruplar</span></button>
+                        <button class="toolbar-btn orange" onclick="startGroupCreate()" title="Grup oluştur"><i class="fas fa-plus-circle"></i><span class="tooltip-text">Grup oluştur</span></button>
+                        <button class="toolbar-btn purple" onclick="showAssignGroupModal()" title="Seçilileri gruba ata"><i class="fas fa-object-group"></i><span class="tooltip-text">Gruba Ata</span></button>
+                    </div>
                 </div>
-
-                <div class="toolbar-divider"></div>
-
-                <div class="toolbar-group">
-                    <button class="toolbar-btn purple" onclick="toggleGroupsPanel()" title="Gruplar"><i class="fas fa-users"></i><span class="tooltip-text">Gruplar</span></button>
-                    <button class="toolbar-btn orange" onclick="startGroupCreate()" title="Grup oluştur"><i class="fas fa-plus-circle"></i><span class="tooltip-text">Grup oluştur</span></button>
-                    <button class="toolbar-btn purple" onclick="showAssignGroupModal()" title="Seçilileri gruba ata"><i class="fas fa-object-group"></i><span class="tooltip-text">Gruba Ata</span></button>
-                </div>
-
-                <select id="group-filter" onchange="filterByGroup(this.value)">
-                    <option value="all">Tüm Gruplar</option>
-                    <?php
-                    $groups->data_seek(0);
-                    while($group = $groups->fetch_assoc()):
-                    ?>
-                    <option value="<?php echo $group['id']; ?>"><?php echo htmlspecialchars($group['group_name']); ?></option>
-                    <?php endwhile; ?>
-                </select>
             <?php endif; ?>
         </div>
 
         <div class="toolbar-right">
+            <?php if($role == 'admin'): ?>
+            <div style="position:relative; display:flex; align-items:center; gap:2px;">
+                <input id="group-filter" type="text" list="group-filter-list"
+                    placeholder="Tüm Gruplar" autocomplete="off"
+                    oninput="filterByGroupInput(this.value)"
+                    style="padding:5px 10px; border:1px solid #ddd; border-radius:16px; font-size:12px; min-width:130px; height:34px; box-sizing:border-box;">
+                <datalist id="group-filter-list">
+                    <option value="Tüm Gruplar">
+                </datalist>
+            </div>
+            <?php endif; ?>
             <button class="toolbar-btn dashboard" onclick="toggleSidebar()" title="Menü"><i class="fas fa-bars"></i><span class="tooltip-text">Menü</span></button>
             <button class="toolbar-btn theme" onclick="toggleTheme()" title="Tema değiştir"><i class="fas fa-moon"></i><span class="tooltip-text">Tema değiştir</span></button>
             
@@ -561,32 +580,20 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             <?php if($role == 'admin'): ?>
             <div class="sidebar-item">
                 <a href="excel_import.php">
-                    📁 CSV / Excel Yükle
-                    <small>Yeni makineleri toplu yükle</small>
+                    📁 CSV / Excel Yükle & İndir
+                    <small>Makineleri toplu yükle veya aktar</small>
                 </a>
             </div>
             <div class="sidebar-item">
-                <a href="machine_edit.php">
-                    ✏️ Makine Düzenle
-                    <small>Makineleri ekle, sil, güncelle</small>
+                <a href="machine_settings.php">
+                    ⚙️ Makine Ayarları
+                    <small>Makine düzenle ve grup yönetimi</small>
                 </a>
             </div>
             <div class="sidebar-item">
-                <a href="machine_groups.php">
-                    👥 Makine Grupları
-                    <small>Gruplar oluştur ve Excel aktar</small>
-                </a>
-            </div>
-            <div class="sidebar-item">
-                <a href="update_database.php">
-                    🔧 Veritabanı Güncelle
-                    <small>Şema migrasyonları ve CSV makine yükleme</small>
-                </a>
-            </div>
-            <div class="sidebar-item">
-                <a href="fix_positions.php">
-                    📍 Koordinat Düzeltme
-                    <small>Tüm salon makinelerini senkronize et</small>
+                <a href="users.php">
+                    👤 Kullanıcı Yönetimi
+                    <small>Kullanıcı ekle, sil ve şifre değiştir</small>
                 </a>
             </div>
             <?php endif; ?>
@@ -602,9 +609,15 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         <div class="groups-panel-header">
             <span>Makine Grupları</span>
             <div style="display:flex; gap:5px;">
+                <?php if($role === 'admin'): ?>
                 <button onclick="startGroupCreate()"><i class="fas fa-plus"></i> Yeni</button>
+                <?php endif; ?>
                 <button class="panel-close-btn" onclick="toggleGroupsPanel()" title="Kapat"><i class="fas fa-times"></i></button>
             </div>
+        </div>
+        <!-- Bölge filtre butonları -->
+        <div id="regionFilters" style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.15);">
+            <!-- JS tarafından doldurulur -->
         </div>
         <div class="groups-list" id="groupsList"><div style="padding: 20px; text-align: center;">Yükleniyor...</div></div>
     </div>
@@ -791,6 +804,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
     <script>
         // PHP → JS yetki köprüsü
         const IS_ADMIN = <?php echo ($role === 'admin') ? 'true' : 'false'; ?>;
+        const CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
     </script>
     <script src="assets/js/map.js"></script>
 
@@ -832,5 +846,165 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             </div>
         </div>
     </div>
+
+    <!-- Makina Ekle Modal -->
+    <div id="addMachineModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> Yeni Makine Ekle / Düzenle</h3>
+                <span class="close" onclick="closeAddMachineModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Makine No:</label>
+                    <input type="text" id="newMachineNo" placeholder="">
+                </div>
+                <div class="form-group">
+                    <label>IP Adresi:</label>
+                    <input type="text" id="newMachineIp" placeholder="">
+                </div>
+                <div class="form-group">
+                    <label>MAC Adresi:</label>
+                    <input type="text" id="newMachineMac" placeholder="">
+                </div>
+                <div class="form-group">
+                    <label>Z Koordinatı (Kat):</label>
+                    <select id="newMachineZ">
+                        <option value="0">Yüksek Tavan</option>
+                        <option value="1">Alçak Tavan</option>
+                        <option value="2">Yeni Vip Salon</option>
+                        <option value="3">Alt Salon</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Not:</label>
+                    <textarea id="newMachineNote" placeholder="Makine hakkında notlar..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" onclick="clearAddMachineForm()">Temizle</button>
+                <button class="save-btn" onclick="submitAddMachine()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ── Düzenle sağa kayan açma/kapama ─────────────────────────────────────
+    function toggleEditDropdown() {
+        var slide = document.getElementById('editToolsSlide');
+        if (!slide) return;
+        slide.classList.toggle('open');
+        // Diğer slide açıksa kapat
+        document.getElementById('addMachineSlide')?.classList.remove('open');
+    }
+
+    // ── Ekle sağa kayan açma/kapama ────────────────────────────────────────
+    function toggleAddMachineSlide() {
+        var slide = document.getElementById('addMachineSlide');
+        if (!slide) return;
+        slide.classList.toggle('open');
+        // Diğer slide açıksa kapat
+        document.getElementById('editToolsSlide')?.classList.remove('open');
+    }
+
+    // Dışarı tıklanınca her iki slide'ı da kapat
+    document.addEventListener('click', function(e) {
+        var editWrapper = document.getElementById('editToolsWrapper');
+        var editSlide   = document.getElementById('editToolsSlide');
+        if (editSlide && editWrapper && !editWrapper.contains(e.target)) {
+            editSlide.classList.remove('open');
+        }
+        var addWrapper = document.getElementById('addMachineWrapper');
+        var addSlide   = document.getElementById('addMachineSlide');
+        if (addSlide && addWrapper && !addWrapper.contains(e.target)) {
+            addSlide.classList.remove('open');
+        }
+    });
+
+    // ── Makina Ekle Modal ───────────────────────────────────────────────────
+    function openAddMachineModal() {
+        document.getElementById('addMachineModal').style.display = 'block';
+    }
+    function closeAddMachineModal() {
+        document.getElementById('addMachineModal').style.display = 'none';
+    }
+    function clearAddMachineForm() {
+        ['newMachineNo','newMachineIp','newMachineMac','newMachineNote'].forEach(function(id) {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('newMachineZ').value = '0';
+    }
+    function submitAddMachine() {
+        var no   = document.getElementById('newMachineNo').value.trim();
+        var ip   = document.getElementById('newMachineIp').value.trim();
+        var mac  = document.getElementById('newMachineMac').value.trim();
+        var z    = document.getElementById('newMachineZ').value;
+        var note = document.getElementById('newMachineNote').value.trim();
+
+        if (!no || !ip || !mac) {
+            alert('Makine No, IP Adresi ve MAC Adresi zorunludur!');
+            return;
+        }
+
+        var fd = new FormData();
+        fd.append('csrf_token', CSRF_TOKEN);
+        fd.append('machine_no', no);
+        fd.append('ip', ip);
+        fd.append('mac', mac);
+        fd.append('pos_z', z);
+        fd.append('note', note);
+
+        fetch('add_machine_ajax.php', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    closeAddMachineModal();
+                    clearAddMachineForm();
+                    _addMachineToMap(data);
+                    if (typeof showStatus === 'function') showStatus('Makine eklendi: ' + data.machine_no);
+                } else {
+                    alert(data.error || 'Hata oluştu.');
+                }
+            })
+            .catch(function() { alert('Bağlantı hatası.'); });
+    }
+
+    function _addMachineToMap(data) {
+        var map = document.getElementById('map');
+        if (!map) return;
+        // Escape helper (may not yet be defined when this runs)
+        function esc(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+        var div = document.createElement('div');
+        div.className = 'machine';
+        div.setAttribute('data-id', data.id);
+        div.setAttribute('data-rotation', '0');
+        div.setAttribute('data-note', data.note || '');
+        div.setAttribute('data-x', '0');
+        div.setAttribute('data-y', '0');
+        div.setAttribute('data-z', String(data.pos_z));
+        div.setAttribute('data-machine-no', data.machine_no);
+        div.setAttribute('data-ip', data.ip);
+        div.setAttribute('data-mac', data.mac);
+        div.setAttribute('data-drscreen-ip', '');
+        div.setAttribute('data-hub-sw', '0');
+        div.setAttribute('data-hub-sw-cable', '');
+        div.style.left = '20px';
+        div.style.top  = '20px';
+        div.style.transform = 'rotate(0deg)';
+        div.innerHTML =
+            '<div class="machine-inner">' +
+            '<span class="machine-label">' + esc(data.machine_no) + '</span>' +
+            '<span class="machine-ip">' + esc(data.ip) + '</span>' +
+            '<span class="z-level">Z:' + esc(data.pos_z) + '</span>' +
+            '</div>';
+        map.appendChild(div);
+        // Attach all event listeners (drag, click, contextmenu, tooltip)
+        if (typeof window._setupMachineEl === 'function') {
+            window._setupMachineEl(div);
+        }
+    }
+    </script>
 </body>
 </html>

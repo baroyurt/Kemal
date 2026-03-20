@@ -7,6 +7,7 @@ if(!isset($_SESSION['login'])){
 }
 
 include("config.php");
+include("xlsx_helper.php");
 
 if(!isset($_GET['group_id'])){
     die("Grup ID gerekli!");
@@ -27,44 +28,28 @@ $machines = $conn->query("
     ORDER BY m.machine_no
 ");
 
-header('Content-Type: text/csv; charset=utf-8');
-header('Content-Disposition: attachment; filename="' . $group['group_name'] . '_' . date('Y-m-d') . '.csv"');
-
-echo "\xEF\xBB\xBF";
-
-$output = fopen('php://output', 'w');
-
-fputcsv($output, [
-    'Makine No',
-    'IP Adresi',
-    'MAC Adresi',
-    'Z Katmanı',
-    'X Koordinatı',
-    'Y Koordinatı',
-    'Döndürme',
-    'Not'
-]);
-
 $z_levels = [
     0 => 'Yüksek Tavan',
     1 => 'Alçak Tavan',
-    2 => 'Yüksek Tavan 2',
+    2 => 'Yeni VIP Salon',
     3 => 'Alt Salon'
 ];
 
+$headers = ['Makine No', 'IP Adresi', 'MAC Adresi', 'Z Katmanı', 'X Koordinatı', 'Y Koordinatı', 'Döndürme', 'Not'];
+$rows = [];
+
 while($row = $machines->fetch_assoc()){
-    fputcsv($output, [
+    $rows[] = [
         $row['machine_no'],
         $row['ip'],
         $row['mac'],
-        $z_levels[$row['pos_z']] ?? 'Kat ' . $row['pos_z'],
+        $z_levels[$row['pos_z']] ?? ('Kat ' . $row['pos_z']),
         $row['pos_x'],
         $row['pos_y'],
         $row['rotation'] . '°',
         $row['note']
-    ]);
+    ];
 }
 
-fclose($output);
-exit;
-?>
+$filename = $group['group_name'] . '_' . date('Y-m-d') . '.xlsx';
+send_xlsx($filename, $headers, $rows);

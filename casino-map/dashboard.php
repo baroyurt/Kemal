@@ -13,6 +13,7 @@ $username = $_SESSION['username'];
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Casino Map Panel</title>
     <style>
         body {
@@ -102,43 +103,29 @@ $username = $_SESSION['username'];
             <div class="menu-item">
                 <a href="map.php">
                     🗺️ Makine Haritası
-                    <small style="color: #666; display: block;">Makineleri görüntüle</small>
+                    <small style="color: #666; display: block;">Makineleri görüntüle ve düzenle</small>
                 </a>
             </div>
             
             <?php if($role == 'admin'): ?>
                 <div class="menu-item">
                     <a href="excel_import.php">
-                        📁 CSV / Excel Yükle
-                        <small style="color: #666; display: block;">Yeni makineleri toplu yükle</small>
+                        📁 CSV / Excel Yükle & İndir
+                        <small style="color: #666; display: block;">Makineleri toplu yükle veya dışa aktar</small>
                     </a>
                 </div>
                 
                 <div class="menu-item">
-                    <a href="machine_edit.php">
-                        ✏️ Makine Düzenle
-                        <small style="color: #666; display: block;">Makineleri ekle, sil, güncelle</small>
-                    </a>
-                </div>
-                
-                <div class="menu-item">
-                    <a href="machine_groups.php">
-                        👥 Makine Grupları
-                        <small style="color: #666; display: block;">Gruplar oluştur ve Excel aktar</small>
-                    </a>
-                </div>
-                
-                <div class="menu-item">
-                    <a href="update_database.php">
-                        🔧 Veritabanı Güncelle
-                        <small style="color: #666; display: block;">Şema migrasyonları ve CSV makine yükleme</small>
+                    <a href="machine_settings.php">
+                        ⚙️ Makine Ayarları
+                        <small style="color: #666; display: block;">Makine düzenle ve grup yönetimi</small>
                     </a>
                 </div>
 
                 <div class="menu-item">
-                    <a href="fix_positions.php">
-                        📍 Koordinat Düzeltme
-                        <small style="color: #666; display: block;">Tüm salon makinelerini orijinal koordinatlarla senkronize et</small>
+                    <a href="users.php">
+                        👤 Kullanıcı Yönetimi
+                        <small style="color: #666; display: block;">Kullanıcı ekle, sil ve şifre değiştir</small>
                     </a>
                 </div>
             <?php endif; ?>
