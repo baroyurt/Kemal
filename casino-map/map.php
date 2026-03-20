@@ -165,8 +165,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         /* ===== CASINO MODE — slot machines locked (visible but not interactive) ===== */
         #map-container.casino-mode .machine:not([data-z="10"]) {
             pointer-events: none !important;
-            opacity: 0.35;
-            filter: grayscale(60%);
+            opacity: 0.75;
             cursor: default !important;
         }
         /* ===== CASINO TABLE TYPES ===== */
@@ -176,41 +175,41 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         .machine[data-game-type="barbut"]::before { display: none; }
         /* Poker — Texas Hold'em oval green table */
         .machine[data-game-type="poker"] {
-            width: 120px; height: 64px; border-radius: 32px;
+            width: 60px; height: 32px; border-radius: 16px;
             background: linear-gradient(160deg, #256b3a 0%, #1B5E20 100%);
-            border: 3px solid #795548 !important;
-            box-shadow: 0 0 18px rgba(27,94,32,0.7), 4px 4px 8px rgba(0,0,0,0.5);
+            border: 2px solid #795548 !important;
+            box-shadow: 0 0 10px rgba(27,94,32,0.7), 2px 2px 5px rgba(0,0,0,0.5);
         }
         .machine[data-game-type="poker"]::after {
-            content: '♠ POKER'; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-            font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.75); letter-spacing: 1px; white-space: nowrap;
+            content: '♠ POKER'; position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+            font-size: 7px; font-weight: bold; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; white-space: nowrap;
         }
         /* Rulet — red/black roulette table */
         .machine[data-game-type="rulet"] {
-            width: 110px; height: 64px; border-radius: 10px;
+            width: 55px; height: 32px; border-radius: 5px;
             background: linear-gradient(135deg, #7B1FA2 0%, #B71C1C 100%);
-            border: 3px solid #FFD700 !important;
-            box-shadow: 0 0 18px rgba(183,28,28,0.6), 4px 4px 8px rgba(0,0,0,0.5);
+            border: 2px solid #FFD700 !important;
+            box-shadow: 0 0 10px rgba(183,28,28,0.6), 2px 2px 5px rgba(0,0,0,0.5);
         }
         .machine[data-game-type="rulet"]::after {
-            content: '⭕ RULET'; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-            font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.75); letter-spacing: 1px; white-space: nowrap;
+            content: '⭕ RULET'; position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+            font-size: 7px; font-weight: bold; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; white-space: nowrap;
         }
         /* Barbut — craps oval green table */
         .machine[data-game-type="barbut"] {
-            width: 140px; height: 70px; border-radius: 35px;
+            width: 70px; height: 35px; border-radius: 18px;
             background: linear-gradient(160deg, #2E7D32 0%, #1B5E20 100%);
-            border: 3px solid #8D6E63 !important;
-            box-shadow: 0 0 18px rgba(27,94,32,0.7), 4px 4px 8px rgba(0,0,0,0.5);
+            border: 2px solid #8D6E63 !important;
+            box-shadow: 0 0 10px rgba(27,94,32,0.7), 2px 2px 5px rgba(0,0,0,0.5);
         }
         .machine[data-game-type="barbut"]::after {
-            content: '🎲 BARBUT'; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-            font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.75); letter-spacing: 1px; white-space: nowrap;
+            content: '🎲 BARBUT'; position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+            font-size: 7px; font-weight: bold; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; white-space: nowrap;
         }
         /* inner padding-top override for casino tables so label sits below icon */
         .machine[data-game-type="poker"] .machine-inner,
         .machine[data-game-type="rulet"] .machine-inner,
-        .machine[data-game-type="barbut"] .machine-inner { padding-top: 18px; }
+        .machine[data-game-type="barbut"] .machine-inner { padding-top: 10px; }
         /* Tüm Katlar — tek kanvas görünümü, salon sınırları çizgilerle */
         #multi-floor-container {
             width: 100%; height: 100%;
