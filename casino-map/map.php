@@ -173,9 +173,19 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         .machine[data-game-type="poker"]::before,
         .machine[data-game-type="rulet"]::before,
         .machine[data-game-type="barbut"]::before { display: none; }
-        /* Poker — Texas Hold'em oval green table */
+        /* Casino table labels: hide IP, show name in white */
+        .machine[data-game-type="poker"] .machine-ip,
+        .machine[data-game-type="rulet"] .machine-ip,
+        .machine[data-game-type="barbut"] .machine-ip { display: none; }
+        .machine[data-game-type="poker"] .machine-label,
+        .machine[data-game-type="rulet"] .machine-label,
+        .machine[data-game-type="barbut"] .machine-label { font-size: 8px; color: #fff; font-weight: bold; }
+        .machine[data-game-type="poker"] .z-level,
+        .machine[data-game-type="rulet"] .z-level,
+        .machine[data-game-type="barbut"] .z-level { font-size: 7px; }
+        /* Poker — D-shaped (yarım daire): flat bottom, curved top */
         .machine[data-game-type="poker"] {
-            width: 60px; height: 32px; border-radius: 16px;
+            width: 60px; height: 40px; border-radius: 30px 30px 0 0;
             background: linear-gradient(160deg, #256b3a 0%, #1B5E20 100%);
             border: 2px solid #795548 !important;
             box-shadow: 0 0 10px rgba(27,94,32,0.7), 2px 2px 5px rgba(0,0,0,0.5);
@@ -184,9 +194,9 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             content: '♠ POKER'; position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
             font-size: 7px; font-weight: bold; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; white-space: nowrap;
         }
-        /* Rulet — red/black roulette table */
+        /* Rulet — rounded rectangle */
         .machine[data-game-type="rulet"] {
-            width: 55px; height: 32px; border-radius: 5px;
+            width: 55px; height: 38px; border-radius: 5px;
             background: linear-gradient(135deg, #7B1FA2 0%, #B71C1C 100%);
             border: 2px solid #FFD700 !important;
             box-shadow: 0 0 10px rgba(183,28,28,0.6), 2px 2px 5px rgba(0,0,0,0.5);
@@ -195,21 +205,21 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             content: '⭕ RULET'; position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
             font-size: 7px; font-weight: bold; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; white-space: nowrap;
         }
-        /* Barbut — craps oval green table */
+        /* Barbut — craps oval blue table */
         .machine[data-game-type="barbut"] {
-            width: 70px; height: 35px; border-radius: 18px;
-            background: linear-gradient(160deg, #2E7D32 0%, #1B5E20 100%);
-            border: 2px solid #8D6E63 !important;
-            box-shadow: 0 0 10px rgba(27,94,32,0.7), 2px 2px 5px rgba(0,0,0,0.5);
+            width: 70px; height: 42px; border-radius: 21px;
+            background: linear-gradient(160deg, #1565C0 0%, #0D47A1 100%);
+            border: 2px solid #42A5F5 !important;
+            box-shadow: 0 0 10px rgba(13,71,161,0.7), 2px 2px 5px rgba(0,0,0,0.5);
         }
         .machine[data-game-type="barbut"]::after {
             content: '🎲 BARBUT'; position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
             font-size: 7px; font-weight: bold; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; white-space: nowrap;
         }
-        /* inner padding-top override for casino tables so label sits below icon */
+        /* inner padding-top: leave room for the type badge then show name */
         .machine[data-game-type="poker"] .machine-inner,
         .machine[data-game-type="rulet"] .machine-inner,
-        .machine[data-game-type="barbut"] .machine-inner { padding-top: 10px; }
+        .machine[data-game-type="barbut"] .machine-inner { padding-top: 14px; }
         /* Tüm Katlar — tek kanvas görünümü, salon sınırları çizgilerle */
         #multi-floor-container {
             width: 100%; height: 100%;
