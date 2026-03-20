@@ -162,28 +162,42 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         .floor-tab.casino-tab.active { background: #7B1FA2; color: #FFD700; box-shadow: 0 2px 8px rgba(123,31,162,0.5); border-color: #FFD700; }
         .floor-tab.casino-tab:hover:not(.active) { background: #c62828; color: #FFD700; }
         .dark-theme .floor-tab.casino-tab { background: #4a0000; color: #FFD700; }
-        /* ===== CASINO MODE — slot machines locked (visible but not interactive) ===== */
-        #map-container.casino-mode .machine:not([data-z="10"]) {
+        /* ===== CASINO MODE — slot machines locked (not live tables) ===== */
+        #map-container.casino-mode .machine:not([data-z="10"]):not([data-game-type="poker"]):not([data-game-type="rulet"]):not([data-game-type="barbut"]) {
             pointer-events: none !important;
             opacity: 0.20 !important;
             filter: grayscale(70%);
             cursor: default !important;
         }
-        /* Casino tables in casino mode — elevated "upper floor" appearance */
-        #map-container.casino-mode .machine[data-z="10"] {
+        /* All live tables in casino mode (any floor) — elevated "upper floor" appearance */
+        #map-container.casino-mode .machine[data-z="10"],
+        #map-container.casino-mode .machine[data-game-type="poker"],
+        #map-container.casino-mode .machine[data-game-type="rulet"],
+        #map-container.casino-mode .machine[data-game-type="barbut"] {
             z-index: 100 !important;
             transform: scale(1.10);
             box-shadow: 0 10px 28px rgba(0,0,0,0.65), 0 3px 8px rgba(0,0,0,0.4) !important;
             filter: drop-shadow(0 0 7px rgba(255,215,0,0.35));
         }
-        /* Upper-floor label shown in casino mode */
+        /* Upper-floor label: horizontal, positioned by JS to the left of Balkon zone */
         #casino-upper-floor-label {
-            position: absolute; left: 50%; transform: translateX(-50%);
+            position: absolute;
             background: linear-gradient(90deg, rgba(123,31,162,0.92), rgba(183,28,28,0.92));
             color: #FFD700; font-weight: bold; font-size: 11px; letter-spacing: 0.8px;
-            padding: 4px 18px; border-radius: 20px; z-index: 200;
+            padding: 4px 14px; border-radius: 6px; z-index: 200;
             border: 1px solid rgba(255,215,0,0.5); pointer-events: none; white-space: nowrap;
             box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+        }
+        /* Casino zone overlay boxes (Balkon / VIP / Eski VIP) */
+        .casino-zone-overlay {
+            position: absolute; pointer-events: none; z-index: 50;
+            border-radius: 8px;
+        }
+        .casino-zone-label {
+            position: absolute; pointer-events: none; z-index: 51;
+            font-size: 11px; font-weight: bold; white-space: nowrap;
+            padding: 2px 8px; border-radius: 4px;
+            background: rgba(0,0,0,0.72);
         }
         /* ===== CASINO TABLE TYPES ===== */
         /* Remove the black separator bar for casino tables */
@@ -1147,7 +1161,8 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         }
         // Switch to the floor where the machine was added and focus it
         if (typeof window.switchFloor === 'function') {
-            window.switchFloor(zStr === '10' ? 'casino' : zStr);
+            var isLive = ['poker', 'rulet', 'barbut'].indexOf(data.game_type) >= 0;
+            window.switchFloor((zStr === '10' || isLive) ? 'casino' : zStr);
         }
     }
     </script>

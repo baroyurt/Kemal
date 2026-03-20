@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Track currently active floor ('all', '0', '1', '2', '3')
     let currentFloor = 'all';
 
+    // Live table game types — machines with these types are casino tables, not slots
+    const LIVE_TABLE_TYPES = ['poker', 'rulet', 'barbut'];
+    function isLiveTable(machine) {
+        return LIVE_TABLE_TYPES.indexOf(machine.getAttribute('data-game-type')) >= 0;
+    }
+
     // Zoom / pan state
     let mapScale = 1;
     let mapTranslateX = 0;
@@ -95,8 +101,8 @@ document.addEventListener('DOMContentLoaded', function() {
         machine.addEventListener('mousedown', function(e) {
             if (e.button !== 0) return;
             if (!IS_ADMIN) return;   // personel sürükleyemez
-            // Casino modunda slot makineleri (pos_z != 10) sürüklenemez
-            if (currentFloor === 'casino' && this.getAttribute('data-z') !== '10') return;
+            // Casino modunda slot makineleri (pos_z != 10 ve canlı masa değil) sürüklenemez
+            if (currentFloor === 'casino' && this.getAttribute('data-z') !== '10' && !isLiveTable(this)) return;
             e.preventDefault();
             e.stopPropagation();
 
@@ -406,8 +412,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Only operate on machines that belong to the current floor
         function isOnCurrentFloor(machine) {
             if (currentFloor === 'all') return true;
-            // Casino modunda yalnızca canlı masalar seçilebilir
-            if (currentFloor === 'casino') return machine.getAttribute('data-z') === '10';
+            // Casino modunda: z=10 canlı masalar VE diğer katlardaki canlı masalar seçilebilir
+            if (currentFloor === 'casino') return machine.getAttribute('data-z') === '10' || isLiveTable(machine);
             return machine.getAttribute('data-z') === currentFloor;
         }
 
@@ -609,13 +615,14 @@ document.addEventListener('DOMContentLoaded', function() {
         map.style.display = 'block';
 
         if (zValue === 'all') {
-            // Show only slot machines (pos_z 0–9); hide casino tables (pos_z 10)
+            // Show only slot machines (pos_z 0–9) — exclude live tables (poker/rulet/barbut)
             mapContainer.classList.remove('casino-mode');
-            // Remove casino upper-floor label if present
+            // Remove casino upper-floor label and zone overlays if present
             var ul = document.getElementById('casino-upper-floor-label'); if (ul) ul.remove();
+            document.querySelectorAll('#map .casino-zone-overlay, #map .casino-zone-label').forEach(d => d.remove());
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 const mz = parseInt(machine.getAttribute('data-z'), 10);
-                machine.style.display = (mz < 10) ? 'flex' : 'none';
+                machine.style.display = (mz < 10 && !isLiveTable(machine)) ? 'flex' : 'none';
             });
             // Remove any existing floor dividers then redraw them
             document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
@@ -624,13 +631,15 @@ document.addEventListener('DOMContentLoaded', function() {
             updateGroupIcons();
             requestAnimationFrame(function() { fitFloorToView('all'); });
         } else if (zValue === 'casino') {
-            // Show ALL machines (slots + casino tables) — slots are locked via CSS casino-mode
+            // Show ALL machines; slot machines greyed via CSS, live tables elevated
             document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 machine.style.display = 'flex';
             });
             mapContainer.classList.add('casino-mode');
-            // Add upper-floor label above casino tables
+            // Draw zone overlays for Balkon / VIP / Eski VIP
+            drawCasinoZoneOverlays();
+            // Add upper-floor label positioned to the left of the Balkon zone
             var existingLbl = document.getElementById('casino-upper-floor-label');
             if (!existingLbl) {
                 var lbl = document.createElement('div');
@@ -639,15 +648,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('map').appendChild(lbl);
             }
             resizeMapToFitMachines();
-            // Position the label near the topmost casino table
+            // Position the label to the LEFT of the Balkon zone (z=4 machines)
             (function positionLabel() {
                 var label = document.getElementById('casino-upper-floor-label');
                 if (!label) return;
-                var tables = document.querySelectorAll('#map .machine[data-z="10"]');
-                if (!tables.length) { label.style.top = '20px'; return; }
-                var minY = Infinity;
-                tables.forEach(function(t) { var y = parseFloat(t.style.top) || 0; if (y < minY) minY = y; });
-                label.style.top = Math.max(4, minY - 28) + 'px';
+                var balkonMachines = Array.from(document.querySelectorAll('#map .machine[data-z="4"]'));
+                var z10Tables = document.querySelectorAll('#map .machine[data-z="10"]');
+                if (balkonMachines.length > 0) {
+                    var minX = Infinity, minY = Infinity, maxY = -Infinity;
+                    balkonMachines.forEach(function(m) {
+                        var x = parseFloat(m.style.left) || 0;
+                        var y = parseFloat(m.style.top)  || 0;
+                        if (x < minX) minX = x;
+                        if (y < minY) minY = y;
+                        if (y + 60 > maxY) maxY = y + 60;
+                    });
+                    var centerY = (minY + maxY) / 2;
+                    label.style.left = Math.max(4, minX - 160) + 'px';
+                    label.style.top  = Math.round(centerY) + 'px';
+                    label.style.transform = 'translateY(-50%)';
+                } else if (z10Tables.length) {
+                    var minY2 = Infinity;
+                    z10Tables.forEach(function(t) { var y = parseFloat(t.style.top) || 0; if (y < minY2) minY2 = y; });
+                    label.style.left = '50%';
+                    label.style.top  = Math.max(4, minY2 - 28) + 'px';
+                    label.style.transform = 'translateX(-50%)';
+                }
             })();
             updateGroupIcons();
             // Fit the entire map into view so both slots and casino tables are visible
@@ -655,8 +681,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             // Single-floor view — remove dividers; also hide casino tables
             mapContainer.classList.remove('casino-mode');
-            // Remove casino upper-floor label if present
+            // Remove casino upper-floor label and zone overlays if present
             var ul2 = document.getElementById('casino-upper-floor-label'); if (ul2) ul2.remove();
+            document.querySelectorAll('#map .casino-zone-overlay, #map .casino-zone-label').forEach(d => d.remove());
             document.querySelectorAll('#map .floor-divider').forEach(d => d.remove());
             document.querySelectorAll('#map .machine').forEach(function(machine) {
                 machine.style.display = (machine.getAttribute('data-z') === String(zValue)) ? 'flex' : 'none';
@@ -689,6 +716,63 @@ document.addEventListener('DOMContentLoaded', function() {
         hDiv.className = 'floor-divider';
         hDiv.style.cssText = 'position:absolute;left:0;top:1130px;width:' + mapW + 'px;height:2px;background:' + DIVIDER_COLOR + ';pointer-events:none;z-index:0;';
         map.appendChild(hDiv);
+    }
+
+    // Draw dashed zone rectangles + labels for Balkon, VIP, Eski VIP in casino mode.
+    // Each zone's bounding box is computed from its actual machine positions.
+    function drawCasinoZoneOverlays() {
+        const map = document.getElementById('map');
+        if (!map) return;
+        // Remove any previous overlays
+        map.querySelectorAll('.casino-zone-overlay, .casino-zone-label').forEach(d => d.remove());
+
+        const ZONES = [
+            { z: '4',  name: '🌿 Balkon',    color: '#4CAF50', border: '2px dashed #4CAF50' },
+            { z: '2',  name: '👑 Yeni VIP',  color: '#9C27B0', border: '2px dashed #9C27B0' },
+            { z: '5',  name: '👑 Eski VIP',  color: '#FF9800', border: '2px dashed #FF9800' },
+        ];
+        const PADDING = 22;
+        const MACH_W  = 60;
+        const MACH_H  = 60;
+
+        ZONES.forEach(function(zone) {
+            var machines = Array.from(map.querySelectorAll('.machine[data-z="' + zone.z + '"]'))
+                .filter(function(m) { return m.style.display !== 'none'; });
+            if (machines.length === 0) return;
+
+            var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            machines.forEach(function(m) {
+                var x = parseFloat(m.style.left) || 0;
+                var y = parseFloat(m.style.top)  || 0;
+                if (x            < minX) minX = x;
+                if (x + MACH_W   > maxX) maxX = x + MACH_W;
+                if (y            < minY) minY = y;
+                if (y + MACH_H   > maxY) maxY = y + MACH_H;
+            });
+
+            // Dashed border rectangle
+            var rect = document.createElement('div');
+            rect.className = 'casino-zone-overlay';
+            rect.style.cssText = [
+                'left:'   + (minX - PADDING) + 'px',
+                'top:'    + (minY - PADDING) + 'px',
+                'width:'  + (maxX - minX + PADDING * 2) + 'px',
+                'height:' + (maxY - minY + PADDING * 2) + 'px',
+                'border:' + zone.border,
+            ].join(';');
+            map.appendChild(rect);
+
+            // Zone label placed horizontally outside the left edge of the rectangle
+            var lbl = document.createElement('div');
+            lbl.className = 'casino-zone-label';
+            lbl.textContent = zone.name;
+            lbl.style.cssText = [
+                'left:'  + (minX - PADDING) + 'px',
+                'top:'   + (minY - PADDING - 20) + 'px',
+                'color:' + zone.color,
+            ].join(';');
+            map.appendChild(lbl);
+        });
     }
 
     // Tüm makineleri kattaki bounding box'a sığdıracak şekilde zoom/pan ayarla
@@ -1438,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('#map .machine').forEach(machine => {
                 if (currentFloor === 'all') {
                     const mz = parseInt(machine.getAttribute('data-z'), 10);
-                    machine.style.display = (mz < 10) ? 'flex' : 'none';
+                    machine.style.display = (mz < 10 && !isLiveTable(machine)) ? 'flex' : 'none';
                 } else if (currentFloor === 'casino') {
                     machine.style.display = 'flex';
                 } else {
@@ -1451,7 +1535,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const inGroup = window.groupsData[groupId] && window.groupsData[groupId].machines.includes(parseInt(machineId));
                 let onFloor;
                 if (currentFloor === 'casino') {
-                    onFloor = machine.getAttribute('data-z') === '10';
+                    onFloor = machine.getAttribute('data-z') === '10' || isLiveTable(machine);
                 } else {
                     onFloor = currentFloor === 'all' || machine.getAttribute('data-z') === currentFloor;
                 }
