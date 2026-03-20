@@ -18,7 +18,8 @@ CREATE TABLE users(
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE,
     password VARCHAR(255),
-    role ENUM('admin', 'personel') DEFAULT 'personel'
+    role ENUM('admin', 'personel') DEFAULT 'personel',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE machine_groups (
@@ -52,3 +53,20 @@ ALTER TABLE machines ADD COLUMN IF NOT EXISTS game_type VARCHAR(100) DEFAULT NUL
 
 -- Migration: DRscreen IP
 ALTER TABLE machines ADD COLUMN IF NOT EXISTS drscreen_ip VARCHAR(50) DEFAULT NULL;
+
+-- Migration: users created_at (eğer eski şemadan geçiş yapıyorsanız)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+-- Migration: bölgeler (regions) tablosu
+CREATE TABLE IF NOT EXISTS regions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(20) DEFAULT '#607D8B',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Migration: makine gruplarına bölge ilişkisi
+ALTER TABLE machine_groups ADD COLUMN IF NOT EXISTS region_id INT DEFAULT NULL;
+ALTER TABLE machine_groups ADD CONSTRAINT IF NOT EXISTS fk_group_region FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL;
+-- Migration: casino canlı masa katmanı (pos_z=10) ve masa tipi
+-- pos_z=10 canlı masa (casino) alanı için ayrılmıştır; game_type değerleri: poker, rulet, barbut
