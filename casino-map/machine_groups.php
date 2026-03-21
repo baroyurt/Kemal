@@ -130,7 +130,7 @@ $all_machines = $conn->query("SELECT * FROM machines ORDER BY machine_no");
                             <div class="machine-item">
                                 <label>
                                     <input type="checkbox" name="machines[]" value="<?php echo $machine['id']; ?>" <?php echo $checked; ?>>
-                                    <strong><?php echo htmlspecialchars($machine['machine_no']); ?></strong> - <?php echo htmlspecialchars($machine['ip']); ?> (Z:<?php echo $machine['pos_z']; ?>)
+                                    <strong><?php echo htmlspecialchars($machine['machine_no']); ?></strong> - <?php echo htmlspecialchars($machine['smibb_ip'] ?? ''); ?> (Z:<?php echo $machine['pos_z']; ?>)
                                 </label>
                             </div>
                             <?php endwhile; ?>

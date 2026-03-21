@@ -423,17 +423,17 @@ while($c = $cres->fetch_assoc()){ $connections[] = $c; }
                     <div class="<?php echo $classes; ?>"
                          data-id="<?php echo $m['id']; ?>"
                          data-machine-no="<?php echo htmlspecialchars($m['machine_no'], ENT_QUOTES); ?>"
-                         data-ip="<?php echo htmlspecialchars($m['ip'], ENT_QUOTES); ?>"
+                         data-smibb-ip="<?php echo htmlspecialchars($m['smibb_ip'] ?? '', ENT_QUOTES); ?>"
                          data-mac="<?php echo htmlspecialchars($m['mac'], ENT_QUOTES); ?>"
                          data-note="<?php echo htmlspecialchars($m['note'] ?? '', ENT_QUOTES); ?>"
                          data-has-hub-sw="<?php echo $hasHubSw ? '1' : '0'; ?>"
                          data-hub-sw-target="<?php echo htmlspecialchars($m['hub_sw_target'] ?? '', ENT_QUOTES); ?>"
                          data-group-id="<?php echo $g['id']; ?>"
                          onclick="selectMachine(event, this)"
-                         title="<?php echo htmlspecialchars($m['machine_no']); ?> | <?php echo htmlspecialchars($m['ip'] ?? ''); ?>">
+                         title="<?php echo htmlspecialchars($m['machine_no']); ?> | <?php echo htmlspecialchars($m['smibb_ip'] ?? ''); ?>">
                         <div class="mc-no"><?php echo htmlspecialchars($m['machine_no']); ?></div>
-                        <?php if(!empty($m['ip'])): ?>
-                        <div class="mc-ip"><?php echo htmlspecialchars($m['ip']); ?></div>
+                        <?php if(!empty($m['smibb_ip'])): ?>
+                        <div class="mc-ip"><?php echo htmlspecialchars($m['smibb_ip']); ?></div>
                         <?php endif; ?>
                         <?php if($hasHubSw): ?><div class="hub-badge">Hub SW</div><?php endif; ?>
                         <?php if($hasNote): ?><div class="note-dot" title="<?php echo htmlspecialchars($m['note']); ?>"></div><?php endif; ?>
@@ -469,15 +469,15 @@ while($c = $cres->fetch_assoc()){ $connections[] = $c; }
                     <div class="machine-card <?php echo $hasHubSw ? 'has-hub-sw' : ''; ?>"
                          data-id="<?php echo $m['id']; ?>"
                          data-machine-no="<?php echo htmlspecialchars($m['machine_no'], ENT_QUOTES); ?>"
-                         data-ip="<?php echo htmlspecialchars($m['ip'], ENT_QUOTES); ?>"
+                         data-smibb-ip="<?php echo htmlspecialchars($m['smibb_ip'] ?? '', ENT_QUOTES); ?>"
                          data-has-hub-sw="<?php echo $hasHubSw ? '1' : '0'; ?>"
                          data-hub-sw-target="<?php echo htmlspecialchars($m['hub_sw_target'] ?? '', ENT_QUOTES); ?>"
                          data-group-id=""
                          onclick="selectMachine(event, this)"
                          style="background:#aaa; border-color:#888; color:#222;">
                         <div class="mc-no"><?php echo htmlspecialchars($m['machine_no']); ?></div>
-                        <?php if(!empty($m['ip'])): ?>
-                        <div class="mc-ip"><?php echo htmlspecialchars($m['ip']); ?></div>
+                        <?php if(!empty($m['smibb_ip'])): ?>
+                        <div class="mc-ip"><?php echo htmlspecialchars($m['smibb_ip']); ?></div>
                         <?php endif; ?>
                         <?php if($hasHubSw): ?><div class="hub-badge">Hub SW</div><?php endif; ?>
                     </div>
@@ -569,7 +569,7 @@ while($c = $cres->fetch_assoc()){ $connections[] = $c; }
         const q = this.value.trim().toLowerCase();
         document.querySelectorAll('.machine-card').forEach(m => {
             const no = (m.getAttribute('data-machine-no') || '').toLowerCase();
-            const ip = (m.getAttribute('data-ip') || '').toLowerCase();
+            const ip = (m.getAttribute('data-smibb-ip') || '').toLowerCase();
             m.style.opacity = (!q || no.includes(q) || ip.includes(q)) ? '1' : '0.2';
         });
     });
@@ -748,8 +748,12 @@ while($c = $cres->fetch_assoc()){ $connections[] = $c; }
                 
                 body.innerHTML = `
                     <div class="dp-row"><span class="dp-label">Makine No</span><span class="dp-value">${esc(m.machine_no)}</span></div>
-                    <div class="dp-row"><span class="dp-label">IP / Açıklama</span><span class="dp-value">${esc(m.ip||'-')}</span></div>
+                    <div class="dp-row"><span class="dp-label">SMIBB IP</span><span class="dp-value">${esc(m.smibb_ip||'-')}</span></div>
+                    <div class="dp-row"><span class="dp-label">Screen IP</span><span class="dp-value">${esc(m.screen_ip||'-')}</span></div>
                     <div class="dp-row"><span class="dp-label">MAC</span><span class="dp-value">${esc(m.mac||'-')}</span></div>
+                    <div class="dp-row"><span class="dp-label">Bölge (Area)</span><span class="dp-value">${m.area||'-'}</span></div>
+                    <div class="dp-row"><span class="dp-label">Makine Türü</span><span class="dp-value">${esc(m.machine_type||'-')}</span></div>
+                    <div class="dp-row"><span class="dp-label">Oyun Türü</span><span class="dp-value">${esc(m.game_type||'-')}</span></div>
                     <div class="dp-row"><span class="dp-label">Z Katmanı</span><span class="dp-value">${m.pos_z}</span></div>
                     <div class="dp-row"><span class="dp-label">Hub SW</span><span class="dp-value">
                         <span class="hub-badge-dp ${hasHubSw?'active':'inactive'}">${hasHubSw?'⚡ Var':'Yok'}</span>

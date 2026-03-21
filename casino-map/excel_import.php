@@ -16,10 +16,10 @@ include("config.php");
 // ── CSV Şablon İndirme ────────────────────────────────────────────────────────
 if(isset($_GET['download_template'])){
     include_once("xlsx_helper.php");
-    $headers = ['machine_no', 'ip', 'mac', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
+    $headers = ['machine_no', 'smibb_ip', 'screen_ip', 'mac', 'area', 'machine_type', 'game_type', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
     $rows = [
-        ['MAKINE001', '192.168.1.100', 'AA:BB:CC:DD:EE:FF', 0, 2036, 1340, 90, ''],
-        ['MAKINE002', '192.168.1.101', 'AA:BB:CC:DD:EE:00', 0, 2037, 1265, 90, ''],
+        ['MAKINE001', '192.168.1.100', '192.168.1.200', 'AA:BB:CC:DD:EE:FF', 1, 'Slot', 'Green General', 0, 2036, 1340, 90, ''],
+        ['MAKINE002', '192.168.1.101', '192.168.1.201', 'AA:BB:CC:DD:EE:00', 3, 'Slot', 'Fruits Collection 2', 1, 2037, 1265, 90, ''],
     ];
     send_xlsx('makine_sablonu.xlsx', $headers, $rows);
 }
@@ -27,9 +27,9 @@ if(isset($_GET['download_template'])){
 // ── Mevcut Makineleri Excel Olarak Dışa Aktar ─────────────────────────────────
 if(isset($_GET['export_machines'])){
     include_once("xlsx_helper.php");
-    $headers = ['machine_no', 'ip', 'mac', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
+    $headers = ['machine_no', 'smibb_ip', 'screen_ip', 'mac', 'area', 'machine_type', 'game_type', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
     $rows = [];
-    $exp = $conn->query("SELECT machine_no,ip,mac,pos_z,pos_x,pos_y,rotation,note FROM machines ORDER BY pos_z, machine_no");
+    $exp = $conn->query("SELECT machine_no,smibb_ip,screen_ip,mac,area,machine_type,game_type,pos_z,pos_x,pos_y,rotation,note FROM machines ORDER BY pos_z, machine_no");
     while($r = $exp->fetch_assoc()){
         $rows[] = array_values($r);
     }
@@ -60,22 +60,35 @@ if(isset($_POST['upload'])){
         $existingCount = intval($conn->query("SELECT COUNT(*) as cnt FROM machines")->fetch_assoc()['cnt']);
         $rowIndex  = 0; // INSERT sırası için sayaç
 
+        // Alan kodu → pos_z eşlemesi
+        $area_to_z = [1 => 0, 3 => 1, 4 => 2, 5 => 3];
+
         $check_stmt  = $conn->prepare("SELECT id FROM machines WHERE machine_no = ?");
-        $update_stmt = $conn->prepare("UPDATE machines SET ip=?, mac=?, pos_z=?, pos_x=?, pos_y=?, rotation=?, note=? WHERE id=?");
-        $insert_stmt = $conn->prepare("INSERT INTO machines(machine_no, ip, mac, pos_z, pos_x, pos_y, rotation, note) VALUES(?,?,?,?,?,?,?,?)");
+        $update_stmt = $conn->prepare("UPDATE machines SET smibb_ip=?, screen_ip=?, mac=?, area=?, machine_type=?, game_type=?, pos_z=?, pos_x=?, pos_y=?, rotation=?, note=? WHERE id=?");
+        $insert_stmt = $conn->prepare("INSERT INTO machines(machine_no, smibb_ip, screen_ip, mac, area, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)");
 
         while(($data = fgetcsv($handle, 1000, ",")) !== FALSE){
-            if(count($data) < 3 || trim($data[0]) === 'machine_no') { $skipped++; continue; }
+            if(count($data) < 4 || trim($data[0]) === 'machine_no') { $skipped++; continue; }
 
-            $mn  = trim($data[0]);
-            $ip  = trim($data[1]);
-            $mac = trim($data[2]);
-            // CSV'deki koordinat sütunları (opsiyonel)
-            $pz  = isset($data[3]) && $data[3] !== '' ? intval($data[3]) : 0;
-            $px  = isset($data[4]) && $data[4] !== '' ? intval($data[4]) : null;
-            $py  = isset($data[5]) && $data[5] !== '' ? intval($data[5]) : null;
-            $rot = isset($data[6]) && $data[6] !== '' ? intval($data[6]) : 0;
-            $note = isset($data[7]) ? trim($data[7]) : '';
+            $mn           = trim($data[0]);
+            $smibb_ip     = trim($data[1]);
+            $screen_ip    = isset($data[2]) ? trim($data[2]) : '';
+            $mac          = trim($data[3]);
+            // Bölge kodu (area) — pos_z ile eşleşir
+            $area         = isset($data[4]) && $data[4] !== '' ? intval($data[4]) : null;
+            $machine_type = isset($data[5]) ? trim($data[5]) : '';
+            $game_type    = isset($data[6]) ? trim($data[6]) : '';
+            // pos_z: önce CSV'den al, yoksa area kodundan türet
+            $pz_raw       = isset($data[7]) && $data[7] !== '' ? intval($data[7]) : null;
+            if($pz_raw === null && $area !== null && isset($area_to_z[$area])){
+                $pz = $area_to_z[$area];
+            } else {
+                $pz = $pz_raw !== null ? $pz_raw : 0;
+            }
+            $px  = isset($data[8])  && $data[8]  !== '' ? intval($data[8])  : null;
+            $py  = isset($data[9])  && $data[9]  !== '' ? intval($data[9])  : null;
+            $rot = isset($data[10]) && $data[10] !== '' ? intval($data[10]) : 0;
+            $note = isset($data[11]) ? trim($data[11]) : '';
 
             // Makine var mı kontrol et
             $check_stmt->bind_param("s", $mn);
@@ -91,7 +104,7 @@ if(isset($_POST['upload'])){
                     if($px === null) $px = intval($cur['pos_x']);
                     if($py === null) $py = intval($cur['pos_y']);
                 }
-                $update_stmt->bind_param("ssiiiisi", $ip, $mac, $pz, $px, $py, $rot, $note, $existing_id);
+                $update_stmt->bind_param("sssissiiiisi", $smibb_ip, $screen_ip, $mac, $area, $machine_type, $game_type, $pz, $px, $py, $rot, $note, $existing_id);
                 $update_stmt->execute();
                 $updated++;
             } else {
@@ -103,7 +116,7 @@ if(isset($_POST['upload'])){
                     if($px === null) $px = 50 + $gridCol * 68;
                     if($py === null) $py = 50 + $gridRow * 68;
                 }
-                $insert_stmt->bind_param("sssiiisi", $mn, $ip, $mac, $pz, $px, $py, $rot, $note);
+                $insert_stmt->bind_param("ssssissiiiis", $mn, $smibb_ip, $screen_ip, $mac, $area, $machine_type, $game_type, $pz, $px, $py, $rot, $note);
                 $insert_stmt->execute();
                 $inserted++;
                 $rowIndex++;
@@ -176,7 +189,8 @@ if(isset($_POST['upload'])){
     <div class="card">
         <h3>📤 CSV Yükle</h3>
         <div class="info-box">
-            CSV formatı: <strong>machine_no, ip, mac, pos_z, pos_x, pos_y, rotation, note</strong> (başlık satırı opsiyonel)<br>
+            CSV formatı: <strong>machine_no, smibb_ip, screen_ip, mac, area, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note</strong> (başlık satırı opsiyonel)<br>
+            <strong>area</strong> sütunu bölge kodunu belirtir: <strong>1</strong>=Yüksek Tavan, <strong>3</strong>=Alçak Tavan, <strong>4</strong>=Yeni Vip Salon, <strong>5</strong>=Alt Salon.<br>
             Makine zaten varsa bilgileri <strong>güncellenir</strong>; yoksa yeni olarak eklenir. Koordinat sütunları boş bırakılabilir.
         </div>
         <?php if(isset($upload_error)): ?>
