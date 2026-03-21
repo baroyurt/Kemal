@@ -51,8 +51,14 @@ ALTER TABLE machines ADD COLUMN IF NOT EXISTS brand VARCHAR(100) DEFAULT NULL;
 ALTER TABLE machines ADD COLUMN IF NOT EXISTS model VARCHAR(100) DEFAULT NULL;
 ALTER TABLE machines ADD COLUMN IF NOT EXISTS game_type VARCHAR(100) DEFAULT NULL;
 
--- Migration: DRscreen IP
+-- Migration: DRscreen IP (eski ad) → screen_ip
 ALTER TABLE machines ADD COLUMN IF NOT EXISTS drscreen_ip VARCHAR(50) DEFAULT NULL;
+
+-- Migration: ip → smibb_ip, drscreen_ip → screen_ip, machine_type, area_id
+ALTER TABLE machines CHANGE COLUMN ip smibb_ip VARCHAR(50);
+ALTER TABLE machines CHANGE COLUMN drscreen_ip screen_ip VARCHAR(50);
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS machine_type VARCHAR(100) DEFAULT NULL;
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS area_id INT DEFAULT NULL;
 
 -- Migration: users created_at (eğer eski şemadan geçiş yapıyorsanız)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;

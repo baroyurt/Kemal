@@ -85,7 +85,29 @@ runMigration($conn,
 
 runMigration($conn,
     "ALTER TABLE machines ADD COLUMN drscreen_ip VARCHAR(50) DEFAULT NULL",
-    "machines → drscreen_ip kolonu"
+    "machines → drscreen_ip kolonu (eski ad)"
+);
+
+// ─── 3. ip → smibb_ip, drscreen_ip → screen_ip, machine_type, area_id ─────
+
+runMigration($conn,
+    "ALTER TABLE machines CHANGE COLUMN ip smibb_ip VARCHAR(50)",
+    "machines → ip kolonu smibb_ip olarak yeniden adlandırıldı"
+);
+
+runMigration($conn,
+    "ALTER TABLE machines CHANGE COLUMN drscreen_ip screen_ip VARCHAR(50)",
+    "machines → drscreen_ip kolonu screen_ip olarak yeniden adlandırıldı"
+);
+
+runMigration($conn,
+    "ALTER TABLE machines ADD COLUMN machine_type VARCHAR(100) DEFAULT NULL",
+    "machines → machine_type kolonu"
+);
+
+runMigration($conn,
+    "ALTER TABLE machines ADD COLUMN area_id INT DEFAULT NULL",
+    "machines → area_id kolonu"
 );
 
 runMigration($conn,

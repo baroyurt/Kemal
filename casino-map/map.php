@@ -779,7 +779,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             while($row = $result->fetch_assoc()): 
                 $hasNote = !empty($row['note']);
                 $hasHubSw = !empty($row['hub_sw']);
-                $drscreenIp = htmlspecialchars($row['drscreen_ip'] ?? '', ENT_QUOTES);
+                $screenIp = htmlspecialchars($row['screen_ip'] ?? '', ENT_QUOTES);
             ?>
                 <div class="machine <?php echo $hasNote ? 'has-note' : ''; ?> <?php echo $hasHubSw ? 'has-hub-sw' : ''; ?>"
                      data-id="<?php echo $row['id']; ?>"
@@ -790,9 +790,9 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                      data-z="<?php echo $row['pos_z']; ?>"
                      data-game-type="<?php echo htmlspecialchars($row['game_type'] ?? '', ENT_QUOTES); ?>"
                      data-machine-no="<?php echo htmlspecialchars($row['machine_no'], ENT_QUOTES); ?>"
-                     data-ip="<?php echo htmlspecialchars($row['ip'], ENT_QUOTES); ?>"
+                     data-smibb-ip="<?php echo htmlspecialchars($row['smibb_ip'], ENT_QUOTES); ?>"
                      data-mac="<?php echo htmlspecialchars($row['mac'], ENT_QUOTES); ?>"
-                     data-drscreen-ip="<?php echo $drscreenIp; ?>"
+                     data-screen-ip="<?php echo $screenIp; ?>"
                      data-hub-sw="<?php echo $hasHubSw ? '1' : '0'; ?>"
                      data-hub-sw-cable="<?php echo htmlspecialchars($row['hub_sw_cable'] ?? '', ENT_QUOTES); ?>"
                      style="left: <?php echo $row['pos_x']; ?>px; top: <?php echo $row['pos_y']; ?>px; transform: rotate(<?php echo $row['rotation']; ?>deg);">
@@ -803,9 +803,9 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
 
                     <div class="machine-inner">
                         <span class="machine-label"><?php echo htmlspecialchars($row['machine_no']); ?></span>
-                        <span class="machine-ip"><?php echo htmlspecialchars($row['ip']); ?></span>
-                        <?php if(!empty($drscreenIp)): ?>
-                            <span class="machine-ip" style="color:#90CAF9;"><?php echo $drscreenIp; ?></span>
+                        <span class="machine-ip"><?php echo htmlspecialchars($row['smibb_ip']); ?></span>
+                        <?php if(!empty($screenIp)): ?>
+                            <span class="machine-ip" style="color:#90CAF9;"><?php echo $screenIp; ?></span>
                         <?php endif; ?>
                         <span class="z-level">Z:<?php echo $row['pos_z']; ?></span>
                     </div>
@@ -987,8 +987,12 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                     <input type="text" id="newMachineNo" placeholder="">
                 </div>
                 <div class="form-group">
-                    <label>IP Adresi:</label>
-                    <input type="text" id="newMachineIp" placeholder="">
+                    <label>Smibb IP:</label>
+                    <input type="text" id="newMachineSmibbIp" placeholder="">
+                </div>
+                <div class="form-group">
+                    <label>Screen IP:</label>
+                    <input type="text" id="newMachineScreenIp" placeholder="">
                 </div>
                 <div class="form-group">
                     <label>MAC Adresi:</label>
@@ -1068,7 +1072,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         document.getElementById('addMachineModal').style.display = 'none';
     }
     function clearAddMachineForm() {
-        ['newMachineNo','newMachineIp','newMachineMac','newMachineNote'].forEach(function(id) {
+        ['newMachineNo','newMachineSmibbIp','newMachineScreenIp','newMachineMac','newMachineNote'].forEach(function(id) {
             document.getElementById(id).value = '';
         });
         document.getElementById('newMachineZ').value = '4';
@@ -1092,22 +1096,24 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
     // Backward compat alias
     function toggleGameTypeField(zVal) { onZChange(zVal); }
     function submitAddMachine() {
-        var no       = document.getElementById('newMachineNo').value.trim();
-        var ip       = document.getElementById('newMachineIp').value.trim();
-        var mac      = document.getElementById('newMachineMac').value.trim();
-        var z        = document.getElementById('newMachineZ').value;
-        var note     = document.getElementById('newMachineNote').value.trim();
-        var gameType = document.getElementById('newMachineGameType').value;
+        var no        = document.getElementById('newMachineNo').value.trim();
+        var smibb_ip  = document.getElementById('newMachineSmibbIp').value.trim();
+        var screen_ip = document.getElementById('newMachineScreenIp').value.trim();
+        var mac       = document.getElementById('newMachineMac').value.trim();
+        var z         = document.getElementById('newMachineZ').value;
+        var note      = document.getElementById('newMachineNote').value.trim();
+        var gameType  = document.getElementById('newMachineGameType').value;
 
-        if (!no || !ip || !mac) {
-            alert('Makine No, IP Adresi ve MAC Adresi zorunludur!');
+        if (!no || !smibb_ip || !mac) {
+            alert('Makine No, Smibb IP ve MAC Adresi zorunludur!');
             return;
         }
 
         var fd = new FormData();
         fd.append('csrf_token', CSRF_TOKEN);
         fd.append('machine_no', no);
-        fd.append('ip', ip);
+        fd.append('smibb_ip', smibb_ip);
+        fd.append('screen_ip', screen_ip);
         fd.append('mac', mac);
         fd.append('pos_z', z);
         fd.append('note', note);
@@ -1145,9 +1151,9 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         div.setAttribute('data-z', String(data.pos_z));
         div.setAttribute('data-game-type', data.game_type || '');
         div.setAttribute('data-machine-no', data.machine_no);
-        div.setAttribute('data-ip', data.ip);
+        div.setAttribute('data-smibb-ip', data.smibb_ip || '');
         div.setAttribute('data-mac', data.mac);
-        div.setAttribute('data-drscreen-ip', '');
+        div.setAttribute('data-screen-ip', '');
         div.setAttribute('data-hub-sw', '0');
         div.setAttribute('data-hub-sw-cable', '');
 
@@ -1171,7 +1177,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         div.innerHTML =
             '<div class="machine-inner">' +
             '<span class="machine-label">' + esc(data.machine_no) + '</span>' +
-            '<span class="machine-ip">' + esc(data.ip) + '</span>' +
+            '<span class="machine-ip">' + esc(data.smibb_ip || '') + '</span>' +
             '<span class="z-level">Z:' + esc(data.pos_z) + '</span>' +
             '</div>';
         map.appendChild(div);
