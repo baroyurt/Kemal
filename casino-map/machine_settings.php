@@ -75,8 +75,8 @@ if($tab === 'edit'){
         csrf_verify();
         if(isset($_POST['selected_machines']) && is_array($_POST['selected_machines'])){
             $dup_stmt = $conn->prepare(
-                "INSERT INTO machines (machine_no, ip, mac, pos_x, pos_y, pos_z, rotation, note)
-                 SELECT CONCAT(machine_no, ' (Kopya)'), ip, mac, pos_x + 20, pos_y + 20, pos_z, rotation, CONCAT(COALESCE(note,''), ' (Kopya)')
+                "INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, area, machine_type, game_type, pos_x, pos_y, pos_z, rotation, note)
+                 SELECT CONCAT(machine_no, ' (Kopya)'), smibb_ip, screen_ip, mac, area, machine_type, game_type, pos_x + 20, pos_y + 20, pos_z, rotation, CONCAT(COALESCE(note,''), ' (Kopya)')
                  FROM machines WHERE id = ?"
             );
             foreach($_POST['selected_machines'] as $dup_id){
@@ -105,22 +105,26 @@ if($tab === 'edit'){
     // Tekil ekleme/güncelleme
     if(isset($_POST['save'])){
         csrf_verify();
-        $machine_no = $_POST['machine_no'];
-        $ip         = $_POST['ip'];
-        $mac        = $_POST['mac'];
-        $pos_z      = intval($_POST['pos_z']);
-        $note       = $_POST['note'];
+        $machine_no   = $_POST['machine_no'];
+        $smibb_ip     = $_POST['smibb_ip'];
+        $screen_ip    = $_POST['screen_ip'] ?? '';
+        $mac          = $_POST['mac'];
+        $area         = isset($_POST['area']) && $_POST['area'] !== '' ? intval($_POST['area']) : null;
+        $machine_type = $_POST['machine_type'] ?? '';
+        $game_type    = $_POST['game_type'] ?? '';
+        $pos_z        = intval($_POST['pos_z']);
+        $note         = $_POST['note'];
 
         if(isset($_POST['id']) && !empty($_POST['id'])){
             $id = intval($_POST['id']);
-            $stmt = $conn->prepare("UPDATE machines SET machine_no=?, ip=?, mac=?, pos_z=?, note=? WHERE id=?");
-            $stmt->bind_param("sssisi", $machine_no, $ip, $mac, $pos_z, $note, $id);
+            $stmt = $conn->prepare("UPDATE machines SET machine_no=?, smibb_ip=?, screen_ip=?, mac=?, area=?, machine_type=?, game_type=?, pos_z=?, note=? WHERE id=?");
+            $stmt->bind_param("ssssissisi", $machine_no, $smibb_ip, $screen_ip, $mac, $area, $machine_type, $game_type, $pos_z, $note, $id);
             $stmt->execute();
             $stmt->close();
             $message = "Makine güncellendi";
         } else {
-            $stmt = $conn->prepare("INSERT INTO machines (machine_no, ip, mac, pos_z, note) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssis", $machine_no, $ip, $mac, $pos_z, $note);
+            $stmt = $conn->prepare("INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, area, machine_type, game_type, pos_z, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssissis", $machine_no, $smibb_ip, $screen_ip, $mac, $area, $machine_type, $game_type, $pos_z, $note);
             $stmt->execute();
             $stmt->close();
             $message = "Yeni makine eklendi";
@@ -137,12 +141,12 @@ if($tab === 'edit'){
 
     if(!empty($search)){
         $like = '%' . $search . '%';
-        $cstmt = $conn->prepare("SELECT COUNT(*) as count FROM machines WHERE machine_no LIKE ? OR ip LIKE ? OR mac LIKE ? OR note LIKE ?");
+        $cstmt = $conn->prepare("SELECT COUNT(*) as count FROM machines WHERE machine_no LIKE ? OR smibb_ip LIKE ? OR mac LIKE ? OR note LIKE ?");
         $cstmt->bind_param("ssss", $like, $like, $like, $like);
         $cstmt->execute();
         $total_machines = $cstmt->get_result()->fetch_assoc()['count'];
         $cstmt->close();
-        $dstmt = $conn->prepare("SELECT * FROM machines WHERE machine_no LIKE ? OR ip LIKE ? OR mac LIKE ? OR note LIKE ? ORDER BY pos_z, machine_no LIMIT ?, ?");
+        $dstmt = $conn->prepare("SELECT * FROM machines WHERE machine_no LIKE ? OR smibb_ip LIKE ? OR mac LIKE ? OR note LIKE ? ORDER BY pos_z, machine_no LIMIT ?, ?");
         $dstmt->bind_param("ssssii", $like, $like, $like, $like, $offset, $limit);
         $dstmt->execute();
         $machines = $dstmt->get_result();
@@ -263,13 +267,13 @@ if($tab === 'delete'){
     $del_search = isset($_GET['search']) ? trim($_GET['search']) : '';
     if($del_search){
         $like = "%$del_search%";
-        $del_stmt = $conn->prepare("SELECT id, machine_no, ip, mac, pos_z, note FROM machines WHERE machine_no LIKE ? OR ip LIKE ? OR mac LIKE ? ORDER BY machine_no");
+        $del_stmt = $conn->prepare("SELECT id, machine_no, smibb_ip, mac, pos_z, note FROM machines WHERE machine_no LIKE ? OR smibb_ip LIKE ? OR mac LIKE ? ORDER BY machine_no");
         $del_stmt->bind_param("sss", $like, $like, $like);
         $del_stmt->execute();
         $del_machines = $del_stmt->get_result();
         $del_stmt->close();
     } else {
-        $del_machines = $conn->query("SELECT id, machine_no, ip, mac, pos_z, note FROM machines ORDER BY machine_no");
+        $del_machines = $conn->query("SELECT id, machine_no, smibb_ip, mac, pos_z, note FROM machines ORDER BY machine_no");
     }
 }
 ?>
@@ -418,8 +422,21 @@ if($tab === 'delete'){
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="edit_id">
             <div class="form-group"><label>Makine No:</label><input type="text" name="machine_no" id="edit_machine_no" required></div>
-            <div class="form-group"><label>IP Adresi:</label><input type="text" name="ip" id="edit_ip" required></div>
+            <div class="form-group"><label>SMIBB IP:</label><input type="text" name="smibb_ip" id="edit_smibb_ip" required></div>
+            <div class="form-group"><label>Screen IP:</label><input type="text" name="screen_ip" id="edit_screen_ip"></div>
             <div class="form-group"><label>MAC Adresi:</label><input type="text" name="mac" id="edit_mac" required></div>
+            <div class="form-group">
+                <label>Bölge (Area):</label>
+                <select name="area" id="edit_area">
+                    <option value="">— Seçiniz —</option>
+                    <option value="1">1 - Yüksek Tavan</option>
+                    <option value="3">3 - Alçak Tavan</option>
+                    <option value="4">4 - Yeni Vip Salon</option>
+                    <option value="5">5 - Alt Salon</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Makine Türü:</label><input type="text" name="machine_type" id="edit_machine_type"></div>
+            <div class="form-group"><label>Oyun Türü:</label><input type="text" name="game_type" id="edit_game_type"></div>
             <div class="form-group">
                 <label>Z Koordinatı (Kat):</label>
                 <select name="pos_z" id="edit_z">
@@ -437,7 +454,7 @@ if($tab === 'delete'){
     <div class="search-box">
         <form method="get" action="machine_settings.php" style="flex: 1; display: flex; gap: 10px;">
             <input type="hidden" name="tab" value="edit">
-            <input type="text" name="search" placeholder="Makine no, IP, MAC veya not ile ara..." value="<?php echo htmlspecialchars($search); ?>">
+            <input type="text" name="search" placeholder="Makine no, SMIBB IP, MAC veya not ile ara..." value="<?php echo htmlspecialchars($search); ?>">
             <button type="submit">Ara</button>
             <?php if(!empty($search)): ?>
                 <a href="machine_settings.php?tab=edit" style="padding: 10px 20px; background: #999; color: white; text-decoration: none; border-radius: 5px;">Temizle</a>
@@ -452,8 +469,8 @@ if($tab === 'delete'){
             <thead>
                 <tr>
                     <th style="width:40px; text-align:center;"><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
-                    <th>ID</th><th>Makine No</th><th>IP Adresi</th><th>MAC Adresi</th>
-                    <th>Kat (Z)</th><th>Not</th><th>Konum (X,Y)</th><th>İşlemler</th>
+                    <th>ID</th><th>Makine No</th><th>SMIBB IP</th><th>Screen IP</th><th>MAC Adresi</th>
+                    <th>Bölge</th><th>Makine Türü</th><th>Oyun Türü</th><th>Kat (Z)</th><th>Not</th><th>Konum (X,Y)</th><th>İşlemler</th>
                 </tr>
             </thead>
             <tbody>
@@ -463,8 +480,12 @@ if($tab === 'delete'){
                         <td style="text-align:center;"><input type="checkbox" class="machine-checkbox" value="<?php echo intval($row['id']); ?>" onchange="updateSelection()"></td>
                         <td><?php echo intval($row['id']); ?></td>
                         <td><?php echo htmlspecialchars($row['machine_no']); ?></td>
-                        <td><?php echo htmlspecialchars($row['ip']); ?></td>
+                        <td><?php echo htmlspecialchars($row['smibb_ip'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($row['screen_ip'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($row['mac']); ?></td>
+                        <td><?php echo $row['area'] !== null ? intval($row['area']) : '-'; ?></td>
+                        <td><?php echo htmlspecialchars($row['machine_type'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($row['game_type'] ?? ''); ?></td>
                         <td><span class="z-badge"><?php echo htmlspecialchars($z_levels[$row['pos_z']] ?? 'Kat '.intval($row['pos_z'])); ?></span></td>
                         <td class="note-cell">
                             <?php if(!empty($row['note'])): ?>
@@ -473,13 +494,13 @@ if($tab === 'delete'){
                         </td>
                         <td>(<?php echo intval($row['pos_x']); ?>, <?php echo intval($row['pos_y']); ?>)</td>
                         <td>
-                            <button class="action-btn edit-btn" onclick="editMachine(<?php echo intval($row['id']); ?>,'<?php echo htmlspecialchars($row['machine_no'],ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['ip'],ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['mac'],ENT_QUOTES); ?>',<?php echo intval($row['pos_z']); ?>,'<?php echo htmlspecialchars($row['note']??'',ENT_QUOTES); ?>')">Düzenle</button>
+                            <button class="action-btn edit-btn" onclick="editMachine(<?php echo intval($row['id']); ?>,'<?php echo htmlspecialchars($row['machine_no'],ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['smibb_ip']??'',ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['screen_ip']??'',ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['mac'],ENT_QUOTES); ?>',<?php echo $row['area']!==null?intval($row['area']):'null'; ?>,'<?php echo htmlspecialchars($row['machine_type']??'',ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['game_type']??'',ENT_QUOTES); ?>',<?php echo intval($row['pos_z']); ?>,'<?php echo htmlspecialchars($row['note']??'',ENT_QUOTES); ?>')">Düzenle</button>
                             <a href="?tab=edit&delete=<?php echo intval($row['id']); ?><?php echo !empty($search)?'&search='.urlencode($search):''; ?>" class="action-btn delete-btn" onclick="return confirm('Bu makineyi silmek istediğinize emin misiniz?')">Sil</a>
                         </td>
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="9" style="text-align:center; padding:40px;">Makine bulunamadı.</td></tr>
+                    <tr><td colspan="13" style="text-align:center; padding:40px;">Makine bulunamadı.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -519,8 +540,8 @@ if($tab === 'delete'){
         function bulkUpdateNote(){ const n=document.getElementById('bulkNote').value; if(!selectedMachines.size){alert('Lütfen makine seçin!');return;} if(!confirm(selectedMachines.size+' makinenin notunu güncellemek istiyor musunuz?'))return; const f=makeForm(); addIds(f); addHidden(f,'bulk_note',n); addHidden(f,'bulk_update_note','1'); document.body.appendChild(f); f.submit(); }
         function bulkDelete(){ if(!selectedMachines.size){alert('Lütfen makine seçin!');return;} if(!confirm(selectedMachines.size+' makineyi kalıcı olarak silmek istiyor musunuz?'))return; const f=makeForm(); addIds(f); addHidden(f,'bulk_delete','1'); document.body.appendChild(f); f.submit(); }
         function bulkDuplicate(){ if(!selectedMachines.size){alert('Lütfen makine seçin!');return;} if(!confirm(selectedMachines.size+' makineyi kopyalamak istiyor musunuz?'))return; const f=makeForm(); addIds(f); addHidden(f,'bulk_duplicate','1'); document.body.appendChild(f); f.submit(); }
-        function editMachine(id,no,ip,mac,z,note){ document.getElementById('edit_id').value=id; document.getElementById('edit_machine_no').value=no; document.getElementById('edit_ip').value=ip; document.getElementById('edit_mac').value=mac; document.getElementById('edit_z').value=z; document.getElementById('edit_note').value=note; document.querySelector('.form-box').scrollIntoView({behavior:'smooth'}); }
-        function clearForm(){ ['edit_id','edit_machine_no','edit_ip','edit_mac','edit_note'].forEach(id=>document.getElementById(id).value=''); document.getElementById('edit_z').value='0'; }
+        function editMachine(id,no,smibb_ip,screen_ip,mac,area,machine_type,game_type,z,note){ document.getElementById('edit_id').value=id; document.getElementById('edit_machine_no').value=no; document.getElementById('edit_smibb_ip').value=smibb_ip; document.getElementById('edit_screen_ip').value=screen_ip; document.getElementById('edit_mac').value=mac; document.getElementById('edit_area').value=area!==null?area:''; document.getElementById('edit_machine_type').value=machine_type; document.getElementById('edit_game_type').value=game_type; document.getElementById('edit_z').value=z; document.getElementById('edit_note').value=note; document.querySelector('.form-box').scrollIntoView({behavior:'smooth'}); }
+        function clearForm(){ ['edit_id','edit_machine_no','edit_smibb_ip','edit_screen_ip','edit_mac','edit_machine_type','edit_game_type','edit_note'].forEach(id=>document.getElementById(id).value=''); document.getElementById('edit_area').value=''; document.getElementById('edit_z').value='0'; }
         document.addEventListener('keydown',function(e){ if(e.ctrlKey&&e.key==='a'){e.preventDefault(); document.querySelectorAll('.machine-checkbox').forEach(c=>{c.checked=true;selectedMachines.add(c.value);}); updateSelection();} if(e.key==='Escape')hideBulkToolbar(); });
     </script>
 
@@ -674,7 +695,7 @@ if($tab === 'delete'){
                         <div class="machine-item" <?php echo $inGroup; ?> <?php echo !$checked ? 'style="display:none"' : ''; ?>>
                             <label>
                                 <input type="checkbox" name="machines[]" value="<?php echo $machine['id']; ?>" <?php echo $checked; ?>>
-                                <strong><?php echo htmlspecialchars($machine['machine_no']); ?></strong> — <?php echo htmlspecialchars($machine['ip']); ?> (Z:<?php echo $machine['pos_z']; ?>)
+                                <strong><?php echo htmlspecialchars($machine['machine_no']); ?></strong> — <?php echo htmlspecialchars($machine['smibb_ip'] ?? ''); ?> (Z:<?php echo $machine['pos_z']; ?>)
                             </label>
                         </div>
                         <?php endwhile; ?>
@@ -688,12 +709,12 @@ if($tab === 'delete'){
                 <!-- personel: sadece izleme + excel aktar -->
                 <div class="machine-list" style="max-height:500px;">
                     <?php foreach($group_machines as $mid):
-                        $mrow = $conn->query("SELECT machine_no, ip, pos_z FROM machines WHERE id=".intval($mid))->fetch_assoc();
+                        $mrow = $conn->query("SELECT machine_no, smibb_ip, pos_z FROM machines WHERE id=".intval($mid))->fetch_assoc();
                         if(!$mrow) continue;
                     ?>
                     <div class="machine-item">
                         <strong><?php echo htmlspecialchars($mrow['machine_no']); ?></strong>
-                        — <?php echo htmlspecialchars($mrow['ip']); ?> (Z:<?php echo intval($mrow['pos_z']); ?>)
+                        — <?php echo htmlspecialchars($mrow['smibb_ip'] ?? ''); ?> (Z:<?php echo intval($mrow['pos_z']); ?>)
                     </div>
                     <?php endforeach; ?>
                     <?php if(empty($group_machines)): ?>
@@ -774,7 +795,7 @@ if($tab === 'delete'){
                     <tr>
                         <th style="width:40px;">#</th>
                         <th>Makine No</th>
-                        <th>IP</th>
+                        <th>SMIBB IP</th>
                         <th>MAC</th>
                         <th>Kat (Z)</th>
                         <th>Not</th>
@@ -792,7 +813,7 @@ if($tab === 'delete'){
                                    class="del-cb" onchange="updateDelInfo()">
                         </td>
                         <td><strong><?php echo htmlspecialchars($dr['machine_no']); ?></strong></td>
-                        <td><?php echo htmlspecialchars($dr['ip']); ?></td>
+                        <td><?php echo htmlspecialchars($dr['smibb_ip'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($dr['mac']); ?></td>
                         <td><span class="z-badge"><?php echo intval($dr['pos_z']); ?></span></td>
                         <td class="note-cell"><?php echo htmlspecialchars($dr['note'] ?? ''); ?></td>

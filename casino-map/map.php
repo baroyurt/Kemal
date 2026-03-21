@@ -656,7 +656,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             while($row = $result->fetch_assoc()): 
                 $hasNote = !empty($row['note']);
                 $hasHubSw = !empty($row['hub_sw']);
-                $drscreenIp = htmlspecialchars($row['drscreen_ip'] ?? '', ENT_QUOTES);
+                $drscreenIp = htmlspecialchars($row['screen_ip'] ?? '', ENT_QUOTES);
             ?>
                 <div class="machine <?php echo $hasNote ? 'has-note' : ''; ?> <?php echo $hasHubSw ? 'has-hub-sw' : ''; ?>"
                      data-id="<?php echo $row['id']; ?>"
@@ -666,7 +666,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                      data-y="<?php echo $row['pos_y']; ?>"
                      data-z="<?php echo $row['pos_z']; ?>"
                      data-machine-no="<?php echo htmlspecialchars($row['machine_no'], ENT_QUOTES); ?>"
-                     data-ip="<?php echo htmlspecialchars($row['ip'], ENT_QUOTES); ?>"
+                      data-smibb-ip="<?php echo htmlspecialchars($row['smibb_ip'] ?? '', ENT_QUOTES); ?>"
                      data-mac="<?php echo htmlspecialchars($row['mac'], ENT_QUOTES); ?>"
                      data-drscreen-ip="<?php echo $drscreenIp; ?>"
                      data-hub-sw="<?php echo $hasHubSw ? '1' : '0'; ?>"
@@ -679,7 +679,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
 
                     <div class="machine-inner">
                         <span class="machine-label"><?php echo htmlspecialchars($row['machine_no']); ?></span>
-                        <span class="machine-ip"><?php echo htmlspecialchars($row['ip']); ?></span>
+                        <span class="machine-ip"><?php echo htmlspecialchars($row['smibb_ip'] ?? ''); ?></span>
                         <?php if(!empty($drscreenIp)): ?>
                             <span class="machine-ip" style="color:#90CAF9;"><?php echo $drscreenIp; ?></span>
                         <?php endif; ?>
@@ -860,7 +860,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                     <input type="text" id="newMachineNo" placeholder="">
                 </div>
                 <div class="form-group">
-                    <label>IP Adresi:</label>
+                    <label>SMIBB IP:</label>
                     <input type="text" id="newMachineIp" placeholder="">
                 </div>
                 <div class="form-group">
@@ -935,21 +935,21 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         document.getElementById('newMachineZ').value = '0';
     }
     function submitAddMachine() {
-        var no   = document.getElementById('newMachineNo').value.trim();
-        var ip   = document.getElementById('newMachineIp').value.trim();
-        var mac  = document.getElementById('newMachineMac').value.trim();
-        var z    = document.getElementById('newMachineZ').value;
-        var note = document.getElementById('newMachineNote').value.trim();
+        var no       = document.getElementById('newMachineNo').value.trim();
+        var smibb_ip = document.getElementById('newMachineIp').value.trim();
+        var mac      = document.getElementById('newMachineMac').value.trim();
+        var z        = document.getElementById('newMachineZ').value;
+        var note     = document.getElementById('newMachineNote').value.trim();
 
-        if (!no || !ip || !mac) {
-            alert('Makine No, IP Adresi ve MAC Adresi zorunludur!');
+        if (!no || !smibb_ip || !mac) {
+            alert('Makine No, SMIBB IP ve MAC Adresi zorunludur!');
             return;
         }
 
         var fd = new FormData();
         fd.append('csrf_token', CSRF_TOKEN);
         fd.append('machine_no', no);
-        fd.append('ip', ip);
+        fd.append('smibb_ip', smibb_ip);
         fd.append('mac', mac);
         fd.append('pos_z', z);
         fd.append('note', note);
@@ -985,7 +985,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         div.setAttribute('data-y', '0');
         div.setAttribute('data-z', String(data.pos_z));
         div.setAttribute('data-machine-no', data.machine_no);
-        div.setAttribute('data-ip', data.ip);
+        div.setAttribute('data-smibb-ip', data.ip);
         div.setAttribute('data-mac', data.mac);
         div.setAttribute('data-drscreen-ip', '');
         div.setAttribute('data-hub-sw', '0');

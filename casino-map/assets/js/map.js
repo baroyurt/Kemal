@@ -564,10 +564,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.querySelectorAll('#map .machine').forEach(machine => {
             const machineNo = machine.getAttribute('data-machine-no').toLowerCase();
-            const ip = machine.getAttribute('data-ip').toLowerCase();
+            const smibb_ip = (machine.getAttribute('data-smibb-ip') || '').toLowerCase();
             const mac = machine.getAttribute('data-mac').toLowerCase();
             
-            machine.style.display = (machineNo.includes(searchText) || ip.includes(searchText) || mac.includes(searchText)) ? 'flex' : 'none';
+            machine.style.display = (machineNo.includes(searchText) || smibb_ip.includes(searchText) || mac.includes(searchText)) ? 'flex' : 'none';
         });
     }
     
@@ -769,7 +769,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tooltip = document.createElement('div');
         tooltip.className = 'machine-tooltip';
         const machineNo = machine.getAttribute('data-machine-no');
-        const ip = machine.getAttribute('data-ip');
+        const smibb_ip = machine.getAttribute('data-smibb-ip') || '';
         const hubSw = machine.getAttribute('data-hub-sw') === '1';
         const hubSwCable = machine.getAttribute('data-hub-sw-cable') || '';
         
@@ -780,7 +780,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         tooltip.innerHTML = `
             <div style="font-weight: bold; margin-bottom: 5px; color: #40E0D0;">${escapeHtml(machineNo)}</div>
-            <div style="font-size: 11px; color: #aaa; margin-bottom: 5px;">${escapeHtml(ip)}</div>
+            <div style="font-size: 11px; color: #aaa; margin-bottom: 5px;">${escapeHtml(smibb_ip)}</div>
             <hr style="margin: 5px 0; border: 0; border-top: 1px solid #444;">
             <div style="font-size: 12px; max-width: 200px; word-wrap: break-word;">${escapeHtml(note)}</div>
             ${hubSwHtml}
@@ -2300,7 +2300,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!panel) return;
 
         const machineNo    = machine.getAttribute('data-machine-no') || '-';
-        const ip           = machine.getAttribute('data-ip')  || '-';
+        const ip           = machine.getAttribute('data-smibb-ip')  || '-';
         const drscreenIp   = machine.getAttribute('data-drscreen-ip') || '';
         const mac          = machine.getAttribute('data-mac')  || '-';
         const posX         = Math.round(parseFloat(machine.style.left) || parseInt(machine.getAttribute('data-x')) || 0);
@@ -2323,8 +2323,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('info-panel-body').innerHTML = `
             <div class="info-row"><div class="info-label">Kat</div><div class="info-value">${floorNames[z] || z}</div></div>
             <div class="info-row"><div class="info-label">Koordinat (X, Y)</div><div class="info-value">${posX}, ${posY} &nbsp;<span style="opacity:0.7;font-size:11px;">(${rotation}°)</span></div></div>
-            <div class="info-row"><div class="info-label">Makine IP</div><div class="info-value">${escapeHtml(ip)}</div></div>
-            ${drscreenIp ? `<div class="info-row"><div class="info-label">DRscreen IP</div><div class="info-value" style="color:#2196F3;">${escapeHtml(drscreenIp)}</div></div>` : ''}
+            <div class="info-row"><div class="info-label">SMIBB IP</div><div class="info-value">${escapeHtml(ip)}</div></div>
+            ${drscreenIp ? `<div class="info-row"><div class="info-label">Screen IP</div><div class="info-value" style="color:#2196F3;">${escapeHtml(drscreenIp)}</div></div>` : ''}
             <div class="info-row"><div class="info-label">MAC Adresi</div><div class="info-value" style="font-size:11px;">${escapeHtml(mac)}</div></div>
             ${hubSw ? `<div class="info-row"><div class="info-label">🔌 Hub SW</div><div class="info-value">${escapeHtml(hubSwCable) || 'Var'}</div></div>` : ''}
             <div class="info-row"><div class="info-label">Gruplar</div><div class="info-value">${groupTags || '<span style="color:#aaa">Grup yok</span>'}</div></div>

@@ -20,21 +20,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 csrf_verify();
 
 $machine_no = trim($_POST['machine_no'] ?? '');
-$ip         = trim($_POST['ip']         ?? '');
+$smibb_ip   = trim($_POST['smibb_ip']   ?? '');
+$screen_ip  = trim($_POST['screen_ip']  ?? '');
 $mac        = trim($_POST['mac']        ?? '');
 $pos_z      = intval($_POST['pos_z']    ?? 0);
 $note       = trim($_POST['note']       ?? '');
 
-if ($machine_no === '' || $ip === '' || $mac === '') {
+if ($machine_no === '' || $smibb_ip === '' || $mac === '') {
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'Makine No, IP Adresi ve MAC Adresi zorunludur.']);
+    echo json_encode(['error' => 'Makine No, SMIBB IP ve MAC Adresi zorunludur.']);
     exit;
 }
 
 $stmt = $conn->prepare(
-    "INSERT INTO machines (machine_no, ip, mac, pos_z, pos_x, pos_y, rotation, note) VALUES (?, ?, ?, ?, 0, 0, 0, ?)"
+    "INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, pos_z, pos_x, pos_y, rotation, note) VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?)"
 );
-$stmt->bind_param("sssis", $machine_no, $ip, $mac, $pos_z, $note);
+$stmt->bind_param("sssiss", $machine_no, $smibb_ip, $screen_ip, $mac, $pos_z, $note);
 
 if ($stmt->execute()) {
     $new_id = $conn->insert_id;
@@ -44,7 +45,7 @@ if ($stmt->execute()) {
         'success'    => true,
         'id'         => $new_id,
         'machine_no' => $machine_no,
-        'ip'         => $ip,
+        'ip'         => $smibb_ip,
         'mac'        => $mac,
         'pos_z'      => $pos_z,
         'note'       => $note,
