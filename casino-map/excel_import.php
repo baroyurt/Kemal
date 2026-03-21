@@ -62,29 +62,37 @@ if(isset($_POST['upload'])){
         $rowIndex  = 0;
 
         // ── Format tespiti: ilk satırı oku ──────────────────────────────────
-        // Format A (tam): machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
-        // Format B (basit): Sıra, Salon, Makine No, Marka, Model, Oyun Türü
+        // Format A (tam):       machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
+        // Format B (basit):     Sıra, Salon, Makine No, Marka, Model, Oyun Türü
+        // Format C (tam+sıra):  Sıra, machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
         $firstRow = fgetcsv($handle, 1000, ",");
         $csvFormat = 'full'; // varsayılan
         if($firstRow !== false){
             $col0 = isset($firstRow[0]) ? mb_strtolower(trim($firstRow[0]), 'UTF-8') : '';
+            $col1 = isset($firstRow[1]) ? mb_strtolower(trim($firstRow[1]), 'UTF-8') : '';
             $col2 = isset($firstRow[2]) ? mb_strtolower(trim($firstRow[2]), 'UTF-8') : '';
-            if($col0 === 'sıra' || $col0 === 'sira' || $col2 === 'makine no'){
-                // Format B başlık satırı — atla
-                $csvFormat = 'simple';
-            } elseif($col0 === 'machine_no'){
+            if($col0 === 'machine_no'){
                 // Format A başlık satırı — atla
                 $csvFormat = 'full';
+            } elseif(($col0 === 'sıra' || $col0 === 'sira') && $col1 === 'machine_no'){
+                // Format C başlık satırı: Sıra + tam format — atla
+                $csvFormat = 'full_shifted';
+            } elseif($col0 === 'sıra' || $col0 === 'sira' || $col2 === 'makine no'){
+                // Format B başlık satırı: Sıra, Salon, Makine No, ... — atla
+                $csvFormat = 'simple';
             } else {
-                // Başlık satırı değil, ilk veri satırı — geri sar ve işle
-                // Format tespiti: 1. sütun sayısal ise Format B, değilse Format A
+                // Başlık satırı değil, ilk veri satırı — işaretle ve formatı tahmin et
+                $firstRow['__process'] = true;
                 if(is_numeric(trim($firstRow[0] ?? '')) && isset($firstRow[2])){
-                    $csvFormat = 'simple';
-                    // İlk satırı işle
-                    $firstRow['__process'] = true;
+                    // col[0] sayısal; col[2]'ye bak: IP adresi gibi görünüyorsa Format C, değilse Format B
+                    $col2val = trim($firstRow[2] ?? '');
+                    if(preg_match('/^\d{1,3}\.\d{1,3}/', $col2val)){
+                        $csvFormat = 'full_shifted';
+                    } else {
+                        $csvFormat = 'simple';
+                    }
                 } else {
                     $csvFormat = 'full';
-                    $firstRow['__process'] = true;
                 }
             }
         }
@@ -141,8 +149,54 @@ if(isset($_POST['upload'])){
                     $inserted++;
                     $rowIndex++;
                 }
+            } elseif($csvFormat === 'full_shifted'){
+                // Format C: Sıra, machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
+                if(count($data) < 5) { $skipped++; continue; }
+                $mn           = trim($data[1]);
+                $smibb_ip     = trim($data[2]);
+                $screen_ip    = isset($data[3]) ? trim($data[3]) : '';
+                $mac          = isset($data[4]) ? trim($data[4]) : '';
+                $machine_type = isset($data[5]) ? trim($data[5]) : '';
+                $game_type    = isset($data[6]) ? trim($data[6]) : '';
+                $pz           = isset($data[7])  && $data[7]  !== '' ? intval($data[7])  : 0;
+                $px           = isset($data[8])  && $data[8]  !== '' ? intval($data[8])  : null;
+                $py           = isset($data[9])  && $data[9]  !== '' ? intval($data[9])  : null;
+                $rot          = isset($data[10]) && $data[10] !== '' ? intval($data[10]) : 0;
+                $note         = isset($data[11]) ? trim($data[11]) : '';
+                $brand        = isset($data[12]) ? trim($data[12]) : '';
+                $model_val    = isset($data[13]) ? trim($data[13]) : '';
+                if($mn === '') { $skipped++; continue; }
+
+                $existing_id = null;
+                $check_stmt->bind_param("s", $mn);
+                $check_stmt->execute();
+                $check_stmt->bind_result($existing_id);
+                $check_stmt->fetch();
+                $check_stmt->free_result();
+
+                if($existing_id){
+                    if($px === null || $py === null){
+                        $cur = $conn->query("SELECT pos_x, pos_y FROM machines WHERE id=" . intval($existing_id))->fetch_assoc();
+                        if($px === null) $px = intval($cur['pos_x']);
+                        if($py === null) $py = intval($cur['pos_y']);
+                    }
+                    $update_full->bind_param("sssssssiiiisi", $smibb_ip, $screen_ip, $mac, $machine_type, $game_type, $brand, $model_val, $pz, $px, $py, $rot, $note, $existing_id);
+                    $update_full->execute();
+                    $updated++;
+                } else {
+                    if($px === null || $py === null){
+                        $seqIndex = $existingCount + $rowIndex;
+                        $gridCol  = $seqIndex % 15;
+                        $gridRow  = intval($seqIndex / 15);
+                        if($px === null) $px = 50 + $gridCol * 68;
+                        if($py === null) $py = 50 + $gridRow * 68;
+                    }
+                    $insert_full->bind_param("ssssssssiiiis", $mn, $smibb_ip, $screen_ip, $mac, $machine_type, $game_type, $brand, $model_val, $pz, $px, $py, $rot, $note);
+                    $insert_full->execute();
+                    $inserted++;
+                    $rowIndex++;
+                }
             } else {
-                // Format A: machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
                 if(count($data) < 4) { $skipped++; continue; }
                 $mn           = trim($data[0]);
                 $smibb_ip     = trim($data[1]);
@@ -257,7 +311,8 @@ if(isset($_POST['upload'])){
         <h3>📤 CSV Yükle</h3>
         <div class="info-box">
             <strong>Format A (tam):</strong> <code>machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note</code><br>
-            <strong>Format B (basit — mevcut CSV):</strong> <code>Sıra, Salon, Makine No, Marka, Model, Oyun Türü</code><br>
+            <strong>Format B (basit):</strong> <code>Sıra, Salon, Makine No, Marka, Model, Oyun Türü</code><br>
+            <strong>Format C (tam+sıra):</strong> <code>Sıra, machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note</code><br>
             Format otomatik algılanır. Makine zaten varsa bilgileri <strong>güncellenir</strong>; yoksa yeni olarak eklenir. Koordinat sütunları boş bırakılabilir.
         </div>
         <?php if(isset($upload_error)): ?>
