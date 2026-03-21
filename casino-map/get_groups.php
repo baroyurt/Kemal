@@ -23,7 +23,6 @@ while($group = $result->fetch_assoc()) {
         'name'        => $group['group_name'],
         'description' => $group['description'],
         'color'       => $group['color'] ?? '#4CAF50',
-        'region_id'   => $group['region_id'] ? intval($group['region_id']) : null,
         'machines'    => $machine_ids
     ];
 }

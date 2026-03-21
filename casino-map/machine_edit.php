@@ -54,7 +54,6 @@ if(isset($_POST['bulk_duplicate'])){
                 $smibb_ip     = $conn->real_escape_string($row['smibb_ip'] ?? '');
                 $screen_ip    = $conn->real_escape_string($row['screen_ip'] ?? '');
                 $mac          = $conn->real_escape_string($row['mac']);
-                $area         = $row['area'] !== null ? intval($row['area']) : 'NULL';
                 $machine_type = $conn->real_escape_string($row['machine_type'] ?? '');
                 $game_type    = $conn->real_escape_string($row['game_type'] ?? '');
                 $pos_x = intval($row['pos_x']) + 20;
@@ -63,8 +62,8 @@ if(isset($_POST['bulk_duplicate'])){
                 $rotation = intval($row['rotation']);
                 $note = $conn->real_escape_string($row['note'] . ' (Kopya)');
                 
-                $conn->query("INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, area, machine_type, game_type, pos_x, pos_y, pos_z, rotation, note) 
-                              VALUES ('$machine_no', '$smibb_ip', '$screen_ip', '$mac', $area, '$machine_type', '$game_type', $pos_x, $pos_y, $pos_z, $rotation, '$note')");
+                $conn->query("INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_x, pos_y, pos_z, rotation, note) 
+                              VALUES ('$machine_no', '$smibb_ip', '$screen_ip', '$mac', '$machine_type', '$game_type', $pos_x, $pos_y, $pos_z, $rotation, '$note')");
             }
         }
         $duplicated_count = count($_POST['selected_machines']);
@@ -87,19 +86,17 @@ if(isset($_POST['save'])){
     $smibb_ip     = $conn->real_escape_string($_POST['smibb_ip']);
     $screen_ip    = $conn->real_escape_string($_POST['screen_ip'] ?? '');
     $mac          = $conn->real_escape_string($_POST['mac']);
-    $area         = isset($_POST['area']) && $_POST['area'] !== '' ? intval($_POST['area']) : null;
     $machine_type = $conn->real_escape_string($_POST['machine_type'] ?? '');
     $game_type    = $conn->real_escape_string($_POST['game_type'] ?? '');
     $pos_z        = intval($_POST['pos_z']);
     $note         = $conn->real_escape_string($_POST['note']);
-    $area_sql     = $area !== null ? $area : 'NULL';
     
     if(isset($_POST['id']) && !empty($_POST['id'])){
         $id = intval($_POST['id']);
-        $conn->query("UPDATE machines SET machine_no='$machine_no', smibb_ip='$smibb_ip', screen_ip='$screen_ip', mac='$mac', area=$area_sql, machine_type='$machine_type', game_type='$game_type', pos_z=$pos_z, note='$note' WHERE id=$id");
+        $conn->query("UPDATE machines SET machine_no='$machine_no', smibb_ip='$smibb_ip', screen_ip='$screen_ip', mac='$mac', machine_type='$machine_type', game_type='$game_type', pos_z=$pos_z, note='$note' WHERE id=$id");
         $message = "Makine güncellendi";
     } else {
-        $conn->query("INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, area, machine_type, game_type, pos_z, note) VALUES ('$machine_no', '$smibb_ip', '$screen_ip', '$mac', $area_sql, '$machine_type', '$game_type', $pos_z, '$note')");
+        $conn->query("INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, note) VALUES ('$machine_no', '$smibb_ip', '$screen_ip', '$mac', '$machine_type', '$game_type', $pos_z, '$note')");
         $message = "Yeni makine eklendi";
     }
     
@@ -246,16 +243,6 @@ $z_levels = [
                     <input type="text" name="mac" id="edit_mac" required>
                 </div>
                 <div class="form-group">
-                    <label>Bölge (Area):</label>
-                    <select name="area" id="edit_area">
-                        <option value="">— Seçiniz —</option>
-                        <option value="1">1 - Yüksek Tavan</option>
-                        <option value="3">3 - Alçak Tavan</option>
-                        <option value="4">4 - Yeni Vip Salon</option>
-                        <option value="5">5 - Alt Salon</option>
-                    </select>
-                </div>
-                <div class="form-group">
                     <label>Makine Türü:</label>
                     <input type="text" name="machine_type" id="edit_machine_type">
                 </div>
@@ -300,7 +287,6 @@ $z_levels = [
                         <th>SMIBB IP</th>
                         <th>Screen IP</th>
                         <th>MAC Adresi</th>
-                        <th>Bölge</th>
                         <th>Makine Türü</th>
                         <th>Oyun Türü</th>
                         <th>Kat (Z)</th>
@@ -320,7 +306,6 @@ $z_levels = [
                             <td><?php echo htmlspecialchars($row['smibb_ip'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['screen_ip'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['mac']); ?></td>
-                            <td><?php echo $row['area'] !== null ? intval($row['area']) : '-'; ?></td>
                             <td><?php echo htmlspecialchars($row['machine_type'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($row['game_type'] ?? ''); ?></td>
                             <td><span class="z-badge"><?php echo htmlspecialchars($z_levels[$row['pos_z']] ?? 'Kat '.intval($row['pos_z'])); ?></span></td>
@@ -335,13 +320,13 @@ $z_levels = [
                             <td>(<?php echo intval($row['pos_x']); ?>, <?php echo intval($row['pos_y']); ?>)</td>
                             <td><?php echo intval($row['rotation']); ?>°</td>
                             <td>
-                                <button class="action-btn edit-btn" onclick="editMachine(<?php echo intval($row['id']); ?>, '<?php echo htmlspecialchars($row['machine_no'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['smibb_ip'] ?? '', ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['screen_ip'] ?? '', ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['mac'], ENT_QUOTES); ?>', <?php echo $row['area'] !== null ? intval($row['area']) : 'null'; ?>, '<?php echo htmlspecialchars($row['machine_type'] ?? '', ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['game_type'] ?? '', ENT_QUOTES); ?>', <?php echo intval($row['pos_z']); ?>, '<?php echo htmlspecialchars($row['note'] ?? '', ENT_QUOTES); ?>')">Düzenle</button>
+                                <button class="action-btn edit-btn" onclick="editMachine(<?php echo intval($row['id']); ?>, '<?php echo htmlspecialchars($row['machine_no'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['smibb_ip'] ?? '', ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['screen_ip'] ?? '', ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['mac'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['machine_type'] ?? '', ENT_QUOTES); ?>', '<?php echo htmlspecialchars($row['game_type'] ?? '', ENT_QUOTES); ?>', <?php echo intval($row['pos_z']); ?>, '<?php echo htmlspecialchars($row['note'] ?? '', ENT_QUOTES); ?>')">Düzenle</button>
                                 <a href="?delete=<?php echo intval($row['id']); ?><?php echo !empty($search) ? '&search='.urlencode($search) : ''; ?><?php echo isset($_GET['page']) ? '&page='.intval($_GET['page']) : ''; ?>" class="action-btn delete-btn" onclick="return confirm('Bu makineyi silmek istediğinize emin misiniz?')">Sil</a>
                             </td>
                         </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <tr><td colspan="14" style="text-align: center; padding: 40px;">Makine bulunamadı.</td></tr>
+                        <tr><td colspan="13" style="text-align: center; padding: 40px;">Makine bulunamadı.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -495,13 +480,12 @@ $z_levels = [
             }
         }
         
-        function editMachine(id, machine_no, smibb_ip, screen_ip, mac, area, machine_type, game_type, z, note) {
+        function editMachine(id, machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, z, note) {
             document.getElementById('edit_id').value = id;
             document.getElementById('edit_machine_no').value = machine_no;
             document.getElementById('edit_smibb_ip').value = smibb_ip;
             document.getElementById('edit_screen_ip').value = screen_ip;
             document.getElementById('edit_mac').value = mac;
-            document.getElementById('edit_area').value = area !== null ? area : '';
             document.getElementById('edit_machine_type').value = machine_type;
             document.getElementById('edit_game_type').value = game_type;
             document.getElementById('edit_z').value = z;
@@ -515,7 +499,6 @@ $z_levels = [
             document.getElementById('edit_smibb_ip').value = '';
             document.getElementById('edit_screen_ip').value = '';
             document.getElementById('edit_mac').value = '';
-            document.getElementById('edit_area').value = '';
             document.getElementById('edit_machine_type').value = '';
             document.getElementById('edit_game_type').value = '';
             document.getElementById('edit_z').value = '0';

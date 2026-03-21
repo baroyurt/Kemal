@@ -615,10 +615,6 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                 <button class="panel-close-btn" onclick="toggleGroupsPanel()" title="Kapat"><i class="fas fa-times"></i></button>
             </div>
         </div>
-        <!-- Bölge filtre butonları -->
-        <div id="regionFilters" style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.15);">
-            <!-- JS tarafından doldurulur -->
-        </div>
         <div class="groups-list" id="groupsList"><div style="padding: 20px; text-align: center;">Yükleniyor...</div></div>
     </div>
 

@@ -6,8 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global değişkenler
     window.selectedMachines = [];
     window.groupsData = {};
-    window.regionsData = [];       // bölge listesi
-    window.activeRegionId = null;  // seçili bölge filtresi
 
     // Track currently active floor ('all', '0', '1', '2', '3')
     let currentFloor = 'all';
@@ -815,50 +813,13 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(groups => {
                 window.groupsData = groups;
-                // Bölgeleri de yükle
-                fetch('get_regions.php')
-                    .then(r => r.json())
-                    .then(regions => {
-                        window.regionsData = regions;
-                        updateRegionFilters();
-                        updateGroupsPanel();
-                    })
-                    .catch(() => {
-                        window.regionsData = [];
-                        updateRegionFilters();
-                        updateGroupsPanel();
-                    });
+                updateGroupsPanel();
                 updateGroupIcons();
                 updateGroupFilter();
             })
             .catch(error => console.log('Grup yüklenemedi:', error));
     }
     
-    function updateRegionFilters() {
-        const container = document.getElementById('regionFilters');
-        if (!container) return;
-
-        const regions = window.regionsData || [];
-        if (regions.length === 0) {
-            container.style.display = 'none';
-            return;
-        }
-        container.style.display = 'flex';
-
-        let html = `<button onclick="setRegionFilter(null)" style="padding:3px 10px;border-radius:12px;border:2px solid rgba(255,255,255,0.5);background:${window.activeRegionId===null?'rgba(255,255,255,0.3)':'transparent'};color:white;cursor:pointer;font-size:11px;font-weight:bold;transition:all 0.2s;">Tümü</button>`;
-        regions.forEach(r => {
-            const active = window.activeRegionId === r.id;
-            html += `<button onclick="setRegionFilter(${r.id})" style="padding:3px 10px;border-radius:12px;border:2px solid ${escapeHtml(r.color)};background:${active?escapeHtml(r.color):'transparent'};color:${active?'white':escapeHtml(r.color)};cursor:pointer;font-size:11px;font-weight:bold;transition:all 0.2s;">${escapeHtml(r.name)}</button>`;
-        });
-        container.innerHTML = html;
-    }
-
-    window.setRegionFilter = function(regionId) {
-        window.activeRegionId = regionId;
-        updateRegionFilters();
-        updateGroupsPanel();
-    };
-
     function updateGroupsPanel() {
         const groupsList = document.getElementById('groupsList');
         if (!groupsList) return;
@@ -870,8 +831,6 @@ document.addEventListener('DOMContentLoaded', function() {
             '3': '🎰 Alt Salon',
         };
         const FLOOR_ORDER = ['0', '1', '2', '3'];
-
-        const activeRegion = window.activeRegionId;
 
         // Grubun baskın katını (Z) makine data-z değerlerine göre hesapla
         function getGroupFloor(group) {
@@ -892,7 +851,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const buckets = { '0': [], '1': [], '2': [], '3': [], 'other': [] };
         for (let groupId in window.groupsData) {
             const group = window.groupsData[groupId];
-            if (activeRegion !== null && group.region_id !== activeRegion) continue;
             const floor = getGroupFloor(group);
             const key = FLOOR_ORDER.includes(floor) ? floor : 'other';
             buckets[key].push(groupId);
@@ -955,7 +913,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         if (html === '') {
-            html = '<div style="padding: 20px; text-align: center; color: #999;">Bu bölgede grup yok</div>';
+            html = '<div style="padding: 20px; text-align: center; color: #999;">Henüz grup yok</div>';
         }
         groupsList.innerHTML = html;
     }
