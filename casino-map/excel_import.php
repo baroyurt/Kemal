@@ -57,8 +57,8 @@ if(isset($_POST['upload'])){
     csrf_verify();
     $file = $_FILES['file'];
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    // application/octet-stream dahil edildi: Windows/Excel'den kaydedilen CSV dosyaları
-    $allowedTypes = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel', 'application/octet-stream'];
+    // text/x-csv ve application/octet-stream dahil edildi: Windows/Excel'den kaydedilen CSV dosyaları
+    $allowedTypes = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel', 'application/octet-stream', 'text/x-csv'];
     $mimeType = mime_content_type($file['tmp_name']);
 
     if($ext !== 'csv' || !in_array($mimeType, $allowedTypes)){
@@ -67,9 +67,22 @@ if(isset($_POST['upload'])){
         $upload_error = "Dosya boyutu 2MB sınırını aşıyor!";
     } else {
         $handle = fopen($file['tmp_name'], "r");
-        // UTF-8 BOM varsa atla
-        $firstChunk = fread($handle, 3);
-        if($firstChunk !== "\xEF\xBB\xBF") rewind($handle);
+        // UTF-8 BOM varsa atla; fseek kullanarak veri başlangıç pozisyonunu kaydet
+        $dataStart = 0;
+        $firstBytes = fread($handle, 3);
+        if($firstBytes === "\xEF\xBB\xBF"){
+            $dataStart = 3;
+        }
+
+        // Delimiter tespiti: Türk locale'de Excel noktalı virgül (;) kullanabilir
+        fseek($handle, $dataStart);
+        $firstLine = fgets($handle);
+        $commaCount     = substr_count($firstLine, ',');
+        $semicolonCount = substr_count($firstLine, ';');
+        $delimiter = ($semicolonCount > $commaCount) ? ';' : ',';
+
+        // Format parse için pozisyonu veri başına al
+        fseek($handle, $dataStart);
 
         $inserted = 0;
         $updated  = 0;
@@ -81,7 +94,7 @@ if(isset($_POST['upload'])){
         // Format A (tam):       machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
         // Format B (basit):     Sıra, Salon, Makine No, Marka, Model, Oyun Türü
         // Format C (tam+sıra):  Sıra, machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
-        $firstRow = fgetcsv($handle, 1000, ",");
+        $firstRow = fgetcsv($handle, 0, $delimiter);
         $csvFormat = 'full'; // varsayılan
         if($firstRow !== false){
             $col0 = isset($firstRow[0]) ? mb_strtolower(trim($firstRow[0]), 'UTF-8') : '';
@@ -127,7 +140,7 @@ if(isset($_POST['upload'])){
             $processRows[] = $firstRow;
         }
 
-        while(($data = fgetcsv($handle, 1000, ",")) !== FALSE){
+        while(($data = fgetcsv($handle, 0, $delimiter)) !== FALSE){
             $processRows[] = $data;
         }
         fclose($handle);
