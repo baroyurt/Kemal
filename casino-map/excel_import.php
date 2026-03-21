@@ -80,6 +80,7 @@ if(isset($_POST['upload'])){
             $note = isset($data[10]) ? trim($data[10]) : '';
 
             // Makine var mı kontrol et
+            $existing_id = null;
             $check_stmt->bind_param("s", $mn);
             $check_stmt->execute();
             $check_stmt->bind_result($existing_id);
