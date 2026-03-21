@@ -13,7 +13,23 @@ if($_SESSION['role'] != 'admin'){
 
 include("config.php");
 
-// ── CSV Şablon İndirme ────────────────────────────────────────────────────────
+// ── CSV Şablon İndirme (Format C: Sıra + tam sütunlar) ───────────────────────
+if(isset($_GET['download_csv_template'])){
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="makine_sablonu.csv"');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    $out = fopen('php://output', 'w');
+    // UTF-8 BOM — Excel'in Türkçe karakterleri doğru okuması için
+    fputs($out, "\xEF\xBB\xBF");
+    fputcsv($out, ['Sıra','machine_no','smibb_ip','screen_ip','mac','machine_type','game_type','pos_z','pos_x','pos_y','rotation','note']);
+    fputcsv($out, [1, '2925', '10.1.3.25',  '10.129.3.25',  '69-44', 'Apex / Curve', 'Elements x100', 1, 430, 1732,  90, '']);
+    fputcsv($out, [2, '2926', '10.1.3.26',  '10.129.3.26',  '68-4f', 'Apex / Curve', 'Elements x100', 1, 430, 1795,  90, '']);
+    fputcsv($out, [3, '2935', '10.5.7.35',  '10.133.7.35',  '61-f3', 'Apex / Curve', 'Elements x25',  5, 2931, 1347,  0, '']);
+    fclose($out);
+    exit;
+}
+
+// ── Excel Şablon İndirme (Format A: makine_no + tam sütunlar) ────────────────
 if(isset($_GET['download_template'])){
     include_once("xlsx_helper.php");
     $headers = ['machine_no', 'smibb_ip', 'screen_ip', 'mac', 'machine_type', 'game_type', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
@@ -339,6 +355,7 @@ if(isset($_POST['upload'])){
     <div class="card">
         <h3>📥 İndir</h3>
         <div class="btn-row">
+            <a href="?download_csv_template=1" class="btn btn-green">📄 CSV Şablonu İndir (Örnek)</a>
             <a href="?download_template=1" class="btn btn-blue">📋 Excel Şablonu İndir</a>
             <a href="?export_machines=1" class="btn btn-gray">💾 Tüm Makineleri Excel Olarak İndir</a>
         </div>
