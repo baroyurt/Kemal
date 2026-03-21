@@ -41,7 +41,7 @@ if(isset($_POST['upload'])){
     csrf_verify();
     $file = $_FILES['file'];
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $allowedTypes = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'];
+    $allowedTypes = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel', 'text/x-csv', 'application/octet-stream'];
     $mimeType = mime_content_type($file['tmp_name']);
 
     if($ext !== 'csv' || !in_array($mimeType, $allowedTypes)){
@@ -68,6 +68,7 @@ if(isset($_POST['upload'])){
             if(count($data) < 3 || trim($data[0]) === 'machine_no') { $skipped++; continue; }
 
             $mn          = trim($data[0]);
+            $existing_id = null;
             $smibb_ip    = trim($data[1] ?? '');
             $screen_ip   = trim($data[2] ?? '');
             $mac         = trim($data[3] ?? '');
