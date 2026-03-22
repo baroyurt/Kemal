@@ -766,22 +766,32 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const tooltip = document.createElement('div');
         tooltip.className = 'machine-tooltip';
-        const machineNo = machine.getAttribute('data-machine-no');
-        const smibb_ip = machine.getAttribute('data-smibb-ip') || '';
-        const hubSw = machine.getAttribute('data-hub-sw') === '1';
-        const hubSwCable = machine.getAttribute('data-hub-sw-cable') || '';
+        const machineNo   = machine.getAttribute('data-machine-no');
+        const smibb_ip    = machine.getAttribute('data-smibb-ip') || '';
+        const screenIp    = machine.getAttribute('data-drscreen-ip') || '';
+        const mac         = machine.getAttribute('data-mac') || '';
+        const machineType = machine.getAttribute('data-machine-type') || '';
+        const gameType    = machine.getAttribute('data-game-type') || '';
+        const brand       = machine.getAttribute('data-brand') || '';
+        const model       = machine.getAttribute('data-model') || '';
+        const hubSw       = machine.getAttribute('data-hub-sw') === '1';
+        const hubSwCable  = machine.getAttribute('data-hub-sw-cable') || '';
         
-        let hubSwHtml = '';
-        if (hubSw) {
-            hubSwHtml = `<div style="color:#FF9800; font-weight:bold; margin-top:5px;">🔌 Hub SW${hubSwCable ? ' → ' + escapeHtml(hubSwCable) : ''}</div>`;
-        }
-        
+        const row = (label, val, color) => val
+            ? `<div style="display:flex;gap:6px;margin-top:3px;"><span style="color:#aaa;min-width:80px;font-size:10px;">${label}:</span><span style="font-size:11px;word-break:break-all;${color ? 'color:'+color+';' : ''}">${escapeHtml(val)}</span></div>`
+            : '';
+
         tooltip.innerHTML = `
-            <div style="font-weight: bold; margin-bottom: 5px; color: #40E0D0;">${escapeHtml(machineNo)}</div>
-            <div style="font-size: 11px; color: #aaa; margin-bottom: 5px;">${escapeHtml(smibb_ip)}</div>
-            <hr style="margin: 5px 0; border: 0; border-top: 1px solid #444;">
-            <div style="font-size: 12px; max-width: 200px; word-wrap: break-word;">${escapeHtml(note)}</div>
-            ${hubSwHtml}
+            <div style="font-weight:bold;margin-bottom:5px;color:#40E0D0;font-size:13px;">${escapeHtml(machineNo)}</div>
+            ${row('SMIBB IP', smibb_ip)}
+            ${row('Screen IP', screenIp, '#90CAF9')}
+            ${row('MAC', mac)}
+            ${row('Makine Türü', machineType)}
+            ${row('Oyun Türü', gameType)}
+            ${row('Marka', brand)}
+            ${row('Model', model)}
+            ${hubSw ? `<div style="color:#FF9800;font-weight:bold;margin-top:5px;font-size:11px;">🔌 Hub SW${hubSwCable ? ' → ' + escapeHtml(hubSwCable) : ''}</div>` : ''}
+            ${note ? `<hr style="margin:6px 0;border:0;border-top:1px solid #444;"><div style="font-size:11px;max-width:200px;word-wrap:break-word;color:#ccc;">${escapeHtml(note)}</div>` : ''}
         `;
         
         document.body.appendChild(tooltip);
@@ -2261,6 +2271,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const ip           = machine.getAttribute('data-smibb-ip')  || '-';
         const drscreenIp   = machine.getAttribute('data-drscreen-ip') || '';
         const mac          = machine.getAttribute('data-mac')  || '-';
+        const machineType  = machine.getAttribute('data-machine-type') || '';
+        const gameType     = machine.getAttribute('data-game-type') || '';
+        const brand        = machine.getAttribute('data-brand') || '';
+        const model        = machine.getAttribute('data-model') || '';
         const posX         = Math.round(parseFloat(machine.style.left) || parseInt(machine.getAttribute('data-x')) || 0);
         const posY         = Math.round(parseFloat(machine.style.top)  || parseInt(machine.getAttribute('data-y')) || 0);
         const rotation     = parseInt(machine.getAttribute('data-rotation') || 0);
@@ -2284,6 +2298,10 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="info-row"><div class="info-label">SMIBB IP</div><div class="info-value">${escapeHtml(ip)}</div></div>
             ${drscreenIp ? `<div class="info-row"><div class="info-label">Screen IP</div><div class="info-value" style="color:#2196F3;">${escapeHtml(drscreenIp)}</div></div>` : ''}
             <div class="info-row"><div class="info-label">MAC Adresi</div><div class="info-value" style="font-size:11px;">${escapeHtml(mac)}</div></div>
+            ${machineType ? `<div class="info-row"><div class="info-label">Makine Türü</div><div class="info-value">${escapeHtml(machineType)}</div></div>` : ''}
+            ${gameType ? `<div class="info-row"><div class="info-label">Oyun Türü</div><div class="info-value">${escapeHtml(gameType)}</div></div>` : ''}
+            ${brand ? `<div class="info-row"><div class="info-label">Marka</div><div class="info-value">${escapeHtml(brand)}</div></div>` : ''}
+            ${model ? `<div class="info-row"><div class="info-label">Model</div><div class="info-value">${escapeHtml(model)}</div></div>` : ''}
             ${hubSw ? `<div class="info-row"><div class="info-label">🔌 Hub SW</div><div class="info-value">${escapeHtml(hubSwCable) || 'Var'}</div></div>` : ''}
             <div class="info-row"><div class="info-label">Gruplar</div><div class="info-value">${groupTags || '<span style="color:#aaa">Grup yok</span>'}</div></div>
             ${note ? `<div class="info-row"><div class="info-label">Not</div><div class="info-value">${escapeHtml(note)}</div></div>` : ''}

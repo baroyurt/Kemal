@@ -745,6 +745,10 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                       data-smibb-ip="<?php echo htmlspecialchars($row['smibb_ip'] ?? '', ENT_QUOTES); ?>"
                      data-mac="<?php echo htmlspecialchars($row['mac'], ENT_QUOTES); ?>"
                      data-drscreen-ip="<?php echo $drscreenIp; ?>"
+                     data-machine-type="<?php echo htmlspecialchars($row['machine_type'] ?? '', ENT_QUOTES); ?>"
+                     data-game-type="<?php echo htmlspecialchars($row['game_type'] ?? '', ENT_QUOTES); ?>"
+                     data-brand="<?php echo htmlspecialchars($row['brand'] ?? '', ENT_QUOTES); ?>"
+                     data-model="<?php echo htmlspecialchars($row['model'] ?? '', ENT_QUOTES); ?>"
                      data-hub-sw="<?php echo $hasHubSw ? '1' : '0'; ?>"
                      data-hub-sw-cable="<?php echo htmlspecialchars($row['hub_sw_cable'] ?? '', ENT_QUOTES); ?>"
                      style="left: <?php echo $row['pos_x']; ?>px; top: <?php echo $row['pos_y']; ?>px; transform: rotate(<?php echo $row['rotation']; ?>deg);">
@@ -1169,9 +1173,13 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         div.setAttribute('data-y', '0');
         div.setAttribute('data-z', String(data.pos_z));
         div.setAttribute('data-machine-no', data.machine_no);
-        div.setAttribute('data-smibb-ip', data.ip);
+        div.setAttribute('data-smibb-ip', data.smibb_ip);
         div.setAttribute('data-mac', data.mac);
-        div.setAttribute('data-drscreen-ip', '');
+        div.setAttribute('data-drscreen-ip', data.screen_ip || '');
+        div.setAttribute('data-machine-type', data.machine_type || '');
+        div.setAttribute('data-game-type', data.game_type || '');
+        div.setAttribute('data-brand', data.brand || '');
+        div.setAttribute('data-model', data.model || '');
         div.setAttribute('data-hub-sw', '0');
         div.setAttribute('data-hub-sw-cable', '');
         div.style.left = '20px';
@@ -1180,7 +1188,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         div.innerHTML =
             '<div class="machine-inner">' +
             '<span class="machine-label">' + esc(data.machine_no) + '</span>' +
-            '<span class="machine-ip">' + esc(data.ip) + '</span>' +
+            '<span class="machine-ip">' + esc(data.smibb_ip) + '</span>' +
             '<span class="z-level">Z:' + esc(data.pos_z) + '</span>' +
             '</div>';
         map.appendChild(div);

@@ -45,10 +45,15 @@ if ($stmt->execute()) {
         'success'    => true,
         'id'         => $new_id,
         'machine_no' => $machine_no,
-        'ip'         => $smibb_ip,
+        'smibb_ip'   => $smibb_ip,
+        'screen_ip'  => $screen_ip,
         'mac'        => $mac,
         'pos_z'      => $pos_z,
         'note'       => $note,
+        'machine_type' => '',
+        'game_type'    => '',
+        'brand'        => '',
+        'model'        => '',
     ]);
 } else {
     $stmt->close();
