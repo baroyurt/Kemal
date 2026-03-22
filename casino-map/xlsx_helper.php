@@ -130,3 +130,122 @@ function xlsx_esc(string $s): string
 {
     return htmlspecialchars($s, ENT_XML1, 'UTF-8');
 }
+
+/**
+ * Read an .xlsx file and return all rows from the first worksheet as a 2-D array.
+ * Uses only PHP built-ins (ZipArchive + SimpleXML) — no Composer packages needed.
+ *
+ * @param  string $path  Absolute path to the .xlsx file
+ * @return array[]       Array of rows; each row is an array of string cell values
+ */
+function read_xlsx(string $path): array
+{
+    $zip = new ZipArchive();
+    if ($zip->open($path) !== true) {
+        return [];
+    }
+
+    // ── Shared string table ──────────────────────────────────────────────────
+    $sharedStrings = [];
+    $ssRaw = $zip->getFromName('xl/sharedStrings.xml');
+    if ($ssRaw !== false) {
+        // Suppress XML warnings for malformed files
+        $prev = libxml_use_internal_errors(true);
+        $ssXml = simplexml_load_string($ssRaw);
+        libxml_use_internal_errors($prev);
+        if ($ssXml !== false) {
+            foreach ($ssXml->si as $si) {
+                // A <si> can contain either a plain <t> or rich-text <r><t> runs
+                if (isset($si->t)) {
+                    $sharedStrings[] = (string)$si->t;
+                } else {
+                    $text = '';
+                    foreach ($si->r as $r) {
+                        $text .= (string)$r->t;
+                    }
+                    $sharedStrings[] = $text;
+                }
+            }
+        }
+    }
+
+    // ── Worksheet (first sheet only) ─────────────────────────────────────────
+    // Try the canonical path first, then scan for any worksheet
+    $wsRaw = $zip->getFromName('xl/worksheets/sheet1.xml');
+    if ($wsRaw === false) {
+        // Scan for any worksheet file
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (strpos($name, 'xl/worksheets/') === 0 && substr($name, -4) === '.xml') {
+                $wsRaw = $zip->getFromIndex($i);
+                break;
+            }
+        }
+    }
+    $zip->close();
+
+    if ($wsRaw === false) {
+        return [];
+    }
+
+    $prev  = libxml_use_internal_errors(true);
+    $wsXml = simplexml_load_string($wsRaw);
+    libxml_use_internal_errors($prev);
+    if ($wsXml === false) {
+        return [];
+    }
+
+    $rows = [];
+    foreach ($wsXml->sheetData->row as $row) {
+        $cells   = [];
+        $maxCol  = -1;
+
+        foreach ($row->c as $c) {
+            $ref    = (string)$c['r'];            // e.g. "B3"
+            $colIdx = xlsx_col_index($ref);       // 0-based
+            $type   = (string)$c['t'];
+
+            if ($type === 's') {
+                // Shared string reference
+                $idx = intval((string)$c->v);
+                $val = $sharedStrings[$idx] ?? '';
+            } elseif ($type === 'inlineStr') {
+                $val = isset($c->is->t) ? (string)$c->is->t : '';
+            } elseif ($type === 'b') {
+                $val = ((string)$c->v === '1') ? 'TRUE' : 'FALSE';
+            } else {
+                // Number, date (stored as number), or empty
+                $val = isset($c->v) ? (string)$c->v : '';
+            }
+
+            $cells[$colIdx] = $val;
+            if ($colIdx > $maxCol) {
+                $maxCol = $colIdx;
+            }
+        }
+
+        // Build a dense array (fill gaps with empty string)
+        $rowArr = [];
+        for ($i = 0; $i <= $maxCol; $i++) {
+            $rowArr[] = $cells[$i] ?? '';
+        }
+        $rows[] = $rowArr;
+    }
+
+    return $rows;
+}
+
+/**
+ * Convert a cell reference (e.g. "AB3") to a 0-based column index.
+ * "A" → 0, "B" → 1, …, "Z" → 25, "AA" → 26, …
+ */
+function xlsx_col_index(string $cellRef): int
+{
+    preg_match('/^([A-Za-z]+)/', $cellRef, $m);
+    $letters = strtoupper($m[1] ?? 'A');
+    $idx = 0;
+    for ($i = 0, $len = strlen($letters); $i < $len; $i++) {
+        $idx = $idx * 26 + (ord($letters[$i]) - 64);
+    }
+    return $idx - 1; // convert to 0-based
+}

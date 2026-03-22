@@ -52,40 +52,68 @@ if(isset($_GET['export_machines'])){
     send_xlsx('makineler_' . date('Y-m-d') . '.xlsx', $headers, $rows);
 }
 
-// ── CSV Yükleme ───────────────────────────────────────────────────────────────
+// ── XLSX / CSV Yükleme ────────────────────────────────────────────────────────
 if(isset($_POST['upload'])){
     csrf_verify();
+    include_once("xlsx_helper.php");
     $file = $_FILES['file'];
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     $mimeType = mime_content_type($file['tmp_name']);
 
-    // .csv uzantısıyla gelen dosyalar için güvenli MIME tipi listesi (text/html vs. hariç)
-    $safeCsvMimes = ['text/csv', 'text/plain', 'text/x-csv', 'text/comma-separated-values',
-                     'text/tab-separated-values', 'application/csv',
-                     'application/vnd.ms-excel', 'application/octet-stream'];
-    $isCsvMime = in_array($mimeType, $safeCsvMimes);
-    if($ext !== 'csv' || !$isCsvMime){
-        $upload_error = "Sadece CSV dosyaları kabul edilir! (Algılanan tür: $mimeType)";
-    } elseif($file['size'] > 2 * 1024 * 1024){
-        $upload_error = "Dosya boyutu 2MB sınırını aşıyor!";
+    // İzin verilen uzantılar ve MIME tipleri
+    $safeXlsxMimes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel', 'application/zip', 'application/octet-stream',
+        'application/x-zip-compressed', 'application/x-zip',
+    ];
+    $safeCsvMimes = [
+        'text/csv', 'text/plain', 'text/x-csv', 'text/comma-separated-values',
+        'text/tab-separated-values', 'application/csv',
+        'application/vnd.ms-excel', 'application/octet-stream',
+    ];
+
+    // XLSX dosyaları aslında ZIP arşividir — magic bytes ile de doğrula
+    $isZipMagic = false;
+    if($ext === 'xlsx'){
+        $fh = fopen($file['tmp_name'], 'rb');
+        $magic = fread($fh, 4);
+        fclose($fh);
+        $isZipMagic = ($magic === "PK\x03\x04");
+    }
+
+    $isXlsx = ($ext === 'xlsx') && ($isZipMagic || in_array($mimeType, $safeXlsxMimes));
+    $isCsv  = ($ext === 'csv')  && in_array($mimeType, $safeCsvMimes);
+
+    if(!$isXlsx && !$isCsv){
+        $upload_error = "Sadece .xlsx veya .csv dosyaları kabul edilir! (Algılanan tür: $mimeType, uzantı: .$ext)";
+    } elseif($file['size'] > 5 * 1024 * 1024){
+        $upload_error = "Dosya boyutu 5MB sınırını aşıyor!";
     } else {
-        $handle = fopen($file['tmp_name'], "r");
-        // UTF-8 BOM varsa atla; fseek kullanarak veri başlangıç pozisyonunu kaydet
-        $dataStart = 0;
-        $firstBytes = fread($handle, 3);
-        if($firstBytes === "\xEF\xBB\xBF"){
-            $dataStart = 3;
+        // ── Satırları oku: XLSX veya CSV ────────────────────────────────────
+        $allRows = [];
+
+        if($isXlsx){
+            $allRows = read_xlsx($file['tmp_name']);
+        } else {
+            $handle = fopen($file['tmp_name'], "r");
+            // UTF-8 BOM varsa atla
+            $dataStart = 0;
+            $firstBytes = fread($handle, 3);
+            if($firstBytes === "\xEF\xBB\xBF"){ $dataStart = 3; }
+
+            // Delimiter tespiti: Türk locale'de Excel noktalı virgül (;) kullanabilir
+            fseek($handle, $dataStart);
+            $firstLine = fgets($handle);
+            $commaCount     = substr_count($firstLine, ',');
+            $semicolonCount = substr_count($firstLine, ';');
+            $delimiter = ($semicolonCount > $commaCount) ? ';' : ',';
+
+            fseek($handle, $dataStart);
+            while(($data = fgetcsv($handle, 0, $delimiter)) !== FALSE){
+                $allRows[] = $data;
+            }
+            fclose($handle);
         }
-
-        // Delimiter tespiti: Türk locale'de Excel noktalı virgül (;) kullanabilir
-        fseek($handle, $dataStart);
-        $firstLine = fgets($handle);
-        $commaCount     = substr_count($firstLine, ',');
-        $semicolonCount = substr_count($firstLine, ';');
-        $delimiter = ($semicolonCount > $commaCount) ? ';' : ',';
-
-        // Format parse için pozisyonu veri başına al
-        fseek($handle, $dataStart);
 
         $inserted = 0;
         $updated  = 0;
@@ -97,36 +125,37 @@ if(isset($_POST['upload'])){
         // Format A (tam):       machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
         // Format B (basit):     Sıra, Salon, Makine No, Marka, Model, Oyun Türü
         // Format C (tam+sıra):  Sıra, machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
-        $firstRow = fgetcsv($handle, 0, $delimiter);
-        $csvFormat = 'full'; // varsayılan
-        if($firstRow !== false){
-            $col0 = isset($firstRow[0]) ? mb_strtolower(trim($firstRow[0]), 'UTF-8') : '';
-            $col1 = isset($firstRow[1]) ? mb_strtolower(trim($firstRow[1]), 'UTF-8') : '';
-            $col2 = isset($firstRow[2]) ? mb_strtolower(trim($firstRow[2]), 'UTF-8') : '';
+        $csvFormat   = 'full';
+        $processRows = [];
+
+        if(!empty($allRows)){
+            $firstRow = $allRows[0];
+            $col0 = mb_strtolower(trim($firstRow[0] ?? ''), 'UTF-8');
+            $col1 = mb_strtolower(trim($firstRow[1] ?? ''), 'UTF-8');
+            $col2 = mb_strtolower(trim($firstRow[2] ?? ''), 'UTF-8');
+
+            $isHeaderRow = false;
             if($col0 === 'machine_no'){
-                // Format A başlık satırı — atla
-                $csvFormat = 'full';
+                $csvFormat   = 'full';
+                $isHeaderRow = true;
             } elseif(($col0 === 'sıra' || $col0 === 'sira') && $col1 === 'machine_no'){
-                // Format C başlık satırı: Sıra + tam format — atla
-                $csvFormat = 'full_shifted';
+                $csvFormat   = 'full_shifted';
+                $isHeaderRow = true;
             } elseif($col0 === 'sıra' || $col0 === 'sira' || $col2 === 'makine no'){
-                // Format B başlık satırı: Sıra, Salon, Makine No, ... — atla
-                $csvFormat = 'simple';
+                $csvFormat   = 'simple';
+                $isHeaderRow = true;
             } else {
-                // Başlık satırı değil, ilk veri satırı — işaretle ve formatı tahmin et
-                $firstRow['__process'] = true;
+                // Başlık yok — formatı veri içeriğinden tahmin et
                 if(is_numeric(trim($firstRow[0] ?? '')) && isset($firstRow[2])){
-                    // col[0] sayısal; col[2]'ye bak: IP adresi gibi görünüyorsa Format C, değilse Format B
                     $col2val = trim($firstRow[2] ?? '');
-                    if(preg_match('/^\d{1,3}\.\d{1,3}/', $col2val)){
-                        $csvFormat = 'full_shifted';
-                    } else {
-                        $csvFormat = 'simple';
-                    }
+                    $csvFormat = preg_match('/^\d{1,3}\.\d{1,3}/', $col2val) ? 'full_shifted' : 'simple';
                 } else {
                     $csvFormat = 'full';
                 }
             }
+
+            // Başlık satırını atla, kalan satırları işle
+            $processRows = $isHeaderRow ? array_slice($allRows, 1) : $allRows;
         }
 
         // ── Prepared statement'lar ──────────────────────────────────────────
@@ -135,18 +164,6 @@ if(isset($_POST['upload'])){
         $insert_full = $conn->prepare("INSERT INTO machines(machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, brand, model, pos_z, pos_x, pos_y, rotation, note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)");
         $update_simple = $conn->prepare("UPDATE machines SET brand=?, model=?, game_type=? WHERE id=?");
         $insert_simple = $conn->prepare("INSERT INTO machines(machine_no, brand, model, game_type, pos_x, pos_y) VALUES(?,?,?,?,?,?)");
-
-        // İşlenecek satırlar: önce firstRow (eğer işaretlendiyse), sonra geri kalanlar
-        $processRows = [];
-        if(isset($firstRow['__process']) && $firstRow['__process']){
-            unset($firstRow['__process']);
-            $processRows[] = $firstRow;
-        }
-
-        while(($data = fgetcsv($handle, 0, $delimiter)) !== FALSE){
-            $processRows[] = $data;
-        }
-        fclose($handle);
 
         foreach($processRows as $data){
             if($csvFormat === 'simple'){
@@ -334,14 +351,15 @@ if(isset($_POST['upload'])){
 <body>
 <div class="container">
     <div class="header">
-        <h2>📁 CSV / Excel Yükle &amp; İndir</h2>
+        <h2>📁 Excel / CSV Yükle &amp; İndir</h2>
         <a href="dashboard.php" style="color:#666; text-decoration:none; font-size:14px;">← Panoya Dön</a>
     </div>
 
     <!-- Yükleme Kartı -->
     <div class="card">
-        <h3>📤 CSV Yükle</h3>
+        <h3>📤 Excel (.xlsx) veya CSV Yükle</h3>
         <div class="info-box">
+            <strong>⭐ Önerilen format: Excel (.xlsx)</strong> — Excel'de hazırlayıp doğrudan yükleyin.<br>
             <strong>Format A (tam):</strong> <code>machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note</code><br>
             <strong>Format B (basit):</strong> <code>Sıra, Salon, Makine No, Marka, Model, Oyun Türü</code><br>
             <strong>Format C (tam+sıra):</strong> <code>Sıra, machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note</code><br>
@@ -358,9 +376,9 @@ if(isset($_POST['upload'])){
         <?php endif; ?>
         <form method="post" enctype="multipart/form-data" id="uploadForm">
             <?php echo csrf_field(); ?>
-            <div class="file-input-wrap" onclick="document.getElementById('csvFile').click()">
-                <label>📂 CSV dosyası seçmek için tıklayın</label>
-                <input type="file" id="csvFile" name="file" accept=".csv" required onchange="document.querySelector('.file-name').textContent = this.files[0]?.name || ''">
+            <div class="file-input-wrap" onclick="document.getElementById('xlsxFile').click()">
+                <label>📂 Excel (.xlsx) veya CSV dosyası seçmek için tıklayın</label>
+                <input type="file" id="xlsxFile" name="file" accept=".xlsx,.csv" required onchange="document.querySelector('.file-name').textContent = this.files[0]?.name || ''">
                 <div class="file-name"></div>
             </div>
             <button type="submit" name="upload" class="btn btn-green">⬆️ Yükle ve Düzelt</button>
@@ -369,10 +387,10 @@ if(isset($_POST['upload'])){
 
     <!-- İndirme Kartı -->
     <div class="card">
-        <h3>📥 İndir</h3>
+        <h3>📥 Şablon İndir</h3>
         <div class="btn-row">
-            <a href="?download_csv_template=1" class="btn btn-green">📄 CSV Şablonu İndir (Örnek)</a>
-            <a href="?download_template=1" class="btn btn-blue">📋 Excel Şablonu İndir</a>
+            <a href="?download_template=1" class="btn btn-blue">📋 Excel Şablonu (.xlsx) İndir</a>
+            <a href="?download_csv_template=1" class="btn btn-green">📄 CSV Şablonu İndir</a>
             <a href="?export_machines=1" class="btn btn-gray">💾 Tüm Makineleri Excel Olarak İndir</a>
         </div>
     </div>

@@ -44,9 +44,12 @@ if(isset($_POST['delete_bg']) && $role === 'admin'){
 
 // ── Mevcut zemin planı görseli ────────────────────────────────────────────────
 $bgImage = null;
+$bgMtime = 0;
 foreach(['jpg','png','gif','webp'] as $e){
-    if(file_exists(__DIR__ . '/assets/map_bg.' . $e)){
+    $bgPath = __DIR__ . '/assets/map_bg.' . $e;
+    if(file_exists($bgPath)){
         $bgImage = 'assets/map_bg.' . $e;
+        $bgMtime = filemtime($bgPath) ?: time();
         break;
     }
 }
@@ -718,7 +721,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             <!-- Zemin planı arka plan katmanı (en altta, pointer-events yok) -->
             <?php if($bgImage): ?>
             <img id="map-bg-img"
-                 src="<?php echo htmlspecialchars($bgImage . '?v=' . filemtime(__DIR__ . '/' . $bgImage)); ?>"
+                 src="<?php echo htmlspecialchars($bgImage . '?v=' . $bgMtime); ?>"
                  data-has-bg="1"
                  alt="Zemin Planı"
                  style="position:absolute; left:0; top:0; pointer-events:none; z-index:0; user-select:none;">
@@ -775,7 +778,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             <button class="bg-panel-close" onclick="toggleBgPanel()">&#215;</button>
         </div>
         <?php if($bgImage): ?>
-        <img src="<?php echo htmlspecialchars($bgImage . '?v=' . filemtime(__DIR__ . '/' . $bgImage)); ?>" class="bg-preview" alt="Mevcut zemin planı">
+        <img src="<?php echo htmlspecialchars($bgImage . '?v=' . $bgMtime); ?>" class="bg-preview" alt="Mevcut zemin planı">
         <?php endif; ?>
         <div class="bg-panel-row">
             <label>Görünürlük</label>
@@ -926,7 +929,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         const IS_ADMIN = <?php echo ($role === 'admin') ? 'true' : 'false'; ?>;
         const CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
         <?php if($bgImage): ?>
-        const MAP_BG_URL = <?php echo json_encode($bgImage . '?v=' . filemtime(__DIR__ . '/' . $bgImage)); ?>;
+        const MAP_BG_URL = <?php echo json_encode($bgImage . '?v=' . $bgMtime); ?>;
         <?php else: ?>
         const MAP_BG_URL = null;
         <?php endif; ?>
