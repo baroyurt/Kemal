@@ -86,6 +86,16 @@ runQuery($conn,
 );
 
 runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN brand VARCHAR(100) DEFAULT NULL",
+    "machines tablosuna 'brand' kolonu eklendi"
+);
+
+runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN model VARCHAR(100) DEFAULT NULL",
+    "machines tablosuna 'model' kolonu eklendi"
+);
+
+runQuery($conn,
     "CREATE TABLE IF NOT EXISTS connections (
         id INT AUTO_INCREMENT PRIMARY KEY,
         source_machine_id INT NOT NULL,

@@ -89,6 +89,34 @@ $conn->query("CREATE TABLE IF NOT EXISTS connections (
     FOREIGN KEY (target_machine_id) REFERENCES machines(id) ON DELETE SET NULL
 )");
 
+// ── Otomatik Migrasyon: Eski kurulumlar için eksik sütunları ekle ────────────
+// PHP 8.1+ varsayılan olarak mysqli hataları exception'a çeviriyor.
+// SHOW COLUMNS ile önce kontrol edip, sadece eksik sütunu ALTER TABLE ile
+// ekliyoruz. Bu sayede yeni ve eski kurulumlar hep çalışır.
+function ensure_column(mysqli $conn, string $table, string $col, string $def): void {
+    $res = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$col'");
+    if ($res && $res->num_rows === 0) {
+        $conn->query("ALTER TABLE `$table` ADD COLUMN `$col` $def");
+    }
+}
+
+// machines tablosu — zamanla eklenen sütunlar
+ensure_column($conn, 'machines', 'smibb_ip',    'VARCHAR(50) DEFAULT NULL');
+ensure_column($conn, 'machines', 'screen_ip',   'VARCHAR(50) DEFAULT NULL');
+ensure_column($conn, 'machines', 'drscreen_ip', 'VARCHAR(50) DEFAULT NULL');
+ensure_column($conn, 'machines', 'area',         'INT DEFAULT NULL');
+ensure_column($conn, 'machines', 'machine_type', 'VARCHAR(100) DEFAULT NULL');
+ensure_column($conn, 'machines', 'game_type',    'VARCHAR(100) DEFAULT NULL');
+ensure_column($conn, 'machines', 'hub_sw',       'TINYINT(1) DEFAULT 0');
+ensure_column($conn, 'machines', 'hub_sw_cable', 'VARCHAR(255) DEFAULT NULL');
+ensure_column($conn, 'machines', 'brand',        'VARCHAR(100) DEFAULT NULL');
+ensure_column($conn, 'machines', 'model',        'VARCHAR(100) DEFAULT NULL');
+
+// machine_groups tablosu — zamanla eklenen sütunlar
+ensure_column($conn, 'machine_groups', 'color',     "VARCHAR(20) DEFAULT '#4CAF50'");
+ensure_column($conn, 'machine_groups', 'icon',      "VARCHAR(50) DEFAULT 'fa-server'");
+ensure_column($conn, 'machine_groups', 'region_id', 'INT DEFAULT NULL');
+
 // Varsayılan admin kullanıcısı yoksa ekle
 // admin / admin123  ve  personel / personel123
 $res = $conn->query("SELECT COUNT(*) as cnt FROM users");
