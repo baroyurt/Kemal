@@ -41,7 +41,10 @@ if(isset($_POST['upload'])){
     csrf_verify();
     $file = $_FILES['file'];
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $allowedTypes = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'];
+    // application/octet-stream is included because mime_content_type() may return it for
+    // valid CSV files on some OS/libmagic configurations; the .csv extension check above
+    // provides the primary security gate so only renamed CSV files can pass.
+    $allowedTypes = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel', 'text/x-csv', 'text/comma-separated-values', 'text/tab-separated-values', 'application/octet-stream'];
     $mimeType = mime_content_type($file['tmp_name']);
 
     if($ext !== 'csv' || !in_array($mimeType, $allowedTypes)){
@@ -52,7 +55,21 @@ if(isset($_POST['upload'])){
         $handle = fopen($file['tmp_name'], "r");
         // UTF-8 BOM varsa atla
         $firstChunk = fread($handle, 3);
-        if($firstChunk !== "\xEF\xBB\xBF") rewind($handle);
+        $hasBom = ($firstChunk === "\xEF\xBB\xBF");
+        if(!$hasBom) rewind($handle);
+
+        // Otomatik ayırıcı algılama: virgül veya noktalı virgül (Türkçe yerel ayar)
+        // İlk birkaç satırı okuyarak hangi ayırıcının daha fazla kullanıldığını belirle
+        $semiCount = 0; $commaCount = 0;
+        for($i = 0; $i < 3; $i++){
+            $sample = fgets($handle);
+            if($sample === false) break;
+            $semiCount  += substr_count($sample, ';');
+            $commaCount += substr_count($sample, ',');
+        }
+        $delimiter = ($semiCount > $commaCount) ? ';' : ',';
+        rewind($handle);
+        if($hasBom) fread($handle, 3);
 
         $inserted = 0;
         $updated  = 0;
@@ -64,7 +81,7 @@ if(isset($_POST['upload'])){
         $update_stmt = $conn->prepare("UPDATE machines SET ip=?, mac=?, pos_z=?, pos_x=?, pos_y=?, rotation=?, note=? WHERE id=?");
         $insert_stmt = $conn->prepare("INSERT INTO machines(machine_no, ip, mac, pos_z, pos_x, pos_y, rotation, note) VALUES(?,?,?,?,?,?,?,?)");
 
-        while(($data = fgetcsv($handle, 1000, ",")) !== FALSE){
+        while(($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE){
             if(count($data) < 3 || trim($data[0]) === 'machine_no') { $skipped++; continue; }
 
             $mn  = trim($data[0]);
@@ -78,6 +95,7 @@ if(isset($_POST['upload'])){
             $note = isset($data[7]) ? trim($data[7]) : '';
 
             // Makine var mı kontrol et
+            $existing_id = null;
             $check_stmt->bind_param("s", $mn);
             $check_stmt->execute();
             $check_stmt->bind_result($existing_id);

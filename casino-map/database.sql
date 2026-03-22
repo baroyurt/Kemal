@@ -67,4 +67,4 @@ CREATE TABLE IF NOT EXISTS regions (
 
 -- Migration: makine gruplarına bölge ilişkisi
 ALTER TABLE machine_groups ADD COLUMN IF NOT EXISTS region_id INT DEFAULT NULL;
-ALTER TABLE machine_groups ADD CONSTRAINT IF NOT EXISTS fk_group_region FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL;
+ALTER TABLE machine_groups ADD CONSTRAINT fk_group_region FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL;
