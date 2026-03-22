@@ -8,13 +8,13 @@ if(!isset($_SESSION['login'])){
 
 $is_admin = ($_SESSION['role'] === 'admin');
 
-// Aktif sekme: 'edit', 'groups' veya 'delete'
+// Aktif sekme: 'edit' veya 'groups'
 // personel sadece 'groups' sekmesini görebilir
-$allowed_tabs = $is_admin ? ['edit','groups','delete'] : ['groups'];
+$allowed_tabs = $is_admin ? ['edit','groups'] : ['groups'];
 $tab_default  = $is_admin ? 'edit' : 'groups';
 $tab = isset($_GET['tab']) && in_array($_GET['tab'], $allowed_tabs) ? $_GET['tab'] : $tab_default;
 
-// edit ve delete sekmelerine personel erişemez
+// edit sekmesine personel erişemez
 if(!$is_admin && $tab !== 'groups'){
     header("Location: machine_settings.php?tab=groups");
     exit;
@@ -210,35 +210,6 @@ if($tab === 'groups'){
     $groups       = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
     $all_machines = $conn->query("SELECT * FROM machines ORDER BY machine_no");
 }
-
-/* ══════════════════════════════════════════════
-   TAB: MAKİNE SİLME (delete) — POST işlemleri
-   ══════════════════════════════════════════════ */
-if($tab === 'delete'){
-
-    if(isset($_POST['bulk_delete_machines'])){
-        csrf_verify();
-        if(isset($_POST['selected_machines']) && is_array($_POST['selected_machines'])){
-            $selected_ids = implode(',', array_map('intval', $_POST['selected_machines']));
-            $conn->query("DELETE FROM machines WHERE id IN ($selected_ids)");
-            $del_count = $conn->affected_rows;
-            header("Location: machine_settings.php?tab=delete&deleted=$del_count");
-            exit;
-        }
-    }
-
-    $del_search = isset($_GET['search']) ? trim($_GET['search']) : '';
-    if($del_search){
-        $like = "%$del_search%";
-        $del_stmt = $conn->prepare("SELECT id, machine_no, smibb_ip, mac, pos_z, note FROM machines WHERE machine_no LIKE ? OR smibb_ip LIKE ? OR mac LIKE ? ORDER BY machine_no");
-        $del_stmt->bind_param("sss", $like, $like, $like);
-        $del_stmt->execute();
-        $del_machines = $del_stmt->get_result();
-        $del_stmt->close();
-    } else {
-        $del_machines = $conn->query("SELECT id, machine_no, smibb_ip, mac, pos_z, note FROM machines ORDER BY machine_no");
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -255,7 +226,6 @@ if($tab === 'delete'){
         .tab-link { padding: 12px 28px; color: #666; text-decoration: none; font-size: 14px; font-weight: bold; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
         .tab-link:hover { color: #4CAF50; background: #f9f9f9; }
         .tab-link.active { color: #4CAF50; border-bottom: 3px solid #4CAF50; background: white; }
-        .tab-link.active-delete { color: #f44336; border-bottom: 3px solid #f44336; background: white; }
         /* Messages */
         .message { background: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; margin-bottom: 20px; animation: slideDown 0.3s ease; }
         @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -330,11 +300,6 @@ if($tab === 'delete'){
         <a href="machine_settings.php?tab=groups" class="tab-link <?php echo $tab==='groups'?'active':''; ?>">
             👥 Makine Grupları
         </a>
-        <?php if($is_admin): ?>
-        <a href="machine_settings.php?tab=delete" class="tab-link <?php echo $tab==='delete'?'active-delete':''; ?>">
-            🗑️ Makine Silme
-        </a>
-        <?php endif; ?>
     </div>
 
 <?php if($tab === 'edit'): ?>
@@ -626,94 +591,6 @@ if($tab === 'delete'){
             <?php endif; ?>
         </div>
     </div>
-
-<?php elseif($tab === 'delete'): ?>
-    <!-- ═══════════════════════════════ MAKİNE SİLME ═══════════════════════════════ -->
-
-    <?php if(isset($_GET['deleted'])): ?>
-        <div class="message" style="background:#f44336;"><?php echo intval($_GET['deleted']); ?> makine silindi.</div>
-    <?php endif; ?>
-
-    <form method="get" action="machine_settings.php" style="display:flex;gap:10px;margin-bottom:20px;">
-        <input type="hidden" name="tab" value="delete">
-        <input type="text" name="search" placeholder="Makine no, IP veya MAC ile ara..."
-               value="<?php echo htmlspecialchars($del_search); ?>"
-               style="flex:1;padding:10px;border:1px solid #ddd;border-radius:5px;font-size:14px;">
-        <button type="submit" style="background:#607D8B;">🔍 Ara</button>
-        <?php if($del_search): ?>
-            <a href="?tab=delete" style="padding:10px 16px;background:#999;color:white;text-decoration:none;border-radius:5px;display:flex;align-items:center;">✕ Temizle</a>
-        <?php endif; ?>
-    </form>
-
-    <form method="post" action="machine_settings.php?tab=delete" id="deleteForm">
-        <?php echo csrf_field(); ?>
-        <div style="background:white;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1);margin-bottom:16px;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:bold;">
-                <input type="checkbox" id="selectAllDel" onchange="toggleAllDel(this)" style="width:18px;height:18px;">
-                Tümünü Seç
-            </label>
-            <span id="delSelInfo" style="color:#666;font-size:13px;">0 makine seçildi</span>
-            <button type="submit" name="bulk_delete_machines" id="delBtn"
-                    onclick="return confirmDelete()"
-                    style="background:#f44336;margin-left:auto;"
-                    disabled>🗑️ Seçilenleri Sil</button>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:40px;">#</th>
-                        <th>Makine No</th>
-                        <th>SMIBB IP</th>
-                        <th>MAC</th>
-                        <th>Kat (Z)</th>
-                        <th>Not</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php
-                $del_row_num = 0;
-                while($dr = $del_machines->fetch_assoc()):
-                    $del_row_num++;
-                ?>
-                    <tr id="delrow-<?php echo $dr['id']; ?>">
-                        <td>
-                            <input type="checkbox" name="selected_machines[]" value="<?php echo $dr['id']; ?>"
-                                   class="del-cb" onchange="updateDelInfo()">
-                        </td>
-                        <td><strong><?php echo htmlspecialchars($dr['machine_no']); ?></strong></td>
-                        <td><?php echo htmlspecialchars($dr['smibb_ip'] ?? ''); ?></td>
-                        <td><?php echo htmlspecialchars($dr['mac']); ?></td>
-                        <td><span class="z-badge"><?php echo intval($dr['pos_z']); ?></span></td>
-                        <td class="note-cell"><?php echo htmlspecialchars($dr['note'] ?? ''); ?></td>
-                    </tr>
-                <?php endwhile; ?>
-                <?php if($del_row_num === 0): ?>
-                    <tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">Makine bulunamadı.</td></tr>
-                <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </form>
-
-    <script>
-    function toggleAllDel(cb){
-        document.querySelectorAll('.del-cb').forEach(c => c.checked = cb.checked);
-        updateDelInfo();
-    }
-    function updateDelInfo(){
-        const checked = document.querySelectorAll('.del-cb:checked').length;
-        document.getElementById('delSelInfo').textContent = checked + ' makine seçildi';
-        document.getElementById('delBtn').disabled = checked === 0;
-        const all = document.querySelectorAll('.del-cb').length;
-        document.getElementById('selectAllDel').checked = all > 0 && checked === all;
-    }
-    function confirmDelete(){
-        const n = document.querySelectorAll('.del-cb:checked').length;
-        return n > 0 && confirm(n + ' makineyi kalıcı olarak silmek istediğinize emin misiniz?\nBu işlem geri alınamaz!');
-    }
-    </script>
 
 <?php endif; ?>
 </div><!-- /.container -->
