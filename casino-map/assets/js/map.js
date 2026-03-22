@@ -783,8 +783,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         tooltip.innerHTML = `
             <div style="font-weight:bold;margin-bottom:5px;color:#40E0D0;font-size:13px;">${escapeHtml(machineNo)}</div>
-            ${row('SMIBB IP', smibb_ip)}
-            ${row('Screen IP', screenIp, '#90CAF9')}
+            ${row('SMIBB IP', smibb_ip || '-')}
+            ${row('Screen IP', screenIp || '-', '#90CAF9')}
             ${row('MAC', mac)}
             ${row('Makine Türü', machineType)}
             ${row('Oyun Türü', gameType)}
@@ -2296,7 +2296,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="info-row"><div class="info-label">Kat</div><div class="info-value">${floorNames[z] || z}</div></div>
             <div class="info-row"><div class="info-label">Koordinat (X, Y)</div><div class="info-value">${posX}, ${posY} &nbsp;<span style="opacity:0.7;font-size:11px;">(${rotation}°)</span></div></div>
             <div class="info-row"><div class="info-label">SMIBB IP</div><div class="info-value">${escapeHtml(ip)}</div></div>
-            ${drscreenIp ? `<div class="info-row"><div class="info-label">Screen IP</div><div class="info-value" style="color:#2196F3;">${escapeHtml(drscreenIp)}</div></div>` : ''}
+            <div class="info-row"><div class="info-label">Screen IP</div><div class="info-value" style="color:#2196F3;">${escapeHtml(drscreenIp) || '-'}</div></div>
             <div class="info-row"><div class="info-label">MAC Adresi</div><div class="info-value" style="font-size:11px;">${escapeHtml(mac)}</div></div>
             ${machineType ? `<div class="info-row"><div class="info-label">Makine Türü</div><div class="info-value">${escapeHtml(machineType)}</div></div>` : ''}
             ${gameType ? `<div class="info-row"><div class="info-label">Oyun Türü</div><div class="info-value">${escapeHtml(gameType)}</div></div>` : ''}

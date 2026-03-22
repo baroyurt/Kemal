@@ -439,8 +439,8 @@ if($tab === 'delete'){
                         </td>
                         <td>(<?php echo intval($row['pos_x']); ?>, <?php echo intval($row['pos_y']); ?>)</td>
                         <td>
-                            <button class="action-btn edit-btn" onclick="editMachine(<?php echo intval($row['id']); ?>,'<?php echo htmlspecialchars($row['machine_no'],ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['smibb_ip']??'',ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['screen_ip']??'',ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['mac'],ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['machine_type']??'',ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['game_type']??'',ENT_QUOTES); ?>',<?php echo intval($row['pos_z']); ?>,'<?php echo htmlspecialchars($row['note']??'',ENT_QUOTES); ?>')">Düzenle</button>
-                            <a href="?tab=edit&delete=<?php echo intval($row['id']); ?><?php echo !empty($search)?'&search='.urlencode($search):''; ?>" class="action-btn delete-btn" onclick="return confirm('Bu makineyi silmek istediğinize emin misiniz?')">Sil</a>
+                            <button class="action-btn edit-btn" onclick="editMachine(<?php echo intval($row['id']); ?>,<?php echo htmlspecialchars(json_encode($row['machine_no']),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['smibb_ip']??''),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['screen_ip']??''),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['mac']),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['machine_type']??''),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['game_type']??''),ENT_QUOTES); ?>,<?php echo intval($row['pos_z']); ?>,<?php echo htmlspecialchars(json_encode($row['note']??''),ENT_QUOTES); ?>)">Düzenle</button>
+                            <a href="?tab=edit&amp;delete=<?php echo intval($row['id']); ?><?php echo !empty($search)?'&amp;search='.urlencode($search):''; ?>" class="action-btn delete-btn" onclick="return confirm('Bu makineyi silmek istediğinize emin misiniz?')">Sil</a>
                         </td>
                     </tr>
                     <?php endwhile; ?>
