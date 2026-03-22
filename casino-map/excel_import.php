@@ -57,11 +57,14 @@ if(isset($_POST['upload'])){
     csrf_verify();
     $file = $_FILES['file'];
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    // text/x-csv ve application/octet-stream dahil edildi: Windows/Excel'den kaydedilen CSV dosyaları
-    $allowedTypes = ['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel', 'application/octet-stream', 'text/x-csv'];
     $mimeType = mime_content_type($file['tmp_name']);
 
-    if($ext !== 'csv' || !in_array($mimeType, $allowedTypes)){
+    // .csv uzantısıyla gelen dosyalar için güvenli MIME tipi listesi (text/html vs. hariç)
+    $safeCsvMimes = ['text/csv', 'text/plain', 'text/x-csv', 'text/comma-separated-values',
+                     'text/tab-separated-values', 'application/csv',
+                     'application/vnd.ms-excel', 'application/octet-stream'];
+    $isCsvMime = in_array($mimeType, $safeCsvMimes);
+    if($ext !== 'csv' || !$isCsvMime){
         $upload_error = "Sadece CSV dosyaları kabul edilir! (Algılanan tür: $mimeType)";
     } elseif($file['size'] > 2 * 1024 * 1024){
         $upload_error = "Dosya boyutu 2MB sınırını aşıyor!";

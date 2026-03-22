@@ -9,6 +9,48 @@ if(!isset($_SESSION['login'])){
 include("config.php");
 
 $role = $_SESSION['role'];
+
+// ── Zemin Planı Görseli Yükleme (admin) ──────────────────────────────────────
+if(isset($_POST['upload_bg']) && $role === 'admin'){
+    csrf_verify();
+    if(isset($_FILES['bg_file']) && $_FILES['bg_file']['error'] === UPLOAD_ERR_OK){
+        $mimeType = mime_content_type($_FILES['bg_file']['tmp_name']);
+        $allowedImg = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+        if(array_key_exists($mimeType, $allowedImg)){
+            $ext = $allowedImg[$mimeType];
+            $assetDir = __DIR__ . '/assets/';
+            foreach(['jpg','png','gif','webp'] as $e){
+                $old = $assetDir . 'map_bg.' . $e;
+                if(file_exists($old)) unlink($old);
+            }
+            move_uploaded_file($_FILES['bg_file']['tmp_name'], $assetDir . 'map_bg.' . $ext);
+        }
+    }
+    header('Location: map.php');
+    exit;
+}
+
+// ── Zemin Planı Sil (admin) ───────────────────────────────────────────────────
+if(isset($_POST['delete_bg']) && $role === 'admin'){
+    csrf_verify();
+    $assetDir = __DIR__ . '/assets/';
+    foreach(['jpg','png','gif','webp'] as $e){
+        $old = $assetDir . 'map_bg.' . $e;
+        if(file_exists($old)) unlink($old);
+    }
+    header('Location: map.php');
+    exit;
+}
+
+// ── Mevcut zemin planı görseli ────────────────────────────────────────────────
+$bgImage = null;
+foreach(['jpg','png','gif','webp'] as $e){
+    if(file_exists(__DIR__ . '/assets/map_bg.' . $e)){
+        $bgImage = 'assets/map_bg.' . $e;
+        break;
+    }
+}
+
 $result = $conn->query("SELECT * FROM machines ORDER BY pos_z, machine_no");
 $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
 ?>
@@ -465,6 +507,27 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             transition: max-width 0.35s ease, opacity 0.25s ease;
         }
         #addMachineSlide.open { max-width: 300px; opacity: 1; }
+
+        /* Zemin planı kontrol paneli */
+        #bg-panel {
+            position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%);
+            background: white; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.22);
+            z-index: 3001; padding: 16px 20px; min-width: 300px; max-width: 380px;
+            display: none; font-size: 13px;
+        }
+        #bg-panel.open { display: block; }
+        .dark-theme #bg-panel { background: #2d2d2d; color: #eee; }
+        .bg-panel-title { font-weight: bold; font-size: 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .bg-panel-close { background: none; border: none; font-size: 18px; cursor: pointer; color: #888; padding: 0; line-height: 1; }
+        .bg-panel-row { margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .bg-panel-row label { flex-shrink: 0; min-width: 80px; color: #666; font-size: 12px; }
+        .dark-theme .bg-panel-row label { color: #aaa; }
+        .bg-panel-row input[type=range] { flex: 1; }
+        .bg-panel-row input[type=number] { width: 80px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+        .dark-theme .bg-panel-row input[type=number] { background: #444; border-color: #555; color: #eee; }
+        .bg-panel-btn { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: opacity 0.15s; }
+        .bg-panel-btn:hover { opacity: 0.85; }
+        .bg-preview { max-width: 100%; max-height: 80px; border-radius: 6px; margin-bottom: 8px; display: block; }
     </style>
 </head>
 
@@ -542,6 +605,11 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                     <option value="Tüm Gruplar">
                 </datalist>
             </div>
+            <?php endif; ?>
+            <?php if($role == 'admin'): ?>
+            <button class="toolbar-btn" id="bgBtn" onclick="toggleBgPanel()" title="Zemin Planı" style="background:#795548;">
+                <i class="fas fa-image"></i><span class="tooltip-text">Zemin Planı</span>
+            </button>
             <?php endif; ?>
             <button class="toolbar-btn dashboard" onclick="toggleSidebar()" title="Menü"><i class="fas fa-bars"></i><span class="tooltip-text">Menü</span></button>
             <button class="toolbar-btn theme" onclick="toggleTheme()" title="Tema değiştir"><i class="fas fa-moon"></i><span class="tooltip-text">Tema değiştir</span></button>
@@ -647,8 +715,17 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             </div>
         </div>
         <div id="map">
+            <!-- Zemin planı arka plan katmanı (en altta, pointer-events yok) -->
+            <?php if($bgImage): ?>
+            <img id="map-bg-img"
+                 src="<?php echo htmlspecialchars($bgImage . '?v=' . filemtime(__DIR__ . '/' . $bgImage)); ?>"
+                 data-has-bg="1"
+                 alt="Zemin Planı"
+                 style="position:absolute; left:0; top:0; pointer-events:none; z-index:0; user-select:none;">
+            <?php else: ?>
+            <img id="map-bg-img" data-has-bg="0" src="" alt="" style="position:absolute;left:0;top:0;pointer-events:none;z-index:0;user-select:none;display:none;">
+            <?php endif; ?>
             <?php 
-            $result = $conn->query("SELECT * FROM machines ORDER BY pos_z, machine_no");
             while($row = $result->fetch_assoc()): 
                 $hasNote = !empty($row['note']);
                 $hasHubSw = !empty($row['hub_sw']);
@@ -689,6 +766,53 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             <?php endwhile; ?>
         </div>
     </div>
+
+    <!-- Zemin Planı Kontrol Paneli -->
+    <?php if($role === 'admin'): ?>
+    <div id="bg-panel">
+        <div class="bg-panel-title">
+            🗺️ Zemin Planı
+            <button class="bg-panel-close" onclick="toggleBgPanel()">&#215;</button>
+        </div>
+        <?php if($bgImage): ?>
+        <img src="<?php echo htmlspecialchars($bgImage . '?v=' . filemtime(__DIR__ . '/' . $bgImage)); ?>" class="bg-preview" alt="Mevcut zemin planı">
+        <?php endif; ?>
+        <div class="bg-panel-row">
+            <label>Görünürlük</label>
+            <input type="checkbox" id="bgVisible" <?php echo $bgImage ? 'checked' : ''; ?> onchange="applyBgSettings()">
+        </div>
+        <div class="bg-panel-row">
+            <label>Opaklık</label>
+            <input type="range" id="bgOpacity" min="5" max="100" value="35" oninput="applyBgSettings(); document.getElementById('bgOpacityVal').textContent=this.value+'%'">
+            <span id="bgOpacityVal" style="font-size:11px;color:#888;min-width:35px;">35%</span>
+        </div>
+        <div class="bg-panel-row">
+            <label>Genişlik (px)</label>
+            <input type="number" id="bgWidth" value="4000" min="100" max="20000" step="100" onchange="applyBgSettings()">
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+            <label style="flex:1;">
+                <input type="file" id="bgFileInput" accept="image/*" style="display:none" onchange="uploadBgImage(this)">
+                <span class="bg-panel-btn" style="background:#795548;color:white;cursor:pointer;display:inline-block;" onclick="document.getElementById('bgFileInput').click()">
+                    <i class="fas fa-upload"></i> Görsel Yükle
+                </span>
+            </label>
+            <?php if($bgImage): ?>
+            <form method="post" style="display:inline;" onsubmit="return confirm('Zemin planı silinsin mi?')">
+                <?php echo csrf_field(); ?>
+                <button type="submit" name="delete_bg" class="bg-panel-btn" style="background:#f44336;color:white;">
+                    <i class="fas fa-trash"></i> Sil
+                </button>
+            </form>
+            <?php endif; ?>
+        </div>
+        <form id="bgUploadForm" method="post" enctype="multipart/form-data" style="display:none">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="upload_bg" value="1">
+            <input type="file" id="bgUploadInput" name="bg_file" accept="image/*" onchange="this.form.submit()">
+        </form>
+    </div>
+    <?php endif; ?>
 
     <div id="status" class="status-bar"></div>
 
@@ -801,8 +925,69 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         // PHP → JS yetki köprüsü
         const IS_ADMIN = <?php echo ($role === 'admin') ? 'true' : 'false'; ?>;
         const CSRF_TOKEN = <?php echo json_encode(csrf_token()); ?>;
+        <?php if($bgImage): ?>
+        const MAP_BG_URL = <?php echo json_encode($bgImage . '?v=' . filemtime(__DIR__ . '/' . $bgImage)); ?>;
+        <?php else: ?>
+        const MAP_BG_URL = null;
+        <?php endif; ?>
     </script>
     <script src="assets/js/map.js"></script>
+
+    <?php if($role === 'admin'): ?>
+    <script>
+    // ── Zemin Planı JS ──────────────────────────────────────────────────────────
+    window.toggleBgPanel = function() {
+        document.getElementById('bg-panel').classList.toggle('open');
+    };
+
+    window.applyBgSettings = function() {
+        var img = document.getElementById('map-bg-img');
+        if (!img) return;
+        var visible = document.getElementById('bgVisible').checked;
+        var opacity = parseFloat(document.getElementById('bgOpacity').value) / 100;
+        var width   = parseInt(document.getElementById('bgWidth').value, 10) || 4000;
+        img.style.display  = (visible && img.dataset.hasBg === '1') ? '' : 'none';
+        img.style.opacity  = opacity;
+        img.style.width    = width + 'px';
+        // Save preferences to localStorage
+        localStorage.setItem('mapBgVisible',  visible ? '1' : '0');
+        localStorage.setItem('mapBgOpacity',  document.getElementById('bgOpacity').value);
+        localStorage.setItem('mapBgWidth',    width);
+    };
+
+    window.uploadBgImage = function(input) {
+        if (!input.files || !input.files[0]) return;
+        var form = document.getElementById('bgUploadForm');
+        var dt   = new DataTransfer();
+        dt.items.add(input.files[0]);
+        document.getElementById('bgUploadInput').files = dt.files;
+        form.submit();
+    };
+
+    // Restore preferences from localStorage on load
+    (function initBgPrefs() {
+        var img     = document.getElementById('map-bg-img');
+        var vis     = document.getElementById('bgVisible');
+        var opEl    = document.getElementById('bgOpacity');
+        var opVal   = document.getElementById('bgOpacityVal');
+        var widthEl = document.getElementById('bgWidth');
+        if (!img) return;
+
+        var savedVis    = localStorage.getItem('mapBgVisible');
+        var savedOp     = localStorage.getItem('mapBgOpacity');
+        var savedWidth  = localStorage.getItem('mapBgWidth');
+
+        if (savedOp    !== null && opEl)    { opEl.value = savedOp;       if(opVal) opVal.textContent = savedOp + '%'; }
+        if (savedWidth !== null && widthEl) { widthEl.value = savedWidth; }
+        if (savedVis   !== null && vis)     { vis.checked = savedVis === '1'; }
+
+        // If there's a background url from server, apply initial settings
+        if (MAP_BG_URL && img.dataset.hasBg === '1') {
+            applyBgSettings();
+        }
+    })();
+    </script>
+    <?php endif; ?>
 
     <!-- Right-click context menu (global, outside map-container) -->
     <div id="context-menu">
