@@ -90,6 +90,23 @@ $conn->query("CREATE TABLE IF NOT EXISTS connections (
     FOREIGN KEY (target_machine_id) REFERENCES machines(id) ON DELETE SET NULL
 )");
 
+$conn->query("CREATE TABLE IF NOT EXISTS settings (
+    `key`   VARCHAR(80)  NOT NULL PRIMARY KEY,
+    `value` VARCHAR(255) NOT NULL
+)");
+
+// Varsayılan renk ayarları — tablo boşsa ekle
+$defaults = [
+    'machine_color_normal' => '#4CAF50',
+    'machine_color_note'   => '#40E0D0',
+];
+foreach ($defaults as $k => $v) {
+    $stmt = $conn->prepare("INSERT IGNORE INTO settings (`key`, `value`) VALUES (?, ?)");
+    $stmt->bind_param("ss", $k, $v);
+    $stmt->execute();
+    $stmt->close();
+}
+
 // ── Otomatik Migrasyon: Eski kurulumlar için eksik sütunları ekle ────────────
 // PHP 8.1+ varsayılan olarak mysqli hataları exception'a çeviriyor.
 // SHOW COLUMNS ile önce kontrol edip, sadece eksik sütunu ALTER TABLE ile

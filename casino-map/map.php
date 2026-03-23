@@ -56,6 +56,21 @@ foreach(['jpg','png','gif','webp'] as $e){
 
 $result = $conn->query("SELECT * FROM machines ORDER BY pos_z, machine_no");
 $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
+
+// ── Renk ayarları ─────────────────────────────────────────────────────────────
+function map_get_setting(mysqli $conn, string $key, string $default): string {
+    $s = $conn->prepare("SELECT `value` FROM settings WHERE `key` = ?");
+    $s->bind_param("s", $key);
+    $s->execute();
+    $r = $s->get_result()->fetch_assoc();
+    $s->close();
+    return $r ? $r['value'] : $default;
+}
+$machineColorNormal = map_get_setting($conn, 'machine_color_normal', '#4CAF50');
+$machineColorNote   = map_get_setting($conn, 'machine_color_note',   '#40E0D0');
+// Basit güvenlik: sadece geçerli HEX renkleri kabul et
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNormal)) $machineColorNormal = '#4CAF50';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNote))   $machineColorNote   = '#40E0D0';
 ?>
 
 <!DOCTYPE html>
@@ -129,8 +144,8 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         body.dark-theme { background: #1a1a1a; color: #fff; }
         body.dark-theme .toolbar { background: #2d2d2d; box-shadow: 0 2px 10px rgba(0,0,0,0.3); color: #fff; }
         body.dark-theme #map { background-color: #333; }
-        body.dark-theme .machine { background: #4CAF50; color: white; border-color: #666; }
-        body.dark-theme .machine.has-note { background: #40E0D0; }
+        body.dark-theme .machine { background: <?php echo $machineColorNormal; ?>; color: white; border-color: #666; }
+        body.dark-theme .machine.has-note { background: <?php echo $machineColorNote; ?>; }
         body.dark-theme .machine.selected { border: 3px solid yellow !important; }
         body.dark-theme input, body.dark-theme select, body.dark-theme textarea { background: #444; color: #fff; border-color: #666; }
         
@@ -166,7 +181,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         #map { width: 100%; height: 100%; position: relative; background-size: cover; transition: background-color 0.3s ease; transform-origin: 0 0; }
         
         .machine {
-            width: 60px; height: 60px; background: #4CAF50; border: 1px solid rgba(255,255,255,0.6);
+            width: 60px; height: 60px; background: <?php echo $machineColorNormal; ?>; border: 1px solid rgba(255,255,255,0.6);
             position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center;
             <?php if($role == 'admin'): ?>cursor: move;<?php else: ?>cursor: default;<?php endif; ?>
             transition: all 0.2s ease; user-select: none; font-weight: bold;
@@ -174,7 +189,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
             color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); z-index: 1;
         }
         .machine.selected { border: 3px solid yellow !important; box-shadow: 0 0 20px rgba(255,255,0,0.5), 5px 5px 8px rgba(0,0,0,0.5); z-index: 1000; }
-        .machine.has-note { background: #40E0D0; }
+        .machine.has-note { background: <?php echo $machineColorNote; ?>; }
         .machine[data-z="0"] { opacity: 1; } .machine[data-z="1"] { opacity: 0.9; } .machine[data-z="2"] { opacity: 0.8; } .machine[data-z="3"] { opacity: 0.7; }
         .machine:hover { filter: brightness(1.2); z-index: 1001; }
         /* Orijinal SVG'deki separator çizgisi — ikonun üst kısmında siyah yatay bar */
@@ -665,6 +680,12 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                 <a href="users.php">
                     👤 Kullanıcı Yönetimi
                     <small>Kullanıcı ekle, sil ve şifre değiştir</small>
+                </a>
+            </div>
+            <div class="sidebar-item">
+                <a href="color_settings.php">
+                    🎨 Renk Ayarları
+                    <small>Makine arka plan renklerini yönet</small>
                 </a>
             </div>
             <?php endif; ?>

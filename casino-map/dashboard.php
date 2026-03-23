@@ -128,6 +128,13 @@ $username = $_SESSION['username'];
                         <small style="color: #666; display: block;">Kullanıcı ekle, sil ve şifre değiştir</small>
                     </a>
                 </div>
+
+                <div class="menu-item">
+                    <a href="color_settings.php">
+                        🎨 Renk Ayarları
+                        <small style="color: #666; display: block;">Makine arka plan renklerini yönet</small>
+                    </a>
+                </div>
             <?php endif; ?>
         </div>
         
