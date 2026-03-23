@@ -23,6 +23,7 @@ $machine_no = trim($_POST['machine_no'] ?? '');
 $smibb_ip   = trim($_POST['smibb_ip']   ?? '');
 $screen_ip  = trim($_POST['screen_ip']  ?? '');
 $mac        = trim($_POST['mac']        ?? '');
+$machine_pc = trim($_POST['machine_pc'] ?? '');
 $pos_z      = intval($_POST['pos_z']    ?? 0);
 $note       = trim($_POST['note']       ?? '');
 
@@ -33,9 +34,9 @@ if ($machine_no === '' || $smibb_ip === '' || $mac === '') {
 }
 
 $stmt = $conn->prepare(
-    "INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, pos_z, pos_x, pos_y, rotation, note) VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?)"
+    "INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, machine_pc, pos_z, pos_x, pos_y, rotation, note) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?)"
 );
-$stmt->bind_param("sssiss", $machine_no, $smibb_ip, $screen_ip, $mac, $pos_z, $note);
+$stmt->bind_param("ssssiss", $machine_no, $smibb_ip, $screen_ip, $mac, $machine_pc, $pos_z, $note);
 
 if ($stmt->execute()) {
     $new_id = $conn->insert_id;
@@ -48,6 +49,7 @@ if ($stmt->execute()) {
         'smibb_ip'   => $smibb_ip,
         'screen_ip'  => $screen_ip,
         'mac'        => $mac,
+        'machine_pc' => $machine_pc,
         'pos_z'      => $pos_z,
         'note'       => $note,
         'machine_type' => '',

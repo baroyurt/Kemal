@@ -96,6 +96,11 @@ runQuery($conn,
 );
 
 runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN machine_pc VARCHAR(100) DEFAULT NULL",
+    "machines tablosuna 'machine_pc' kolonu eklendi"
+);
+
+runQuery($conn,
     "CREATE TABLE IF NOT EXISTS connections (
         id INT AUTO_INCREMENT PRIMARY KEY,
         source_machine_id INT NOT NULL,

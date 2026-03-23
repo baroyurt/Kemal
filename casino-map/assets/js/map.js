@@ -774,6 +774,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const gameType    = machine.getAttribute('data-game-type') || '';
         const brand       = machine.getAttribute('data-brand') || '';
         const model       = machine.getAttribute('data-model') || '';
+        const machinePc   = machine.getAttribute('data-machine-pc') || '';
         const hubSw       = machine.getAttribute('data-hub-sw') === '1';
         const hubSwCable  = machine.getAttribute('data-hub-sw-cable') || '';
         
@@ -786,6 +787,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ${row('SMIBB IP', smibb_ip || '-')}
             ${row('Screen IP', screenIp || '-', '#90CAF9')}
             ${row('MAC', mac)}
+            ${row('Machine PC', machinePc)}
             ${row('Makine Türü', machineType)}
             ${row('Oyun Türü', gameType)}
             ${row('Marka', brand)}
@@ -2275,6 +2277,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const gameType     = machine.getAttribute('data-game-type') || '';
         const brand        = machine.getAttribute('data-brand') || '';
         const model        = machine.getAttribute('data-model') || '';
+        const machinePc    = machine.getAttribute('data-machine-pc') || '';
         const posX         = Math.round(parseFloat(machine.style.left) || parseInt(machine.getAttribute('data-x')) || 0);
         const posY         = Math.round(parseFloat(machine.style.top)  || parseInt(machine.getAttribute('data-y')) || 0);
         const rotation     = parseInt(machine.getAttribute('data-rotation') || 0);
@@ -2298,6 +2301,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="info-row"><div class="info-label">SMIBB IP</div><div class="info-value">${escapeHtml(ip)}</div></div>
             <div class="info-row"><div class="info-label">Screen IP</div><div class="info-value" style="color:#2196F3;">${escapeHtml(drscreenIp) || '-'}</div></div>
             <div class="info-row"><div class="info-label">MAC Adresi</div><div class="info-value" style="font-size:11px;">${escapeHtml(mac)}</div></div>
+            ${machinePc ? `<div class="info-row"><div class="info-label">Machine PC</div><div class="info-value">${escapeHtml(machinePc)}</div></div>` : ''}
             ${machineType ? `<div class="info-row"><div class="info-label">Makine Türü</div><div class="info-value">${escapeHtml(machineType)}</div></div>` : ''}
             ${gameType ? `<div class="info-row"><div class="info-label">Oyun Türü</div><div class="info-value">${escapeHtml(gameType)}</div></div>` : ''}
             ${brand ? `<div class="info-row"><div class="info-label">Marka</div><div class="info-value">${escapeHtml(brand)}</div></div>` : ''}

@@ -35,12 +35,13 @@ $z_levels = [
     3 => 'Alt Salon'
 ];
 
-$headers = ['Makine No', 'SMIBB IP', 'Screen IP', 'MAC Adresi', 'Bölge (Area)', 'Makine Türü', 'Oyun Türü', 'Z Katmanı', 'X Koordinatı', 'Y Koordinatı', 'Döndürme', 'Not'];
+$headers = ['Makine No', 'Machine PC', 'SMIBB IP', 'Screen IP', 'MAC Adresi', 'Bölge (Area)', 'Makine Türü', 'Oyun Türü', 'Z Katmanı', 'X Koordinatı', 'Y Koordinatı', 'Döndürme', 'Not'];
 $rows = [];
 
 while($row = $machines->fetch_assoc()){
     $rows[] = [
         $row['machine_no'],
+        $row['machine_pc'] ?? '',
         $row['smibb_ip'] ?? '',
         $row['screen_ip'] ?? '',
         $row['mac'],

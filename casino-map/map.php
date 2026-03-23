@@ -749,6 +749,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
                      data-game-type="<?php echo htmlspecialchars($row['game_type'] ?? '', ENT_QUOTES); ?>"
                      data-brand="<?php echo htmlspecialchars($row['brand'] ?? '', ENT_QUOTES); ?>"
                      data-model="<?php echo htmlspecialchars($row['model'] ?? '', ENT_QUOTES); ?>"
+                     data-machine-pc="<?php echo htmlspecialchars($row['machine_pc'] ?? '', ENT_QUOTES); ?>"
                      data-hub-sw="<?php echo $hasHubSw ? '1' : '0'; ?>"
                      data-hub-sw-cable="<?php echo htmlspecialchars($row['hub_sw_cable'] ?? '', ENT_QUOTES); ?>"
                      style="left: <?php echo $row['pos_x']; ?>px; top: <?php echo $row['pos_y']; ?>px; transform: rotate(<?php echo $row['rotation']; ?>deg);">
@@ -1180,6 +1181,7 @@ $groups = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
         div.setAttribute('data-game-type', data.game_type || '');
         div.setAttribute('data-brand', data.brand || '');
         div.setAttribute('data-model', data.model || '');
+        div.setAttribute('data-machine-pc', data.machine_pc || '');
         div.setAttribute('data-hub-sw', '0');
         div.setAttribute('data-hub-sw-cable', '');
         div.style.left = '20px';
