@@ -558,15 +558,80 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========== FİLTRELEME ==========
     
     function filterMachines(e) {
-        const searchText = e.target.value.toLowerCase();
+        const searchText = (e.target.value || '').trim().toLowerCase();
         
-        document.querySelectorAll('#map .machine').forEach(machine => {
-            const machineNo = machine.getAttribute('data-machine-no').toLowerCase();
-            const smibb_ip = (machine.getAttribute('data-smibb-ip') || '').toLowerCase();
-            const mac = machine.getAttribute('data-mac').toLowerCase();
-            
-            machine.style.display = (machineNo.includes(searchText) || smibb_ip.includes(searchText) || mac.includes(searchText)) ? 'flex' : 'none';
+        if (!searchText) {
+            // Arama kutusu boşaltıldı — tüm makineleri normale döndür
+            document.querySelectorAll('#map .machine').forEach(function(machine) {
+                machine.style.opacity = '';
+                machine.style.pointerEvents = '';
+                // Kat filtresine göre görünürlüğü geri yükle
+                if (currentFloor === 'all') {
+                    machine.style.display = 'flex';
+                } else {
+                    machine.style.display = (machine.getAttribute('data-z') === currentFloor) ? 'flex' : 'none';
+                }
+            });
+            return;
+        }
+
+        let hasMatch = false;
+
+        document.querySelectorAll('#map .machine').forEach(function(machine) {
+            const machineNo  = (machine.getAttribute('data-machine-no') || '').toLowerCase();
+            const smibb_ip   = (machine.getAttribute('data-smibb-ip') || '').toLowerCase();
+            const mac        = (machine.getAttribute('data-mac') || '').toLowerCase();
+            const machinePc  = (machine.getAttribute('data-machine-pc') || '').toLowerCase();
+
+            const matches = machineNo.includes(searchText)
+                         || smibb_ip.includes(searchText)
+                         || mac.includes(searchText)
+                         || machinePc.includes(searchText);
+
+            if (matches) {
+                machine.style.display = 'flex';
+                machine.style.opacity = '1';
+                machine.style.pointerEvents = '';
+                hasMatch = true;
+            } else {
+                machine.style.display = 'flex';   // hâlâ görünür (transparan)
+                machine.style.opacity = '0.12';
+                machine.style.pointerEvents = 'none';
+            }
         });
+
+        // Eşleşen makineleri görünüme sığdır
+        if (hasMatch) {
+            requestAnimationFrame(function() {
+                const MACH_W  = 60;
+                const MACH_H  = 60;
+                const PADDING = 80;
+                const matched = Array.from(document.querySelectorAll('#map .machine'))
+                    .filter(function(m) { return parseFloat(m.style.opacity || '1') >= 0.9; });
+                if (matched.length === 0) return;
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                matched.forEach(function(m) {
+                    const x = parseFloat(m.style.left) || 0;
+                    const y = parseFloat(m.style.top)  || 0;
+                    if (x           < minX) minX = x;
+                    if (x + MACH_W  > maxX) maxX = x + MACH_W;
+                    if (y           < minY) minY = y;
+                    if (y + MACH_H  > maxY) maxY = y + MACH_H;
+                });
+                const container = document.getElementById('map-container');
+                if (!container) return;
+                const cw = container.clientWidth;
+                const ch = container.clientHeight;
+                const contentW = (maxX - minX) + PADDING * 2;
+                const contentH = (maxY - minY) + PADDING * 2;
+                const newScale = Math.max(MAP_SCALE_MIN,
+                                 Math.min(MAP_SCALE_MAX, cw / contentW, ch / contentH));
+                mapScale = newScale;
+                mapTranslateX = (cw - contentW * newScale) / 2 + (PADDING - minX) * newScale;
+                mapTranslateY = (ch - contentH * newScale) / 2 + (PADDING - minY) * newScale;
+                applyMapTransform();
+            });
+        }
     }
     
     function filterByZ(e) {
