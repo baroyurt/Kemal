@@ -1631,8 +1631,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         Promise.all(promises).then(() => {
             closePositionModal();
-            resizeMapToFitMachines();
-            updateGroupIcons();
+            // Katman görünürlüğünü yeniden uygula — Z değiştiğinde makine doğru katmana taşınsın.
+            // switchFloor zaten resizeMapToFitMachines(), updateGroupIcons() ve fitFloorToView()
+            // fonksiyonlarını çağırdığı için burada ayrıca çağrılmasına gerek yoktur.
+            switchFloor(currentFloor);
             showStatus('Pozisyonlar güncellendi!');
         });
     };
