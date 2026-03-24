@@ -1626,6 +1626,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 machine.element.setAttribute('data-y', validY);
                 machine.x = validX;
                 machine.y = validY;
+                // Z etiketini makine ikonunun içinde güncelle
+                const zSpan = machine.element.querySelector('.z-level');
+                if (zSpan) zSpan.textContent = 'Z:' + z;
             });
         });
         
