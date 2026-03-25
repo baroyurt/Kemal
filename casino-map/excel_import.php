@@ -307,22 +307,6 @@ if(isset($_POST['upload'])){
         $insert_simple->close();
 
         $upload_success = "$inserted makine eklendi, $updated makine güncellendi." . ($skipped > 0 ? " $skipped satır atlandı." : "");
-
-        // ── Otomatik Koordinat Düzeltme (fix_positions) ──────────────────────
-        include_once("fix_positions_data.php");
-        $fixes_ok = 0;
-        if(isset($fixes) && is_array($fixes)){
-            $fixes_stmt = $conn->prepare("UPDATE machines SET pos_z = ?, pos_x = ?, pos_y = ?, rotation = ? WHERE machine_no = ?");
-            foreach($fixes as $machineNo => [$fx, $fy, $frot, $fz]){
-                $fixes_stmt->bind_param("iiiis", $fz, $fx, $fy, $frot, $machineNo);
-                $fixes_stmt->execute();
-                if($fixes_stmt->affected_rows > 0) $fixes_ok++;
-            }
-            $fixes_stmt->close();
-        }
-        if($fixes_ok > 0){
-            $upload_success .= " Koordinat düzeltme: $fixes_ok makine güncellendi.";
-        }
     }
 }
 ?>
@@ -389,7 +373,7 @@ if(isset($_POST['upload'])){
                 <input type="file" id="xlsxFile" name="file" accept=".xlsx,.csv" required onchange="document.querySelector('.file-name').textContent = this.files[0]?.name || ''">
                 <div class="file-name"></div>
             </div>
-            <button type="submit" name="upload" class="btn btn-green">⬆️ Yükle ve Düzelt</button>
+            <button type="submit" name="upload" class="btn btn-green">⬆️ Yükle</button>
         </form>
     </div>
 
