@@ -312,9 +312,9 @@ if(isset($_POST['upload'])){
         include_once("fix_positions_data.php");
         $fixes_ok = 0;
         if(isset($fixes) && is_array($fixes)){
-            $fixes_stmt = $conn->prepare("UPDATE machines SET pos_x = ?, pos_y = ?, rotation = ? WHERE machine_no = ?");
-            foreach($fixes as $machineNo => [$fx, $fy, $frot]){
-                $fixes_stmt->bind_param("iiis", $fx, $fy, $frot, $machineNo);
+            $fixes_stmt = $conn->prepare("UPDATE machines SET pos_z = ?, pos_x = ?, pos_y = ?, rotation = ? WHERE machine_no = ?");
+            foreach($fixes as $machineNo => [$fx, $fy, $frot, $fz]){
+                $fixes_stmt->bind_param("iiiis", $fz, $fx, $fy, $frot, $machineNo);
                 $fixes_stmt->execute();
                 if($fixes_stmt->affected_rows > 0) $fixes_ok++;
             }
