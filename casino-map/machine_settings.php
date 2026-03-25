@@ -24,6 +24,37 @@ if(!$is_admin && $tab !== 'groups'){
 
 include("config.php");
 
+// AJAX: tüm makine ID'lerini JSON olarak döndür (toplu seçim için)
+if ($tab === 'edit' && $is_admin && isset($_GET['get_all_ids'])) {
+    $search_term = trim($_GET['search'] ?? '');
+    $ids = [];
+    if (!empty($search_term)) {
+        $like = '%' . $search_term . '%';
+        $stmt = $conn->prepare("SELECT id FROM machines WHERE machine_no LIKE ? OR smibb_ip LIKE ? OR mac LIKE ? OR note LIKE ? ORDER BY pos_z, machine_no");
+        $stmt->bind_param("ssss", $like, $like, $like, $like);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $stmt->close();
+    } else {
+        $result = $conn->query("SELECT id FROM machines ORDER BY pos_z, machine_no");
+    }
+    while ($row = $result->fetch_assoc()) $ids[] = $row['id'];
+    header('Content-Type: application/json');
+    echo json_encode($ids);
+    exit;
+}
+
+// AJAX: belirli bir grubun makine ID'lerini döndür
+if ($tab === 'edit' && $is_admin && isset($_GET['get_group_ids'])) {
+    $gid = intval($_GET['get_group_ids']);
+    $ids = [];
+    $result = $conn->query("SELECT machine_id FROM machine_group_relations WHERE group_id = $gid");
+    while ($row = $result->fetch_assoc()) $ids[] = $row['machine_id'];
+    header('Content-Type: application/json');
+    echo json_encode($ids);
+    exit;
+}
+
 /* ══════════════════════════════════════════════
    TAB: MAKİNE DÜZENLE (edit) — POST işlemleri
    ══════════════════════════════════════════════ */
@@ -161,6 +192,8 @@ if($tab === 'edit'){
     $total_pages = ceil($total_machines / $limit);
 
     $z_levels = [0=>'Yüksek Tavan', 1=>'Alçak Tavan', 2=>'Yeni Vip Salon', 3=>'Alt Salon'];
+    // Grupları toplu araç çubuğu için yükle
+    $groups_for_bulk = $conn->query("SELECT id, group_name FROM machine_groups ORDER BY group_name");
 }
 
 /* ══════════════════════════════════════════════
@@ -232,6 +265,8 @@ if($tab === 'groups'){
         /* ─── Edit tab styles ─── */
         .form-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+        .form-grid .form-group-wide { grid-column: 1 / -1; }
         label { display: block; margin-bottom: 5px; color: #666; font-weight: bold; }
         input[type="text"], textarea, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         textarea { height: 100px; resize: vertical; }
@@ -329,12 +364,24 @@ if($tab === 'groups'){
                 <option value="<?php echo $z_value; ?>"><?php echo $z_label; ?> (Z:<?php echo $z_value; ?>)</option>
             <?php endforeach; ?>
         </select>
-        <button onclick="bulkUpdateZ()">Z Katmanını Güncelle</button>
+        <button type="button" onclick="bulkUpdateZ()">Z Katmanını Güncelle</button>
         <textarea id="bulkNote" placeholder="Toplu not girin..."></textarea>
-        <button onclick="bulkUpdateNote()">Notları Güncelle</button>
-        <button onclick="bulkDuplicate()">Seçilileri Kopyala</button>
-        <button onclick="bulkDelete()" style="background: #f44336; color: white;">Seçilileri Sil</button>
-        <button class="close-btn" onclick="hideBulkToolbar()">✕</button>
+        <button type="button" onclick="bulkUpdateNote()">Notları Güncelle</button>
+        <button type="button" onclick="bulkDuplicate()">Seçilileri Kopyala</button>
+        <button type="button" onclick="bulkDelete()" style="background: #f44336; color: white;">Seçilileri Sil</button>
+        <button type="button" class="close-btn" onclick="hideBulkToolbar()">✕</button>
+    </div>
+
+    <!-- Grup bazlı seçim satırı -->
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+        <select id="groupSelectBulk" style="padding:8px; border:1px solid #ddd; border-radius:5px; font-size:13px;">
+            <option value="">— Gruba Göre Seç —</option>
+            <?php if(isset($groups_for_bulk)): $groups_for_bulk->data_seek(0); while($g = $groups_for_bulk->fetch_assoc()): ?>
+                <option value="<?php echo intval($g['id']); ?>"><?php echo htmlspecialchars($g['group_name']); ?></option>
+            <?php endwhile; endif; ?>
+        </select>
+        <button type="button" onclick="selectByGroup()" style="padding:8px 14px; background:#9C27B0; color:white; border:none; border-radius:5px; cursor:pointer; font-size:13px;">👥 Grubu Seç</button>
+        <button type="button" onclick="selectAllPages()" style="padding:8px 14px; background:#FF9800; color:white; border:none; border-radius:5px; cursor:pointer; font-size:13px;">☑️ Tüm <?php echo intval($total_machines); ?> Makineyi Seç</button>
     </div>
 
     <div class="form-box">
@@ -342,21 +389,23 @@ if($tab === 'groups'){
         <form method="post" action="machine_settings.php?tab=edit" id="machineForm">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="edit_id">
-            <div class="form-group"><label>Makine No:</label><input type="text" name="machine_no" id="edit_machine_no" required></div>
-            <div class="form-group"><label>SMIBB IP:</label><input type="text" name="smibb_ip" id="edit_smibb_ip" required></div>
-            <div class="form-group"><label>Screen IP:</label><input type="text" name="screen_ip" id="edit_screen_ip"></div>
-            <div class="form-group"><label>MAC Adresi:</label><input type="text" name="mac" id="edit_mac" required></div>
-            <div class="form-group"><label>Makine Türü:</label><input type="text" name="machine_type" id="edit_machine_type"></div>
-            <div class="form-group"><label>Oyun Türü:</label><input type="text" name="game_type" id="edit_game_type"></div>
-            <div class="form-group">
-                <label>Z Koordinatı (Kat):</label>
-                <select name="pos_z" id="edit_z">
-                    <?php foreach($z_levels as $z_value => $z_label): ?>
-                        <option value="<?php echo $z_value; ?>"><?php echo $z_label; ?></option>
-                    <?php endforeach; ?>
-                </select>
+            <div class="form-grid">
+                <div class="form-group"><label>Makine No:</label><input type="text" name="machine_no" id="edit_machine_no" required></div>
+                <div class="form-group"><label>SMIBB IP:</label><input type="text" name="smibb_ip" id="edit_smibb_ip" required></div>
+                <div class="form-group"><label>Screen IP:</label><input type="text" name="screen_ip" id="edit_screen_ip"></div>
+                <div class="form-group"><label>MAC Adresi:</label><input type="text" name="mac" id="edit_mac" required></div>
+                <div class="form-group"><label>Makine Türü:</label><input type="text" name="machine_type" id="edit_machine_type"></div>
+                <div class="form-group"><label>Oyun Türü:</label><input type="text" name="game_type" id="edit_game_type"></div>
+                <div class="form-group">
+                    <label>Z Koordinatı (Kat):</label>
+                    <select name="pos_z" id="edit_z">
+                        <?php foreach($z_levels as $z_value => $z_label): ?>
+                            <option value="<?php echo $z_value; ?>"><?php echo $z_label; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group form-group-wide"><label>Not:</label><textarea name="note" id="edit_note" placeholder="Makine hakkında notlar..."></textarea></div>
             </div>
-            <div class="form-group"><label>Not:</label><textarea name="note" id="edit_note" placeholder="Makine hakkında notlar..."></textarea></div>
             <button type="submit" name="save">Kaydet</button>
             <button type="button" class="cancel-btn" onclick="clearForm()">Temizle</button>
         </form>
@@ -452,7 +501,36 @@ if($tab === 'groups'){
         function bulkDuplicate(){ if(!selectedMachines.size){alert('Lütfen makine seçin!');return;} if(!confirm(selectedMachines.size+' makineyi kopyalamak istiyor musunuz?'))return; const f=makeForm(); addIds(f); addHidden(f,'bulk_duplicate','1'); document.body.appendChild(f); f.submit(); }
         function editMachine(id,no,smibb_ip,screen_ip,mac,machine_type,game_type,z,note){ document.getElementById('edit_id').value=id; document.getElementById('edit_machine_no').value=no; document.getElementById('edit_smibb_ip').value=smibb_ip; document.getElementById('edit_screen_ip').value=screen_ip; document.getElementById('edit_mac').value=mac; document.getElementById('edit_machine_type').value=machine_type; document.getElementById('edit_game_type').value=game_type; document.getElementById('edit_z').value=z; document.getElementById('edit_note').value=note; document.querySelector('.form-box').scrollIntoView({behavior:'smooth'}); }
         function clearForm(){ ['edit_id','edit_machine_no','edit_smibb_ip','edit_screen_ip','edit_mac','edit_machine_type','edit_game_type','edit_note'].forEach(id=>document.getElementById(id).value=''); document.getElementById('edit_z').value='0'; }
-        document.addEventListener('keydown',function(e){ if(e.ctrlKey&&e.key==='a'){e.preventDefault(); document.querySelectorAll('.machine-checkbox').forEach(c=>{c.checked=true;selectedMachines.add(c.value);}); updateSelection();} if(e.key==='Escape')hideBulkToolbar(); });
+        // Tüm sayfaları seç
+        function selectAllPages(){
+            const search=new URLSearchParams(window.location.search).get('search')||'';
+            fetch('machine_settings.php?tab=edit&get_all_ids=1&search='+encodeURIComponent(search))
+                .then(function(r){return r.json();})
+                .then(function(ids){
+                    ids.forEach(function(id){selectedMachines.add(String(id));});
+                    document.querySelectorAll('.machine-checkbox').forEach(function(c){
+                        if(ids.indexOf(parseInt(c.value))!==-1){c.checked=true;}
+                    });
+                    updateSelection();
+                });
+        }
+        // Gruba göre seç
+        function selectByGroup(){
+            const gid=document.getElementById('groupSelectBulk').value;
+            if(!gid){alert('Lütfen bir grup seçin!');return;}
+            fetch('machine_settings.php?tab=edit&get_group_ids='+encodeURIComponent(gid))
+                .then(function(r){return r.json();})
+                .then(function(ids){
+                    if(!ids.length){alert('Bu grupta makine yok!');return;}
+                    ids.forEach(function(id){selectedMachines.add(String(id));});
+                    document.querySelectorAll('.machine-checkbox').forEach(function(c){
+                        if(ids.indexOf(parseInt(c.value))!==-1){c.checked=true;}
+                    });
+                    updateSelection();
+                    if(typeof showMsg==='function') showMsg(ids.length+' makine seçildi.');
+                });
+        }
+        document.addEventListener('keydown',function(e){ if(e.ctrlKey&&e.key==='a'){e.preventDefault(); selectAllPages();} if(e.key==='Escape')hideBulkToolbar(); });
     </script>
 
 <?php elseif($tab === 'groups'): ?>

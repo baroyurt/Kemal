@@ -309,7 +309,8 @@ document.addEventListener('DOMContentLoaded', function() {
             window.selectedMachines.forEach(m => { m.element.style.zIndex = ''; });
             groupDragInitialPositions = [];
             suppressNextClick = true;
-            showStatus('Pozisyonlar güncellendi. Kaydetmek için 💾 butonuna tıklayın.');
+            // Auto-save moved machines immediately after group drag
+            autoSavePositions(window.selectedMachines.slice());
         }
 
         if (isMoving) {
@@ -327,7 +328,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Suppress the click that fires after mouseup so selection doesn't toggle
             suppressNextClick = true;
-            showStatus('Pozisyonlar güncellendi. Kaydetmek için 💾 butonuna tıklayın.');
+            // Auto-save moved machines immediately after drag
+            autoSavePositions(window.selectedMachines.slice());
         }
 
         // If no group drag happened, discard the pending record
@@ -1795,7 +1797,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         updateGroupIcons();
-        showStatus(sorted.length + ' makine düzenlendi. Kaydetmek için 💾 butonuna tıklayın.');
+        autoSavePositions(window.selectedMachines.slice());
     };
     
     // ========== TOOLBAR FONKSİYONLARI ==========
@@ -1943,6 +1945,25 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     // ========== YARDIMCI FONKSİYONLAR ==========
+
+    // Auto-save a list of selectedMachines objects to the server immediately.
+    // Used after drag-and-drop to make saving transparent (no manual save needed).
+    function autoSavePositions(machines) {
+        if (!machines || machines.length === 0) return;
+        Promise.all(machines.map(function(m) {
+            var fd = new FormData();
+            fd.append('id', m.id);
+            fd.append('x', Math.round(parseFloat(m.element.style.left) || 0));
+            fd.append('y', Math.round(parseFloat(m.element.style.top)  || 0));
+            fd.append('z', m.element.getAttribute('data-z') || 0);
+            fd.append('rotation', m.element.getAttribute('data-rotation') || 0);
+            return fetch('update_position.php', { method: 'POST', body: fd });
+        })).then(function() {
+            showStatus('Pozisyonlar kaydedildi!');
+        }).catch(function() {
+            showStatus('Kaydetme hatası! Tekrar deneyin.');
+        });
+    }
 
     // Keep machine labels upright regardless of the machine element's CSS rotation.
     // Called once on init and after every rotation update.
