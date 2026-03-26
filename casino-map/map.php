@@ -1018,6 +1018,20 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $mapBgColor))         $m
         }
     })();
     </script>
+    <?php else: ?>
+    <script>
+    // Personel: arka plan görselini admin tarafından kaydedilen tercihlerle uygula
+    (function initBgPrefs() {
+        var img = document.getElementById('map-bg-img');
+        if (!img || !MAP_BG_URL || img.dataset.hasBg !== '1') return;
+        var savedOp    = localStorage.getItem('mapBgOpacity');
+        var savedWidth = localStorage.getItem('mapBgWidth');
+        var savedVis   = localStorage.getItem('mapBgVisible');
+        img.style.opacity = ((savedOp !== null ? parseFloat(savedOp) : 35) / 100);
+        img.style.width   = (savedWidth !== null ? parseInt(savedWidth, 10) : 4000) + 'px';
+        img.style.display = (savedVis === null || savedVis === '1') ? '' : 'none';
+    })();
+    </script>
     <?php endif; ?>
 
     <!-- Right-click context menu (global, outside map-container) -->
