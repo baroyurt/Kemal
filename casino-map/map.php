@@ -68,9 +68,11 @@ function map_get_setting(mysqli $conn, string $key, string $default): string {
 }
 $machineColorNormal = map_get_setting($conn, 'machine_color_normal', '#4CAF50');
 $machineColorNote   = map_get_setting($conn, 'machine_color_note',   '#40E0D0');
+$mapBgColor         = map_get_setting($conn, 'map_bg_color',         '#e0e0e0');
 // Basit güvenlik: sadece geçerli HEX renkleri kabul et
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNormal)) $machineColorNormal = '#4CAF50';
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNote))   $machineColorNote   = '#40E0D0';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $mapBgColor))         $mapBgColor         = '#e0e0e0';
 ?>
 
 <!DOCTYPE html>
@@ -140,7 +142,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNote))   $m
         }
         .dark-theme .sidebar-footer { border-color: #444; }
         .sidebar-footer a { color: #f44336; text-decoration: none; font-size: 13px; }
-        body.light-theme #map { background-color: #e0e0e0; }
+        body.light-theme #map { background-color: <?php echo $mapBgColor; ?>; }
         body.dark-theme { background: #1a1a1a; color: #fff; }
         body.dark-theme .toolbar { background: #2d2d2d; box-shadow: 0 2px 10px rgba(0,0,0,0.3); color: #fff; }
         body.dark-theme #map { background-color: #333; }
@@ -568,6 +570,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNote))   $m
                         <i class="fas fa-edit"></i>
                         <span class="tooltip-text">Düzenle</span>
                     </button>
+                    <button class="toolbar-btn orange" onclick="saveAllPositions()" title="Tümünü Kaydet" style="margin-left:2px;"><i class="fas fa-save"></i><span class="tooltip-text">Tümünü Kaydet</span></button>
                     <div id="editToolsSlide">
                         <div class="edit-slide-group">
                             <button class="toolbar-btn" onclick="rotateSelected(45)" title="45° döndür"><i class="fas fa-redo-alt"></i><span class="tooltip-text">45° döndür</span></button>
@@ -591,7 +594,6 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNote))   $m
                             <button class="toolbar-btn orange" onclick="openNoteModal()" title="Not ekle"><i class="fas fa-sticky-note"></i><span class="tooltip-text">Not ekle</span></button>
                             <button class="toolbar-btn orange" onclick="openHubSwModal()" title="Hub SW ayarla"><i class="fas fa-network-wired"></i><span class="tooltip-text">Hub SW</span></button>
                             <button class="toolbar-btn orange" onclick="autoArrangeSelected()" title="Seçilileri düzenle (üst üste gelmesin)"><i class="fas fa-th"></i><span class="tooltip-text">Seçilileri düzenle</span></button>
-                            <button class="toolbar-btn orange" onclick="saveAllPositions()" title="Kaydet"><i class="fas fa-save"></i><span class="tooltip-text">Kaydet</span></button>
                         </div>
                     </div>
                 </div>

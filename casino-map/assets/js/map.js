@@ -1637,9 +1637,14 @@ document.addEventListener('DOMContentLoaded', function() {
         Promise.all(promises).then(() => {
             closePositionModal();
             // Katman görünürlüğünü yeniden uygula — Z değiştiğinde makine doğru katmana taşınsın.
-            // switchFloor zaten resizeMapToFitMachines(), updateGroupIcons() ve fitFloorToView()
-            // fonksiyonlarını çağırdığı için burada ayrıca çağrılmasına gerek yoktur.
             switchFloor(currentFloor);
+            // Refresh info panel so Z layer change is immediately visible
+            if (window.selectedMachines.length > 0) {
+                const panel = document.getElementById('machine-info-panel');
+                if (panel && panel.classList.contains('open')) {
+                    window.showMachineInfoPanel(window.selectedMachines[0].element);
+                }
+            }
             showStatus('Pozisyonlar güncellendi!');
         });
     };
@@ -1906,7 +1911,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 machine.element.style.transform = `rotate(${newRotation}deg)`;
                 applyInnerRotation(machine.element);
             });
-            showStatus(`${window.selectedMachines.length} makine ${angle}° döndürüldü`);
+            // Auto-save rotation changes immediately
+            autoSavePositions(window.selectedMachines.slice());
         } else {
             showStatus('Lütfen önce makine seçin');
         }

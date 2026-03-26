@@ -99,6 +99,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS settings (
 $defaults = [
     'machine_color_normal' => '#4CAF50',
     'machine_color_note'   => '#40E0D0',
+    'map_bg_color'         => '#e0e0e0',
 ];
 foreach ($defaults as $k => $v) {
     $stmt = $conn->prepare("INSERT IGNORE INTO settings (`key`, `value`) VALUES (?, ?)");

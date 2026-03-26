@@ -485,8 +485,9 @@ if($tab === 'groups'){
         function highlightRow(id,h){ const r=document.querySelector('tr[data-id="'+id+'"]'); if(r){ if(h) r.classList.add('selected'); else r.classList.remove('selected'); } }
         function updateSelection(){
             const cbs=document.querySelectorAll('.machine-checkbox'); const sa=document.getElementById('selectAll');
-            selectedMachines.clear(); cbs.forEach(c=>{ if(c.checked){selectedMachines.add(c.value); highlightRow(c.value,true);} else highlightRow(c.value,false); });
-            if(sa){ sa.checked=Array.from(cbs).every(c=>c.checked); sa.indeterminate=Array.from(cbs).some(c=>c.checked)&&!sa.checked; }
+            // Update selectedMachines based on checkbox state — but do NOT clear IDs from other pages
+            cbs.forEach(c=>{ if(c.checked){selectedMachines.add(c.value); highlightRow(c.value,true);} else {selectedMachines.delete(c.value); highlightRow(c.value,false);} });
+            if(sa){ sa.checked=cbs.length>0&&Array.from(cbs).every(c=>c.checked); sa.indeterminate=Array.from(cbs).some(c=>c.checked)&&!sa.checked; }
             const tb=document.getElementById('bulkToolbar');
             if(selectedMachines.size>0){ tb.classList.remove('hidden'); document.getElementById('selectionCount').textContent=selectedMachines.size+' makine seçili'; }
             else tb.classList.add('hidden');

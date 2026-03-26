@@ -15,7 +15,7 @@ $error   = '';
 if (isset($_POST['save_colors'])) {
     csrf_verify();
 
-    $allowed = ['machine_color_normal', 'machine_color_note'];
+    $allowed = ['machine_color_normal', 'machine_color_note', 'map_bg_color'];
     foreach ($allowed as $key) {
         if (isset($_POST[$key])) {
             $val = trim($_POST[$key]);
@@ -46,8 +46,9 @@ function get_setting(mysqli $conn, string $key, string $default): string {
     return $row ? $row['value'] : $default;
 }
 
-$colorNormal = get_setting($conn, 'machine_color_normal', '#4CAF50');
-$colorNote   = get_setting($conn, 'machine_color_note',   '#40E0D0');
+$colorNormal  = get_setting($conn, 'machine_color_normal', '#4CAF50');
+$colorNote    = get_setting($conn, 'machine_color_note',   '#40E0D0');
+$colorMapBg   = get_setting($conn, 'map_bg_color',         '#e0e0e0');
 
 // Renk kontrastı için metin rengini hesapla (açık/koyu)
 function text_color(string $hex): string {
@@ -185,6 +186,22 @@ $textNote   = text_color($colorNote);
                 </div>
             </div>
 
+            <!-- Harita arka plan rengi -->
+            <div class="color-row">
+                <div class="color-label">
+                    <strong>Harita Arka Plan Rengi</strong>
+                    <span>Harita tuvalinin arka plan rengi</span>
+                </div>
+                <div class="picker-wrap">
+                    <input type="color" id="picker_mapbg" value="<?= htmlspecialchars($colorMapBg) ?>"
+                           oninput="syncColor('mapbg', this.value)">
+                    <input type="text" name="map_bg_color" id="hex_mapbg" class="hex-input"
+                           value="<?= htmlspecialchars($colorMapBg) ?>" maxlength="7"
+                           pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                           oninput="syncPicker('mapbg', this.value)" required>
+                </div>
+            </div>
+
             <button type="submit" name="save_colors">💾 Kaydet</button>
         </form>
     </div>
@@ -208,6 +225,13 @@ $textNote   = text_color($colorNote);
                     <span class="mp-ip">192.168.1.2</span>
                 </div>
                 <div class="preview-caption">Notlu</div>
+            </div>
+            <div>
+                <div style="width:70px; height:70px; border-radius:10px; border:1px solid #ccc;
+                            box-shadow:4px 4px 8px rgba(0,0,0,0.35); transition:background 0.3s;"
+                     id="prev_mapbg" data-bg="1"
+                     style="background:<?= htmlspecialchars($colorMapBg) ?>;"></div>
+                <div class="preview-caption">Harita Zem.</div>
             </div>
         </div>
     </div>
@@ -241,9 +265,16 @@ function syncPicker(type, val) {
 function updatePreview(type, hex) {
     if (!isValidHex(hex)) return;
     const el = document.getElementById('prev_' + type);
+    if (!el) return;
     el.style.background = hex;
-    el.style.color = contrastColor(hex);
+    // mapbg preview is just a colour swatch — no text colour to update
+    if (type !== 'mapbg') el.style.color = contrastColor(hex);
 }
+
+// Initialise mapbg preview on load
+document.addEventListener('DOMContentLoaded', function() {
+    updatePreview('mapbg', document.getElementById('hex_mapbg').value);
+});
 </script>
 </body>
 </html>
