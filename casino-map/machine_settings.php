@@ -570,8 +570,8 @@ if($tab === 'groups'){
                 <div class="group-name"><?php echo htmlspecialchars($group['group_name']); ?></div>
                 <div class="group-info"><?php echo $mc; ?> makine<?php echo $group['description'] ? ' • '.htmlspecialchars($group['description']) : ''; ?></div>
                 <div class="group-actions">
-                    <a href="export_group.php?group_id=<?php echo $group['id']; ?>" target="_blank" style="color:#2196F3;">📥 Excel Aktar</a>
                     <?php if($is_admin): ?>
+                    <a href="export_group.php?group_id=<?php echo $group['id']; ?>" target="_blank" style="color:#2196F3;">📥 Excel Aktar</a>
                     <a href="?tab=groups&delete_group=<?php echo $group['id']; ?>" onclick="return confirm('Grubu silmek istiyor musunuz?')" style="color:#f44336;">🗑️ Sil</a>
                     <?php endif; ?>
                 </div>
@@ -620,7 +620,7 @@ if($tab === 'groups'){
                     </div>
                 </form>
                 <?php else: ?>
-                <!-- personel: sadece izleme + excel aktar -->
+                <!-- personel: sadece izleme -->
                 <div class="machine-list" style="max-height:500px;">
                     <?php foreach($group_machines as $mid):
                         $mrow = $conn->query("SELECT machine_no, smibb_ip, pos_z FROM machines WHERE id=".intval($mid))->fetch_assoc();
@@ -634,9 +634,6 @@ if($tab === 'groups'){
                     <?php if(empty($group_machines)): ?>
                     <div style="color:#999;text-align:center;padding:20px;">Grupta makine yok.</div>
                     <?php endif; ?>
-                </div>
-                <div style="margin-top:15px;">
-                    <button type="button" onclick="window.location='export_group.php?group_id=<?php echo $group_id; ?>'" style="background:#2196F3;color:white;border:none;border-radius:5px;padding:10px 20px;cursor:pointer;">📥 Excel Aktar</button>
                 </div>
                 <?php endif; ?>
 

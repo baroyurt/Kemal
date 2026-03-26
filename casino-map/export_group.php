@@ -6,6 +6,12 @@ if(!isset($_SESSION['login'])){
     exit;
 }
 
+// Sadece admin Excel aktarabilir
+if($_SESSION['role'] !== 'admin'){
+    header("Location: map.php");
+    exit;
+}
+
 include("config.php");
 include("xlsx_helper.php");
 

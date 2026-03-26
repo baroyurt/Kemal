@@ -971,7 +971,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="group-machine-list" id="machine-list-${groupId}">${getMachineListHtml(group.machines, groupId)}</div>
                     <div class="group-actions">
                         ${adminButtons}
-                        <button class="export-btn" onclick="exportGroup(${groupId})" title="Excel aktar"><i class="fas fa-file-excel"></i></button>
+                        ${IS_ADMIN ? `<button class="export-btn" onclick="exportGroup(${groupId})" title="Excel aktar"><i class="fas fa-file-excel"></i></button>` : ''}
                         <button class="show-btn" onclick="showGroup(${groupId})" title="Göster"><i class="fas fa-eye"></i></button>
                     </div>
                 </div>
