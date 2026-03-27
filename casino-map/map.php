@@ -200,7 +200,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
         }
         .machine.selected { border: 3px solid yellow !important; box-shadow: 0 0 20px rgba(255,255,0,0.5), 5px 5px 8px rgba(0,0,0,0.5); z-index: 1000; }
         .machine.has-note { background: <?php echo $machineColorNote; ?>; }
-        .machine[data-z="0"] { opacity: 1; } .machine[data-z="1"] { opacity: 0.9; } .machine[data-z="2"] { opacity: 0.8; } .machine[data-z="3"] { opacity: 0.7; }
+        .machine[data-z] { opacity: 1; }
         .machine:hover { filter: brightness(1.2); z-index: 1001; }
         /* Orijinal SVG'deki separator çizgisi — ikonun üst kısmında siyah yatay bar */
         .machine::before {
