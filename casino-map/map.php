@@ -340,19 +340,19 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
     position: absolute;
     border: 2px dashed #4CAF50;
     border-radius: 10px;
-    background: rgba(76, 175, 80, 0.1);
+    background: transparent;
     pointer-events: none;
     z-index: 5;
     transition: all 0.3s;
 }
 
 .group-highlight:hover {
-    background: rgba(76, 175, 80, 0.2);
+    background: transparent;
     border-color: #45a049;
 }
 		.group-highlight {
             position: absolute; border: 2px dashed #4CAF50; border-radius: 10px;
-            background: rgba(76, 175, 80, 0.1); pointer-events: none; z-index: 5;
+            background: transparent; pointer-events: none; z-index: 5;
         }
         
         .groups-panel {

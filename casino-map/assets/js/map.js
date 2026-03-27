@@ -1107,7 +1107,6 @@ document.addEventListener('DOMContentLoaded', function() {
             highlight.style.width = (maxX - minX + 16) + 'px';
             highlight.style.height = (maxY - minY + 16) + 'px';
             highlight.style.borderColor = color;
-            highlight.style.background = hexToRgba(color, 0.08);
             highlight.setAttribute('data-group-id', groupId);
 
             // Group highlight is decorative only — pointer-events:none (CSS default)
