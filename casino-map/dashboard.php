@@ -135,6 +135,13 @@ $username = $_SESSION['username'];
                         <small style="color: #666; display: block;">Makine arka plan renklerini yönet</small>
                     </a>
                 </div>
+
+                <div class="menu-item">
+                    <a href="backup.php">
+                        💾 Yedekleme
+                        <small style="color: #666; display: block;">Günlük otomatik ve manuel veritabanı yedekleme</small>
+                    </a>
+                </div>
             <?php endif; ?>
         </div>
         
