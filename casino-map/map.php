@@ -383,14 +383,15 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
         
         .group-actions { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
         .group-actions button {
-            flex: 1; padding: 5px 3px; border: none; border-radius: 5px; cursor: pointer;
+            flex: 1; padding: 5px 3px; border: 1.5px solid; border-radius: 5px; cursor: pointer;
             font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;
+            background: transparent;
         }
-        .group-actions .assign-btn { background: #9C27B0; color: white; flex: 2; }
-        .group-actions .export-btn { background: #4CAF50; color: white; }
-        .group-actions .show-btn { background: #2196F3; color: white; }
-        .group-actions .delete-btn { background: #f44336; color: white; }
-        .group-actions button:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .group-actions .assign-btn { border-color: #9C27B0; color: #9C27B0; flex: 2; }
+        .group-actions .export-btn { border-color: #4CAF50; color: #4CAF50; }
+        .group-actions .show-btn   { border-color: #2196F3; color: #2196F3; }
+        .group-actions .delete-btn { border-color: #f44336; color: #f44336; }
+        .group-actions button:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
         
         .toggle-groups-panel {
             position: fixed; right: 20px; top: 80px; width: 45px; height: 45px;
