@@ -1506,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const collapsed = body.classList.toggle('collapsed');
         if (headerEl) headerEl.classList.toggle('collapsed', collapsed);
         // Açılınca max-height'ı ger, kapanınca 0
-        body.style.maxHeight = collapsed ? '0' : '2000px';
+        body.style.maxHeight = collapsed ? '0' : '9999px';
     };
     
     // ========== NOT FONKSİYONLARI ==========
