@@ -78,7 +78,9 @@ $textNote   = text_color($colorNote);
     <style>
         * { box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
-        .container { max-width: 760px; margin: 0 auto; }
+        .container { max-width: 1040px; margin: 0 auto; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
         .header { background: white; padding: 20px; border-radius: 10px;
                   box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;
                   display: flex; justify-content: space-between; align-items: center; }
@@ -152,172 +154,179 @@ $textNote   = text_color($colorNote);
         <div class="error-msg"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
-    <div class="card">
-        <h3>🖌️ Renk Paleti</h3>
-        <p style="font-size:13px; color:#777; margin-top:0;">
-            Seçilen renkler haritadaki <strong>tüm makinelere</strong> anında uygulanır.
-        </p>
+    <form method="post" id="colorForm">
+        <?= csrf_field() ?>
 
-        <form method="post" id="colorForm">
-            <?= csrf_field() ?>
+        <div class="two-col">
+            <!-- Sol: Arka Plan Renkleri -->
+            <div class="card" style="margin-bottom:0;">
+                <h3>🖌️ Renk Paleti</h3>
+                <p style="font-size:13px; color:#777; margin-top:0;">
+                    Seçilen renkler haritadaki <strong>tüm makinelere</strong> anında uygulanır.
+                </p>
 
-            <!-- Normal makine rengi -->
-            <div class="color-row">
-                <div class="color-label">
-                    <strong>Normal Makine Arka Plan Rengi</strong>
-                    <span>Notu olmayan makinelerin arka plan rengi</span>
+                <!-- Normal makine rengi -->
+                <div class="color-row">
+                    <div class="color-label">
+                        <strong>Normal Makine Arka Plan Rengi</strong>
+                        <span>Notu olmayan makinelerin arka plan rengi</span>
+                    </div>
+                    <div class="picker-wrap">
+                        <input type="color" id="picker_normal" value="<?= htmlspecialchars($colorNormal) ?>"
+                               oninput="syncColor('normal', this.value)">
+                        <input type="text" name="machine_color_normal" id="hex_normal" class="hex-input"
+                               value="<?= htmlspecialchars($colorNormal) ?>" maxlength="7"
+                               pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                               oninput="syncPicker('normal', this.value)" required>
+                    </div>
                 </div>
-                <div class="picker-wrap">
-                    <input type="color" id="picker_normal" value="<?= htmlspecialchars($colorNormal) ?>"
-                           oninput="syncColor('normal', this.value)">
-                    <input type="text" name="machine_color_normal" id="hex_normal" class="hex-input"
-                           value="<?= htmlspecialchars($colorNormal) ?>" maxlength="7"
-                           pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
-                           oninput="syncPicker('normal', this.value)" required>
+
+                <!-- Notlu makine rengi -->
+                <div class="color-row">
+                    <div class="color-label">
+                        <strong>Notlu Makine Arka Plan Rengi</strong>
+                        <span>Notu olan makinelerin arka plan rengi</span>
+                    </div>
+                    <div class="picker-wrap">
+                        <input type="color" id="picker_note" value="<?= htmlspecialchars($colorNote) ?>"
+                               oninput="syncColor('note', this.value)">
+                        <input type="text" name="machine_color_note" id="hex_note" class="hex-input"
+                               value="<?= htmlspecialchars($colorNote) ?>" maxlength="7"
+                               pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                               oninput="syncPicker('note', this.value)" required>
+                    </div>
+                </div>
+
+                <!-- Harita arka plan rengi -->
+                <div class="color-row" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
+                    <div class="color-label">
+                        <strong>Harita Arka Plan Rengi</strong>
+                        <span>Harita tuvalinin arka plan rengi</span>
+                    </div>
+                    <div class="picker-wrap">
+                        <input type="color" id="picker_mapbg" value="<?= htmlspecialchars($colorMapBg) ?>"
+                               oninput="syncColor('mapbg', this.value)">
+                        <input type="text" name="map_bg_color" id="hex_mapbg" class="hex-input"
+                               value="<?= htmlspecialchars($colorMapBg) ?>" maxlength="7"
+                               pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                               oninput="syncPicker('mapbg', this.value)" required>
+                    </div>
                 </div>
             </div>
 
-            <!-- Notlu makine rengi -->
-            <div class="color-row">
-                <div class="color-label">
-                    <strong>Notlu Makine Arka Plan Rengi</strong>
-                    <span>Notu olan makinelerin arka plan rengi</span>
-                </div>
-                <div class="picker-wrap">
-                    <input type="color" id="picker_note" value="<?= htmlspecialchars($colorNote) ?>"
-                           oninput="syncColor('note', this.value)">
-                    <input type="text" name="machine_color_note" id="hex_note" class="hex-input"
-                           value="<?= htmlspecialchars($colorNote) ?>" maxlength="7"
-                           pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
-                           oninput="syncPicker('note', this.value)" required>
-                </div>
-            </div>
+            <!-- Sağ: Yazı Renkleri -->
+            <div class="card" style="margin-bottom:0;">
+                <h3>✏️ Makine Yazı Renkleri</h3>
+                <p style="font-size:13px; color:#777; margin-top:0;">
+                    Makine kartı üzerindeki metin öğelerinin rengi.
+                </p>
 
-            <!-- Harita arka plan rengi -->
-            <div class="color-row">
-                <div class="color-label">
-                    <strong>Harita Arka Plan Rengi</strong>
-                    <span>Harita tuvalinin arka plan rengi</span>
+                <!-- Makine no rengi -->
+                <div class="color-row">
+                    <div class="color-label">
+                        <strong>Makine No Rengi</strong>
+                        <span>Numara/isim yazı rengi</span>
+                    </div>
+                    <div class="picker-wrap">
+                        <input type="color" id="picker_textlabel" value="<?= htmlspecialchars($colorTextLabel) ?>"
+                               oninput="syncColor('textlabel', this.value)">
+                        <input type="text" name="machine_text_label" id="hex_textlabel" class="hex-input"
+                               value="<?= htmlspecialchars($colorTextLabel) ?>" maxlength="7"
+                               pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                               oninput="syncPicker('textlabel', this.value)" required>
+                    </div>
                 </div>
-                <div class="picker-wrap">
-                    <input type="color" id="picker_mapbg" value="<?= htmlspecialchars($colorMapBg) ?>"
-                           oninput="syncColor('mapbg', this.value)">
-                    <input type="text" name="map_bg_color" id="hex_mapbg" class="hex-input"
-                           value="<?= htmlspecialchars($colorMapBg) ?>" maxlength="7"
-                           pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
-                           oninput="syncPicker('mapbg', this.value)" required>
-                </div>
-            </div>
 
-            <button type="submit" name="save_colors">💾 Kaydet</button>
+                <!-- IP yazı rengi -->
+                <div class="color-row">
+                    <div class="color-label">
+                        <strong>IP Adresi Yazı Rengi</strong>
+                        <span>IP adresi satırlarının rengi</span>
+                    </div>
+                    <div class="picker-wrap">
+                        <input type="color" id="picker_textip" value="<?= htmlspecialchars($colorTextIp) ?>"
+                               oninput="syncColor('textip', this.value)">
+                        <input type="text" name="machine_text_ip" id="hex_textip" class="hex-input"
+                               value="<?= htmlspecialchars($colorTextIp) ?>" maxlength="7"
+                               pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                               oninput="syncPicker('textip', this.value)" required>
+                    </div>
+                </div>
 
-            <!-- Yazı renkleri bölümü -->
-            <div style="margin: 28px 0 16px; font-weight: bold; font-size: 14px; color: #555;
-                        border-bottom: 2px solid #f0f0f0; padding-bottom: 8px;">
-                ✏️ Makine Yazı Renkleri
-            </div>
+                <!-- Screen IP yazı rengi -->
+                <div class="color-row">
+                    <div class="color-label">
+                        <strong>Screen IP Yazı Rengi</strong>
+                        <span>Ekran (screen) IP adresinin rengi</span>
+                    </div>
+                    <div class="picker-wrap">
+                        <input type="color" id="picker_textscreenip" value="<?= htmlspecialchars($colorTextScreenIp) ?>"
+                               oninput="syncColor('textscreenip', this.value)">
+                        <input type="text" name="machine_text_screen_ip" id="hex_textscreenip" class="hex-input"
+                               value="<?= htmlspecialchars($colorTextScreenIp) ?>" maxlength="7"
+                               pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                               oninput="syncPicker('textscreenip', this.value)" required>
+                    </div>
+                </div>
 
-            <!-- Makine no rengi -->
-            <div class="color-row">
-                <div class="color-label">
-                    <strong>Makine No Rengi</strong>
-                    <span>Makine kartı üzerindeki numara/isim yazı rengi</span>
+                <!-- Z rozet rengi -->
+                <div class="color-row" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
+                    <div class="color-label">
+                        <strong>Z: Rozet Yazı Rengi</strong>
+                        <span>Z: seviye rozeti yazı rengi</span>
+                    </div>
+                    <div class="picker-wrap">
+                        <input type="color" id="picker_textzbadge" value="<?= htmlspecialchars($colorTextZbadge) ?>"
+                               oninput="syncColor('textzbadge', this.value)">
+                        <input type="text" name="machine_text_zbadge" id="hex_textzbadge" class="hex-input"
+                               value="<?= htmlspecialchars($colorTextZbadge) ?>" maxlength="7"
+                               pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                               oninput="syncPicker('textzbadge', this.value)" required>
+                    </div>
                 </div>
-                <div class="picker-wrap">
-                    <input type="color" id="picker_textlabel" value="<?= htmlspecialchars($colorTextLabel) ?>"
-                           oninput="syncColor('textlabel', this.value)">
-                    <input type="text" name="machine_text_label" id="hex_textlabel" class="hex-input"
-                           value="<?= htmlspecialchars($colorTextLabel) ?>" maxlength="7"
-                           pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
-                           oninput="syncPicker('textlabel', this.value)" required>
-                </div>
-            </div>
-
-            <!-- IP yazı rengi -->
-            <div class="color-row">
-                <div class="color-label">
-                    <strong>IP Adresi Yazı Rengi</strong>
-                    <span>Makine kartı üzerindeki IP adresi satırlarının rengi</span>
-                </div>
-                <div class="picker-wrap">
-                    <input type="color" id="picker_textip" value="<?= htmlspecialchars($colorTextIp) ?>"
-                           oninput="syncColor('textip', this.value)">
-                    <input type="text" name="machine_text_ip" id="hex_textip" class="hex-input"
-                           value="<?= htmlspecialchars($colorTextIp) ?>" maxlength="7"
-                           pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
-                           oninput="syncPicker('textip', this.value)" required>
-                </div>
-            </div>
-
-            <!-- Screen IP yazı rengi -->
-            <div class="color-row">
-                <div class="color-label">
-                    <strong>Screen IP Yazı Rengi</strong>
-                    <span>Makine kartındaki ekran (screen) IP adresinin rengi</span>
-                </div>
-                <div class="picker-wrap">
-                    <input type="color" id="picker_textscreenip" value="<?= htmlspecialchars($colorTextScreenIp) ?>"
-                           oninput="syncColor('textscreenip', this.value)">
-                    <input type="text" name="machine_text_screen_ip" id="hex_textscreenip" class="hex-input"
-                           value="<?= htmlspecialchars($colorTextScreenIp) ?>" maxlength="7"
-                           pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
-                           oninput="syncPicker('textscreenip', this.value)" required>
-                </div>
-            </div>
-
-            <!-- Z rozet rengi -->
-            <div class="color-row" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
-                <div class="color-label">
-                    <strong>Z: Rozet Yazı Rengi</strong>
-                    <span>Makine kartındaki Z: seviye rozetinin yazı rengi</span>
-                </div>
-                <div class="picker-wrap">
-                    <input type="color" id="picker_textzbadge" value="<?= htmlspecialchars($colorTextZbadge) ?>"
-                           oninput="syncColor('textzbadge', this.value)">
-                    <input type="text" name="machine_text_zbadge" id="hex_textzbadge" class="hex-input"
-                           value="<?= htmlspecialchars($colorTextZbadge) ?>" maxlength="7"
-                           pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
-                           oninput="syncPicker('textzbadge', this.value)" required>
-                </div>
-            </div>
-
-            <button type="submit" name="save_colors" style="margin-top:20px;">💾 Kaydet</button>
-        </form>
-    </div>
-
-    <!-- Önizleme -->
-    <div class="card">
-        <h3>👁️ Önizleme</h3>
-        <div class="preview-grid">
-            <div>
-                <div class="machine-preview" id="prev_normal"
-                     style="background:<?= htmlspecialchars($colorNormal) ?>;">
-                    <span class="mp-label"     style="color:<?= htmlspecialchars($colorTextLabel) ?>;">2606</span>
-                    <span class="mp-ip"        style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.1.2.106</span>
-                    <span class="mp-screen-ip" style="color:<?= htmlspecialchars($colorTextScreenIp) ?>;">10.129.2.106</span>
-                    <span class="mp-zbadge"    style="color:<?= htmlspecialchars($colorTextZbadge) ?>;">Z:0</span>
-                </div>
-                <div class="preview-caption">Normal</div>
-            </div>
-            <div>
-                <div class="machine-preview" id="prev_note"
-                     style="background:<?= htmlspecialchars($colorNote) ?>;">
-                    <span class="mp-label"     style="color:<?= htmlspecialchars($colorTextLabel) ?>;">3033</span>
-                    <span class="mp-ip"        style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.1.2.14</span>
-                    <span class="mp-screen-ip" style="color:<?= htmlspecialchars($colorTextScreenIp) ?>;">10.129.2.14</span>
-                    <span class="mp-zbadge"    style="color:<?= htmlspecialchars($colorTextZbadge) ?>;">Z:0</span>
-                </div>
-                <div class="preview-caption">Notlu</div>
-            </div>
-            <div>
-                <div style="width:70px; height:70px; border-radius:10px; border:1px solid #ccc;
-                            box-shadow:4px 4px 8px rgba(0,0,0,0.35); transition:background 0.3s;"
-                     id="prev_mapbg" data-bg="1"
-                     style="background:<?= htmlspecialchars($colorMapBg) ?>;"></div>
-                <div class="preview-caption">Harita Zem.</div>
             </div>
         </div>
-    </div>
+
+        <!-- Kaydet + Önizleme -->
+        <div class="card">
+            <div style="display:flex; align-items:flex-start; gap:32px; flex-wrap:wrap;">
+                <div>
+                    <button type="submit" name="save_colors" style="margin-bottom:0;">💾 Kaydet</button>
+                </div>
+                <div>
+                    <div style="font-size:12px; color:#888; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">👁️ Önizleme</div>
+                    <div class="preview-grid">
+                        <div>
+                            <div class="machine-preview" id="prev_normal"
+                                 style="background:<?= htmlspecialchars($colorNormal) ?>;">
+                                <span class="mp-label"     style="color:<?= htmlspecialchars($colorTextLabel) ?>;">2606</span>
+                                <span class="mp-ip"        style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.1.2.106</span>
+                                <span class="mp-screen-ip" style="color:<?= htmlspecialchars($colorTextScreenIp) ?>;">10.129.2.106</span>
+                                <span class="mp-zbadge"    style="color:<?= htmlspecialchars($colorTextZbadge) ?>;">Z:0</span>
+                            </div>
+                            <div class="preview-caption">Normal</div>
+                        </div>
+                        <div>
+                            <div class="machine-preview" id="prev_note"
+                                 style="background:<?= htmlspecialchars($colorNote) ?>;">
+                                <span class="mp-label"     style="color:<?= htmlspecialchars($colorTextLabel) ?>;">3033</span>
+                                <span class="mp-ip"        style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.1.2.14</span>
+                                <span class="mp-screen-ip" style="color:<?= htmlspecialchars($colorTextScreenIp) ?>;">10.129.2.14</span>
+                                <span class="mp-zbadge"    style="color:<?= htmlspecialchars($colorTextZbadge) ?>;">Z:0</span>
+                            </div>
+                            <div class="preview-caption">Notlu</div>
+                        </div>
+                        <div>
+                            <div style="width:70px; height:70px; border-radius:10px; border:1px solid #ccc;
+                                        box-shadow:4px 4px 8px rgba(0,0,0,0.35); transition:background 0.3s;"
+                                 id="prev_mapbg" data-bg="1"></div>
+                            <div class="preview-caption">Harita Zemin</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
 </div>
 
 <script>
