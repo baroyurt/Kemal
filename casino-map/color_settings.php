@@ -16,7 +16,7 @@ if (isset($_POST['save_colors'])) {
     csrf_verify();
 
     $allowed = ['machine_color_normal', 'machine_color_note', 'map_bg_color',
-                'machine_text_label', 'machine_text_ip', 'machine_text_zbadge'];
+                'machine_text_label', 'machine_text_ip', 'machine_text_screen_ip', 'machine_text_zbadge'];
     foreach ($allowed as $key) {
         if (isset($_POST[$key])) {
             $val = trim($_POST[$key]);
@@ -50,9 +50,10 @@ function get_setting(mysqli $conn, string $key, string $default): string {
 $colorNormal     = get_setting($conn, 'machine_color_normal', '#4CAF50');
 $colorNote       = get_setting($conn, 'machine_color_note',   '#40E0D0');
 $colorMapBg      = get_setting($conn, 'map_bg_color',         '#e0e0e0');
-$colorTextLabel  = get_setting($conn, 'machine_text_label',   '#ffffff');
-$colorTextIp     = get_setting($conn, 'machine_text_ip',      '#ffffff');
-$colorTextZbadge = get_setting($conn, 'machine_text_zbadge',  '#ffffff');
+$colorTextLabel    = get_setting($conn, 'machine_text_label',     '#ffffff');
+$colorTextIp       = get_setting($conn, 'machine_text_ip',        '#ffffff');
+$colorTextScreenIp = get_setting($conn, 'machine_text_screen_ip', '#90CAF9');
+$colorTextZbadge   = get_setting($conn, 'machine_text_zbadge',    '#ffffff');
 
 // Renk kontrastı için metin rengini hesapla (açık/koyu)
 function text_color(string $hex): string {
@@ -122,9 +123,10 @@ $textNote   = text_color($colorNote);
             content: ''; position: absolute; top: 6px; left: 8px; right: 8px;
             height: 4px; background: rgba(0,0,0,0.45); border-radius: 2px; pointer-events: none;
         }
-        .machine-preview .mp-label  { margin-top: 16px; }
-        .machine-preview .mp-ip     { font-size: 8px; opacity: 0.85; }
-        .machine-preview .mp-zbadge { font-size: 8px; background: rgba(0,0,0,0.4); padding: 1px 3px; border-radius: 3px; margin-top: 2px; }
+        .machine-preview .mp-label     { margin-top: 16px; }
+        .machine-preview .mp-ip        { font-size: 8px; opacity: 0.85; }
+        .machine-preview .mp-screen-ip { font-size: 8px; opacity: 0.85; }
+        .machine-preview .mp-zbadge    { font-size: 8px; background: rgba(0,0,0,0.4); padding: 1px 3px; border-radius: 3px; margin-top: 2px; }
         .preview-caption { font-size: 11px; color: #888; text-align: center; margin-top: 4px; }
 
         button[type="submit"] {
@@ -247,6 +249,22 @@ $textNote   = text_color($colorNote);
                 </div>
             </div>
 
+            <!-- Screen IP yazı rengi -->
+            <div class="color-row">
+                <div class="color-label">
+                    <strong>Screen IP Yazı Rengi</strong>
+                    <span>Makine kartındaki ekran (screen) IP adresinin rengi</span>
+                </div>
+                <div class="picker-wrap">
+                    <input type="color" id="picker_textscreenip" value="<?= htmlspecialchars($colorTextScreenIp) ?>"
+                           oninput="syncColor('textscreenip', this.value)">
+                    <input type="text" name="machine_text_screen_ip" id="hex_textscreenip" class="hex-input"
+                           value="<?= htmlspecialchars($colorTextScreenIp) ?>" maxlength="7"
+                           pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                           oninput="syncPicker('textscreenip', this.value)" required>
+                </div>
+            </div>
+
             <!-- Z rozet rengi -->
             <div class="color-row" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
                 <div class="color-label">
@@ -274,20 +292,20 @@ $textNote   = text_color($colorNote);
             <div>
                 <div class="machine-preview" id="prev_normal"
                      style="background:<?= htmlspecialchars($colorNormal) ?>;">
-                    <span class="mp-label"  style="color:<?= htmlspecialchars($colorTextLabel) ?>;">2606</span>
-                    <span class="mp-ip"     style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.1.2.106</span>
-                    <span class="mp-ip"     style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.129.2.106</span>
-                    <span class="mp-zbadge" style="color:<?= htmlspecialchars($colorTextZbadge) ?>;">Z:0</span>
+                    <span class="mp-label"     style="color:<?= htmlspecialchars($colorTextLabel) ?>;">2606</span>
+                    <span class="mp-ip"        style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.1.2.106</span>
+                    <span class="mp-screen-ip" style="color:<?= htmlspecialchars($colorTextScreenIp) ?>;">10.129.2.106</span>
+                    <span class="mp-zbadge"    style="color:<?= htmlspecialchars($colorTextZbadge) ?>;">Z:0</span>
                 </div>
                 <div class="preview-caption">Normal</div>
             </div>
             <div>
                 <div class="machine-preview" id="prev_note"
                      style="background:<?= htmlspecialchars($colorNote) ?>;">
-                    <span class="mp-label"  style="color:<?= htmlspecialchars($colorTextLabel) ?>;">3033</span>
-                    <span class="mp-ip"     style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.1.2.14</span>
-                    <span class="mp-ip"     style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.129.2.14</span>
-                    <span class="mp-zbadge" style="color:<?= htmlspecialchars($colorTextZbadge) ?>;">Z:0</span>
+                    <span class="mp-label"     style="color:<?= htmlspecialchars($colorTextLabel) ?>;">3033</span>
+                    <span class="mp-ip"        style="color:<?= htmlspecialchars($colorTextIp) ?>;">10.1.2.14</span>
+                    <span class="mp-screen-ip" style="color:<?= htmlspecialchars($colorTextScreenIp) ?>;">10.129.2.14</span>
+                    <span class="mp-zbadge"    style="color:<?= htmlspecialchars($colorTextZbadge) ?>;">Z:0</span>
                 </div>
                 <div class="preview-caption">Notlu</div>
             </div>
@@ -335,6 +353,10 @@ function updatePreview(type, hex) {
     }
     if (type === 'textip') {
         document.querySelectorAll('.mp-ip').forEach(function(el){ el.style.color = hex; });
+        return;
+    }
+    if (type === 'textscreenip') {
+        document.querySelectorAll('.mp-screen-ip').forEach(function(el){ el.style.color = hex; });
         return;
     }
     if (type === 'textzbadge') {

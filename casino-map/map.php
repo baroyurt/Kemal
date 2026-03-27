@@ -69,16 +69,18 @@ function map_get_setting(mysqli $conn, string $key, string $default): string {
 $machineColorNormal = map_get_setting($conn, 'machine_color_normal', '#4CAF50');
 $machineColorNote   = map_get_setting($conn, 'machine_color_note',   '#40E0D0');
 $mapBgColor         = map_get_setting($conn, 'map_bg_color',         '#e0e0e0');
-$machineTextLabel   = map_get_setting($conn, 'machine_text_label',   '#ffffff');
-$machineTextIp      = map_get_setting($conn, 'machine_text_ip',      '#ffffff');
-$machineTextZbadge  = map_get_setting($conn, 'machine_text_zbadge',  '#ffffff');
+$machineTextLabel    = map_get_setting($conn, 'machine_text_label',     '#ffffff');
+$machineTextIp       = map_get_setting($conn, 'machine_text_ip',        '#ffffff');
+$machineTextScreenIp = map_get_setting($conn, 'machine_text_screen_ip', '#90CAF9');
+$machineTextZbadge   = map_get_setting($conn, 'machine_text_zbadge',    '#ffffff');
 // Basit güvenlik: sadece geçerli HEX renkleri kabul et
-if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNormal)) $machineColorNormal = '#4CAF50';
-if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNote))   $machineColorNote   = '#40E0D0';
-if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $mapBgColor))         $mapBgColor         = '#e0e0e0';
-if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextLabel))   $machineTextLabel   = '#ffffff';
-if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextIp))      $machineTextIp      = '#ffffff';
-if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))  $machineTextZbadge  = '#ffffff';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNormal))  $machineColorNormal  = '#4CAF50';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNote))    $machineColorNote    = '#40E0D0';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $mapBgColor))          $mapBgColor          = '#e0e0e0';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextLabel))    $machineTextLabel    = '#ffffff';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextIp))       $machineTextIp       = '#ffffff';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextScreenIp)) $machineTextScreenIp = '#90CAF9';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $machineTextZbadge   = '#ffffff';
 ?>
 
 <!DOCTYPE html>
@@ -791,7 +793,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))  $m
                         <span class="machine-label"><?php echo htmlspecialchars($row['machine_no']); ?></span>
                         <span class="machine-ip"><?php echo htmlspecialchars($row['smibb_ip'] ?? ''); ?></span>
                         <?php if(!empty($drscreenIp)): ?>
-                            <span class="machine-ip" style="color:#90CAF9;"><?php echo $drscreenIp; ?></span>
+                        <span class="machine-ip" style="color:<?php echo $machineTextScreenIp; ?>;"><?php echo $drscreenIp; ?></span>
                         <?php endif; ?>
                         <span class="z-level">Z:<?php echo $row['pos_z']; ?></span>
                     </div>
@@ -1234,6 +1236,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))  $m
             '<div class="machine-inner">' +
             '<span class="machine-label">' + esc(data.machine_no) + '</span>' +
             '<span class="machine-ip">' + esc(data.smibb_ip) + '</span>' +
+            (data.screen_ip ? '<span class="machine-ip" style="color:<?php echo $machineTextScreenIp; ?>;">' + esc(data.screen_ip) + '</span>' : '') +
             '<span class="z-level">Z:' + esc(data.pos_z) + '</span>' +
             '</div>';
         map.appendChild(div);
