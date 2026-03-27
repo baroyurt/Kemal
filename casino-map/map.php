@@ -69,10 +69,16 @@ function map_get_setting(mysqli $conn, string $key, string $default): string {
 $machineColorNormal = map_get_setting($conn, 'machine_color_normal', '#4CAF50');
 $machineColorNote   = map_get_setting($conn, 'machine_color_note',   '#40E0D0');
 $mapBgColor         = map_get_setting($conn, 'map_bg_color',         '#e0e0e0');
+$machineTextLabel   = map_get_setting($conn, 'machine_text_label',   '#ffffff');
+$machineTextIp      = map_get_setting($conn, 'machine_text_ip',      '#ffffff');
+$machineTextZbadge  = map_get_setting($conn, 'machine_text_zbadge',  '#ffffff');
 // Basit güvenlik: sadece geçerli HEX renkleri kabul et
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNormal)) $machineColorNormal = '#4CAF50';
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNote))   $machineColorNote   = '#40E0D0';
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $mapBgColor))         $mapBgColor         = '#e0e0e0';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextLabel))   $machineTextLabel   = '#ffffff';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextIp))      $machineTextIp      = '#ffffff';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))  $machineTextZbadge  = '#ffffff';
 ?>
 
 <!DOCTYPE html>
@@ -188,7 +194,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $mapBgColor))         $m
             <?php if($role == 'admin'): ?>cursor: move;<?php else: ?>cursor: default;<?php endif; ?>
             transition: all 0.2s ease; user-select: none; font-weight: bold;
             box-shadow: 5px 5px 8px rgba(0,0,0,0.5); border-radius: 10px; font-size: 12px;
-            color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); z-index: 1;
+            color: <?php echo $machineTextLabel; ?>; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); z-index: 1;
         }
         .machine.selected { border: 3px solid yellow !important; box-shadow: 0 0 20px rgba(255,255,0,0.5), 5px 5px 8px rgba(0,0,0,0.5); z-index: 1000; }
         .machine.has-note { background: <?php echo $machineColorNote; ?>; }
@@ -206,8 +212,8 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $mapBgColor))         $m
             overflow: hidden; padding-top: 10px;
         }
         .machine-label { font-size: 11px; font-weight: bold; line-height: 1.2; text-align: center; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .machine-ip    { font-size: 8px;  opacity: 0.85; text-align: center; line-height: 1.2; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .z-level { font-size: 8px; background: rgba(0,0,0,0.4); padding: 1px 3px; border-radius: 3px; margin-top: 1px; }
+        .machine-ip    { font-size: 8px; color: <?php echo $machineTextIp; ?>; opacity: 0.85; text-align: center; line-height: 1.2; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .z-level { font-size: 8px; color: <?php echo $machineTextZbadge; ?>; background: rgba(0,0,0,0.4); padding: 1px 3px; border-radius: 3px; margin-top: 1px; }
         .machine-rot { font-size: 8px; opacity: 0.9; text-align: center; line-height: 1.2; letter-spacing: 0.3px; }
         /* Hub SW */
         .machine.has-hub-sw { border: 3px solid #FF9800 !important; box-shadow: 0 0 12px rgba(255,152,0,0.5); }
