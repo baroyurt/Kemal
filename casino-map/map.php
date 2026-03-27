@@ -358,7 +358,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
         .groups-panel {
             position: fixed; right: 20px; top: 80px; width: 260px; background: white;
             border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); z-index: 2000;
-            max-height: 55vh; overflow-y: auto;
+            max-height: 75vh; overflow-y: auto;
         }
         .dark-theme .groups-panel { background: #2d2d2d; color: white; border: 1px solid #444; }
         .groups-panel-header { padding: 8px 12px; border-bottom: 1px solid #eee; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: inherit; z-index: 1; }
@@ -377,7 +377,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
         .group-machine-input { display: flex; gap: 4px; margin-bottom: 6px; }
         .group-machine-input input { flex: 1; padding: 5px 7px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; }
         .group-machine-input button { padding: 5px 9px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .group-machine-list { max-height: 110px; overflow-y: auto; margin-bottom: 6px; font-size: 11px; border: 1px solid #eee; border-radius: 5px; padding: 4px; }
+        .group-machine-list { overflow-y: visible; margin-bottom: 6px; font-size: 11px; border: 1px solid #eee; border-radius: 5px; padding: 4px; }
         .group-machine-item { display: flex; justify-content: space-between; align-items: center; padding: 3px 4px; border-bottom: 1px solid #eee; }
         .group-machine-item button { background: #f44336; color: white; border: none; border-radius: 3px; padding: 1px 4px; cursor: pointer; font-size: 10px; }
         
