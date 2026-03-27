@@ -202,14 +202,14 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))  $m
         .machine:hover { filter: brightness(1.2); z-index: 1001; }
         /* Orijinal SVG'deki separator çizgisi — ikonun üst kısmında siyah yatay bar */
         .machine::before {
-            content: ''; position: absolute; top: 14px; left: 10px; right: 10px;
+            content: ''; position: absolute; top: 6px; left: 10px; right: 10px;
             height: 4px; background: rgba(0,0,0,0.55); border-radius: 2px; pointer-events: none;
         }
         /* Counter-rotate inner content so labels stay upright regardless of machine rotation */
         .machine-inner {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             width: 100%; height: 100%; pointer-events: none; transition: transform 0.2s;
-            overflow: hidden; padding-top: 10px;
+            overflow: hidden; padding-top: 16px;
         }
         .machine-label { font-size: 11px; font-weight: bold; line-height: 1.2; text-align: center; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .machine-ip    { font-size: 8px; color: <?php echo $machineTextIp; ?>; opacity: 0.85; text-align: center; line-height: 1.2; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

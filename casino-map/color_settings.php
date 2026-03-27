@@ -119,10 +119,10 @@ $textNote   = text_color($colorNote);
             transition: background 0.3s, color 0.3s;
         }
         .machine-preview::before {
-            content: ''; position: absolute; top: 14px; left: 8px; right: 8px;
+            content: ''; position: absolute; top: 6px; left: 8px; right: 8px;
             height: 4px; background: rgba(0,0,0,0.45); border-radius: 2px; pointer-events: none;
         }
-        .machine-preview .mp-label  { margin-top: 8px; }
+        .machine-preview .mp-label  { margin-top: 16px; }
         .machine-preview .mp-ip     { font-size: 8px; opacity: 0.85; }
         .machine-preview .mp-zbadge { font-size: 8px; background: rgba(0,0,0,0.4); padding: 1px 3px; border-radius: 3px; margin-top: 2px; }
         .preview-caption { font-size: 11px; color: #888; text-align: center; margin-top: 4px; }
