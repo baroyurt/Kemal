@@ -2374,7 +2374,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const brand        = machine.getAttribute('data-brand') || '';
         const model        = machine.getAttribute('data-model') || '';
         const machinePc    = machine.getAttribute('data-machine-pc') || '';
-        const posX         = Math.round(parseFloat(machine.style.left) || parseInt(machine.getAttribute('data-x')) || 0);
+        const seriNumber   = machine.getAttribute('data-seri-number') || '';
+        const posX= Math.round(parseFloat(machine.style.left) || parseInt(machine.getAttribute('data-x')) || 0);
         const posY         = Math.round(parseFloat(machine.style.top)  || parseInt(machine.getAttribute('data-y')) || 0);
         const rotation     = parseInt(machine.getAttribute('data-rotation') || 0);
         const z            = machine.getAttribute('data-z')   || '0';
@@ -2398,7 +2399,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="info-row"><div class="info-label">Screen IP</div><div class="info-value" style="color:#2196F3;">${escapeHtml(drscreenIp) || '-'}</div></div>
             <div class="info-row"><div class="info-label">MAC Adresi</div><div class="info-value" style="font-size:11px;">${escapeHtml(mac)}</div></div>
             ${machinePc ? `<div class="info-row"><div class="info-label">Machine PC</div><div class="info-value">${escapeHtml(machinePc)}</div></div>` : ''}
-            ${machineType ? `<div class="info-row"><div class="info-label">Makine Türü</div><div class="info-value">${escapeHtml(machineType)}</div></div>` : ''}
+            ${seriNumber ? `<div class="info-row"><div class="info-label">Seri No</div><div class="info-value">${escapeHtml(seriNumber)}</div></div>` : ''}
+            ${machineType? `<div class="info-row"><div class="info-label">Makine Türü</div><div class="info-value">${escapeHtml(machineType)}</div></div>` : ''}
             ${gameType ? `<div class="info-row"><div class="info-label">Oyun Türü</div><div class="info-value">${escapeHtml(gameType)}</div></div>` : ''}
             ${brand ? `<div class="info-row"><div class="info-label">Marka</div><div class="info-value">${escapeHtml(brand)}</div></div>` : ''}
             ${model ? `<div class="info-row"><div class="info-label">Model</div><div class="info-value">${escapeHtml(model)}</div></div>` : ''}

@@ -21,10 +21,10 @@ if(isset($_GET['download_csv_template'])){
     $out = fopen('php://output', 'w');
     // UTF-8 BOM — Excel'in Türkçe karakterleri doğru okuması için
     fputs($out, "\xEF\xBB\xBF");
-    fputcsv($out, ['Sıra','machine_no','machine_pc','smibb_ip','screen_ip','mac','machine_type','game_type','pos_z','pos_x','pos_y','rotation','note']);
-    fputcsv($out, [1, '2925', 'PC01-001-001-057', '10.1.3.25',  '10.129.3.25',  '69-44', 'Apex / Curve', 'Elements x100', 1, 430, 1732,  90, '']);
-    fputcsv($out, [2, '2926', 'PC01-001-001-058', '10.1.3.26',  '10.129.3.26',  '68-4f', 'Apex / Curve', 'Elements x100', 1, 430, 1795,  90, '']);
-    fputcsv($out, [3, '2935', 'PC01-001-001-059', '10.5.7.35',  '10.133.7.35',  '61-f3', 'Apex / Curve', 'Elements x25',  5, 2931, 1347,  0, '']);
+    fputcsv($out, ['Sıra','machine_no','machine_pc','smibb_ip','screen_ip','mac','machine_seri_number','machine_type','game_type','pos_z','pos_x','pos_y','rotation','note']);
+    fputcsv($out, [1, '2925', 'PC01-001-001-057', '10.1.3.25',  '10.129.3.25',  '69-44', '14231345', 'Apex / Curve', 'Elements x100', 1, 430, 1732,  90, '']);
+    fputcsv($out, [2, '2926', 'PC01-001-001-058', '10.1.3.26',  '10.129.3.26',  '68-4f', '14231346', 'Apex / Curve', 'Elements x100', 1, 430, 1795,  90, '']);
+    fputcsv($out, [3, '2935', 'PC01-001-001-059', '10.5.7.35',  '10.133.7.35',  '61-f3', '',         'Apex / Curve', 'Elements x25',  5, 2931, 1347,  0, '']);
     fclose($out);
     exit;
 }
@@ -32,10 +32,10 @@ if(isset($_GET['download_csv_template'])){
 // ── Excel Şablon İndirme (Format A: makine_no + tam sütunlar) ────────────────
 if(isset($_GET['download_template'])){
     include_once("xlsx_helper.php");
-    $headers = ['machine_no', 'machine_pc', 'smibb_ip', 'screen_ip', 'mac', 'machine_type', 'game_type', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
+    $headers = ['machine_no', 'machine_pc', 'smibb_ip', 'screen_ip', 'mac', 'machine_seri_number', 'machine_type', 'game_type', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
     $rows = [
-        ['MAKINE001', 'PC01-001-001-001', '192.168.1.100', '192.168.1.200', 'AA:BB:CC:DD:EE:FF', 'Slot', 'Green General', 0, 2036, 1340, 90, ''],
-        ['MAKINE002', 'PC01-001-001-002', '192.168.1.101', '192.168.1.201', 'AA:BB:CC:DD:EE:00', 'Slot', 'Fruits Collection 2', 1, 2037, 1265, 90, ''],
+        ['MAKINE001', 'PC01-001-001-001', '192.168.1.100', '192.168.1.200', 'AA:BB:CC:DD:EE:FF', '14231345', 'Slot', 'Green General', 0, 2036, 1340, 90, ''],
+        ['MAKINE002', 'PC01-001-001-002', '192.168.1.101', '192.168.1.201', 'AA:BB:CC:DD:EE:00', '13145474', 'Slot', 'Fruits Collection 2', 1, 2037, 1265, 90, ''],
     ];
     send_xlsx('makine_sablonu.xlsx', $headers, $rows);
 }
@@ -43,9 +43,9 @@ if(isset($_GET['download_template'])){
 // ── Mevcut Makineleri Excel Olarak Dışa Aktar ─────────────────────────────────
 if(isset($_GET['export_machines'])){
     include_once("xlsx_helper.php");
-    $headers = ['machine_no', 'machine_pc', 'smibb_ip', 'screen_ip', 'mac', 'machine_type', 'game_type', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
+    $headers = ['machine_no', 'machine_pc', 'smibb_ip', 'screen_ip', 'mac', 'machine_seri_number', 'machine_type', 'game_type', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
     $rows = [];
-    $exp = $conn->query("SELECT machine_no,machine_pc,smibb_ip,screen_ip,mac,machine_type,game_type,pos_z,pos_x,pos_y,rotation,note FROM machines ORDER BY pos_z, machine_no");
+    $exp = $conn->query("SELECT machine_no,machine_pc,smibb_ip,screen_ip,mac,machine_seri_number,machine_type,game_type,pos_z,pos_x,pos_y,rotation,note FROM machines ORDER BY pos_z, machine_no");
     while($r = $exp->fetch_assoc()){
         $rows[] = array_values($r);
     }
@@ -122,12 +122,13 @@ if(isset($_POST['upload'])){
         $rowIndex  = 0;
 
         // ── Format tespiti: ilk satırı oku ──────────────────────────────────
-        // Format A (tam):           machine_no, [machine_pc,] smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
+        // Format A (tam):           machine_no, [machine_pc,] smibb_ip, screen_ip, mac, [machine_seri_number,] machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
         // Format B (basit):         Sıra, Salon, Makine No, Marka, Model, Oyun Türü
-        // Format C (tam+sıra):      Sıra, machine_no, [machine_pc,] smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
-        $csvFormat   = 'full';
+        // Format C (tam+sıra):      Sıra, machine_no, [machine_pc,] smibb_ip, screen_ip, mac, [machine_seri_number,] machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
+        $csvFormat    = 'full';
         $hasMachinePc = false; // machine_pc kolonu dosyada var mı?
-        $processRows = [];
+        $hasSeriNo    = false; // machine_seri_number kolonu dosyada var mı?
+        $processRows  = [];
 
         if(!empty($allRows)){
             $firstRow = $allRows[0];
@@ -140,10 +141,15 @@ if(isset($_POST['upload'])){
                 $csvFormat    = 'full';
                 $hasMachinePc = ($col1 === 'machine_pc');
                 $isHeaderRow  = true;
+                // Detect machine_seri_number in header (anywhere after mac)
+                $headerLower = array_map(fn($h) => mb_strtolower(trim($h), 'UTF-8'), $firstRow);
+                $hasSeriNo   = in_array('machine_seri_number', $headerLower);
             } elseif(($col0 === 'sıra' || $col0 === 'sira') && $col1 === 'machine_no'){
                 $csvFormat    = 'full_shifted';
                 $hasMachinePc = ($col2 === 'machine_pc');
                 $isHeaderRow  = true;
+                $headerLower  = array_map(fn($h) => mb_strtolower(trim($h), 'UTF-8'), $firstRow);
+                $hasSeriNo    = in_array('machine_seri_number', $headerLower);
             } elseif($col0 === 'sıra' || $col0 === 'sira' || $col2 === 'makine no'){
                 $csvFormat   = 'simple';
                 $isHeaderRow = true;
@@ -163,8 +169,8 @@ if(isset($_POST['upload'])){
 
         // ── Prepared statement'lar ──────────────────────────────────────────
         $check_stmt  = $conn->prepare("SELECT id FROM machines WHERE machine_no = ?");
-        $update_full = $conn->prepare("UPDATE machines SET smibb_ip=?, screen_ip=?, mac=?, machine_type=?, game_type=?, brand=?, model=?, machine_pc=?, pos_z=?, pos_x=?, pos_y=?, rotation=?, note=? WHERE id=?");
-        $insert_full = $conn->prepare("INSERT INTO machines(machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, brand, model, machine_pc, pos_z, pos_x, pos_y, rotation, note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        $update_full = $conn->prepare("UPDATE machines SET smibb_ip=?, screen_ip=?, mac=?, machine_seri_number=?, machine_type=?, game_type=?, brand=?, model=?, machine_pc=?, pos_z=?, pos_x=?, pos_y=?, rotation=?, note=? WHERE id=?");
+        $insert_full = $conn->prepare("INSERT INTO machines(machine_no, smibb_ip, screen_ip, mac, machine_seri_number, machine_type, game_type, brand, model, machine_pc, pos_z, pos_x, pos_y, rotation, note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         $update_simple = $conn->prepare("UPDATE machines SET brand=?, model=?, game_type=? WHERE id=?");
         $insert_simple = $conn->prepare("INSERT INTO machines(machine_no, brand, model, game_type, pos_x, pos_y) VALUES(?,?,?,?,?,?)");
 
@@ -202,23 +208,25 @@ if(isset($_POST['upload'])){
                     $rowIndex++;
                 }
             } elseif($csvFormat === 'full_shifted'){
-                // Format C: Sıra, machine_no, [machine_pc,] smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
+                // Format C: Sıra, machine_no, [machine_pc,] smibb_ip, screen_ip, mac, [machine_seri_number,] machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
                 if(count($data) < 5) { $skipped++; continue; }
                 $pco          = $hasMachinePc ? 1 : 0; // machine_pc kolon ofseti
+                $sco          = $hasSeriNo    ? 1 : 0; // machine_seri_number kolon ofseti
                 $mn           = trim($data[1]);
                 $machine_pc   = $hasMachinePc ? trim($data[2] ?? '') : '';
                 $smibb_ip     = trim($data[2 + $pco] ?? '');
                 $screen_ip    = trim($data[3 + $pco] ?? '');
                 $mac          = trim($data[4 + $pco] ?? '');
-                $machine_type = trim($data[5 + $pco] ?? '');
-                $game_type    = trim($data[6 + $pco] ?? '');
-                $pz           = isset($data[7 + $pco])  && $data[7 + $pco]  !== '' ? intval($data[7 + $pco])  : 0;
-                $px           = isset($data[8 + $pco])  && $data[8 + $pco]  !== '' ? intval($data[8 + $pco])  : null;
-                $py           = isset($data[9 + $pco])  && $data[9 + $pco]  !== '' ? intval($data[9 + $pco])  : null;
-                $rot          = isset($data[10 + $pco]) && $data[10 + $pco] !== '' ? intval($data[10 + $pco]) : 0;
-                $note         = trim($data[11 + $pco] ?? '');
-                $brand        = trim($data[12 + $pco] ?? '');
-                $model_val    = trim($data[13 + $pco] ?? '');
+                $seri_no      = $hasSeriNo ? trim($data[5 + $pco] ?? '') : '';
+                $machine_type = trim($data[5 + $pco + $sco] ?? '');
+                $game_type    = trim($data[6 + $pco + $sco] ?? '');
+                $pz           = isset($data[7 + $pco + $sco])  && $data[7 + $pco + $sco]  !== '' ? intval($data[7 + $pco + $sco])  : 0;
+                $px           = isset($data[8 + $pco + $sco])  && $data[8 + $pco + $sco]  !== '' ? intval($data[8 + $pco + $sco])  : null;
+                $py           = isset($data[9 + $pco + $sco])  && $data[9 + $pco + $sco]  !== '' ? intval($data[9 + $pco + $sco])  : null;
+                $rot          = isset($data[10 + $pco + $sco]) && $data[10 + $pco + $sco] !== '' ? intval($data[10 + $pco + $sco]) : 0;
+                $note         = trim($data[11 + $pco + $sco] ?? '');
+                $brand        = trim($data[12 + $pco + $sco] ?? '');
+                $model_val    = trim($data[13 + $pco + $sco] ?? '');
                 if($mn === '') { $skipped++; continue; }
 
                 $existing_id = null;
@@ -234,7 +242,7 @@ if(isset($_POST['upload'])){
                         if($px === null) $px = intval($cur['pos_x']);
                         if($py === null) $py = intval($cur['pos_y']);
                     }
-                    $update_full->bind_param("ssssssssiiiisi", $smibb_ip, $screen_ip, $mac, $machine_type, $game_type, $brand, $model_val, $machine_pc, $pz, $px, $py, $rot, $note, $existing_id);
+                    $update_full->bind_param("sssssssssiiiisi", $smibb_ip, $screen_ip, $mac, $seri_no, $machine_type, $game_type, $brand, $model_val, $machine_pc, $pz, $px, $py, $rot, $note, $existing_id);
                     $update_full->execute();
                     $updated++;
                 } else {
@@ -245,29 +253,31 @@ if(isset($_POST['upload'])){
                         if($px === null) $px = 50 + $gridCol * 68;
                         if($py === null) $py = 50 + $gridRow * 68;
                     }
-                    $insert_full->bind_param("sssssssssiiiis", $mn, $smibb_ip, $screen_ip, $mac, $machine_type, $game_type, $brand, $model_val, $machine_pc, $pz, $px, $py, $rot, $note);
+                    $insert_full->bind_param("ssssssssssiiiis", $mn, $smibb_ip, $screen_ip, $mac, $seri_no, $machine_type, $game_type, $brand, $model_val, $machine_pc, $pz, $px, $py, $rot, $note);
                     $insert_full->execute();
                     $inserted++;
                     $rowIndex++;
                 }
             } else {
-                // Format A: machine_no, [machine_pc,] smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
+                // Format A: machine_no, [machine_pc,] smibb_ip, screen_ip, mac, [machine_seri_number,] machine_type, game_type, pos_z, pos_x, pos_y, rotation, note
                 if(count($data) < 4) { $skipped++; continue; }
                 $pco          = $hasMachinePc ? 1 : 0; // machine_pc kolon ofseti
+                $sco          = $hasSeriNo    ? 1 : 0; // machine_seri_number kolon ofseti
                 $mn           = trim($data[0]);
                 $machine_pc   = $hasMachinePc ? trim($data[1] ?? '') : '';
                 $smibb_ip     = trim($data[1 + $pco] ?? '');
                 $screen_ip    = trim($data[2 + $pco] ?? '');
                 $mac          = trim($data[3 + $pco] ?? '');
-                $machine_type = trim($data[4 + $pco] ?? '');
-                $game_type    = trim($data[5 + $pco] ?? '');
-                $pz           = isset($data[6 + $pco]) && $data[6 + $pco] !== '' ? intval($data[6 + $pco]) : 0;
-                $px           = isset($data[7 + $pco]) && $data[7 + $pco] !== '' ? intval($data[7 + $pco]) : null;
-                $py           = isset($data[8 + $pco]) && $data[8 + $pco] !== '' ? intval($data[8 + $pco]) : null;
-                $rot          = isset($data[9 + $pco]) && $data[9 + $pco] !== '' ? intval($data[9 + $pco]) : 0;
-                $note         = trim($data[10 + $pco] ?? '');
-                $brand        = trim($data[11 + $pco] ?? '');
-                $model_val    = trim($data[12 + $pco] ?? '');
+                $seri_no      = $hasSeriNo ? trim($data[4 + $pco] ?? '') : '';
+                $machine_type = trim($data[4 + $pco + $sco] ?? '');
+                $game_type    = trim($data[5 + $pco + $sco] ?? '');
+                $pz           = isset($data[6 + $pco + $sco]) && $data[6 + $pco + $sco] !== '' ? intval($data[6 + $pco + $sco]) : 0;
+                $px           = isset($data[7 + $pco + $sco]) && $data[7 + $pco + $sco] !== '' ? intval($data[7 + $pco + $sco]) : null;
+                $py           = isset($data[8 + $pco + $sco]) && $data[8 + $pco + $sco] !== '' ? intval($data[8 + $pco + $sco]) : null;
+                $rot          = isset($data[9 + $pco + $sco]) && $data[9 + $pco + $sco] !== '' ? intval($data[9 + $pco + $sco]) : 0;
+                $note         = trim($data[10 + $pco + $sco] ?? '');
+                $brand        = trim($data[11 + $pco + $sco] ?? '');
+                $model_val    = trim($data[12 + $pco + $sco] ?? '');
 
                 $existing_id = null;
                 $check_stmt->bind_param("s", $mn);
@@ -282,7 +292,7 @@ if(isset($_POST['upload'])){
                         if($px === null) $px = intval($cur['pos_x']);
                         if($py === null) $py = intval($cur['pos_y']);
                     }
-                    $update_full->bind_param("ssssssssiiiisi", $smibb_ip, $screen_ip, $mac, $machine_type, $game_type, $brand, $model_val, $machine_pc, $pz, $px, $py, $rot, $note, $existing_id);
+                    $update_full->bind_param("sssssssssiiiisi", $smibb_ip, $screen_ip, $mac, $seri_no, $machine_type, $game_type, $brand, $model_val, $machine_pc, $pz, $px, $py, $rot, $note, $existing_id);
                     $update_full->execute();
                     $updated++;
                 } else {
@@ -293,7 +303,7 @@ if(isset($_POST['upload'])){
                         if($px === null) $px = 50 + $gridCol * 68;
                         if($py === null) $py = 50 + $gridRow * 68;
                     }
-                    $insert_full->bind_param("sssssssssiiiis", $mn, $smibb_ip, $screen_ip, $mac, $machine_type, $game_type, $brand, $model_val, $machine_pc, $pz, $px, $py, $rot, $note);
+                    $insert_full->bind_param("ssssssssssiiiis", $mn, $smibb_ip, $screen_ip, $mac, $seri_no, $machine_type, $game_type, $brand, $model_val, $machine_pc, $pz, $px, $py, $rot, $note);
                     $insert_full->execute();
                     $inserted++;
                     $rowIndex++;
@@ -352,9 +362,9 @@ if(isset($_POST['upload'])){
         <h3>📤 Excel (.xlsx) veya CSV Yükle</h3>
         <div class="info-box">
             <strong>⭐ Önerilen format: Excel (.xlsx)</strong> — Excel'de hazırlayıp doğrudan yükleyin.<br>
-            <strong>Format A (tam):</strong> <code>machine_no, machine_pc, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note</code><br>
+            <strong>Format A (tam):</strong> <code>machine_no, machine_pc, smibb_ip, screen_ip, mac, machine_seri_number, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note</code><br>
             <strong>Format B (basit):</strong> <code>Sıra, Salon, Makine No, Marka, Model, Oyun Türü</code><br>
-            <strong>Format C (tam+sıra):</strong> <code>Sıra, machine_no, machine_pc, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note</code><br>
+            <strong>Format C (tam+sıra):</strong> <code>Sıra, machine_no, machine_pc, smibb_ip, screen_ip, mac, machine_seri_number, machine_type, game_type, pos_z, pos_x, pos_y, rotation, note</code><br>
             Format otomatik algılanır. Makine zaten varsa bilgileri <strong>güncellenir</strong>; yoksa yeni olarak eklenir. Koordinat sütunları boş bırakılabilir.
         </div>
         <?php if(isset($upload_error)): ?>

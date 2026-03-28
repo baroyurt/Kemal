@@ -782,6 +782,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
                      data-brand="<?php echo htmlspecialchars($row['brand'] ?? '', ENT_QUOTES); ?>"
                      data-model="<?php echo htmlspecialchars($row['model'] ?? '', ENT_QUOTES); ?>"
                      data-machine-pc="<?php echo htmlspecialchars($row['machine_pc'] ?? '', ENT_QUOTES); ?>"
+                     data-seri-number="<?php echo htmlspecialchars($row['machine_seri_number'] ?? '', ENT_QUOTES); ?>"
                      data-hub-sw="<?php echo $hasHubSw ? '1' : '0'; ?>"
                      data-hub-sw-cable="<?php echo htmlspecialchars($row['hub_sw_cable'] ?? '', ENT_QUOTES); ?>"
                      style="left: <?php echo $row['pos_x']; ?>px; top: <?php echo $row['pos_y']; ?>px; transform: rotate(<?php echo $row['rotation']; ?>deg);">
@@ -1228,6 +1229,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
         div.setAttribute('data-brand', data.brand || '');
         div.setAttribute('data-model', data.model || '');
         div.setAttribute('data-machine-pc', data.machine_pc || '');
+        div.setAttribute('data-seri-number', data.machine_seri_number || '');
         div.setAttribute('data-hub-sw', '0');
         div.setAttribute('data-hub-sw-cable', '');
         div.style.left = '20px';

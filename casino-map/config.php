@@ -130,7 +130,8 @@ ensure_column($conn, 'machines', 'hub_sw',       'TINYINT(1) DEFAULT 0');
 ensure_column($conn, 'machines', 'hub_sw_cable', 'VARCHAR(255) DEFAULT NULL');
 ensure_column($conn, 'machines', 'brand',        'VARCHAR(100) DEFAULT NULL');
 ensure_column($conn, 'machines', 'model',        'VARCHAR(100) DEFAULT NULL');
-ensure_column($conn, 'machines', 'machine_pc',   'VARCHAR(100) DEFAULT NULL');
+ensure_column($conn, 'machines', 'machine_pc',        'VARCHAR(100) DEFAULT NULL');
+ensure_column($conn, 'machines', 'machine_seri_number', 'VARCHAR(100) DEFAULT NULL');
 
 // machine_groups tablosu — zamanla eklenen sütunlar
 ensure_column($conn, 'machine_groups', 'color',     "VARCHAR(20) DEFAULT '#4CAF50'");
