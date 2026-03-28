@@ -6,8 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global değişkenler
     window.selectedMachines = [];
     window.groupsData = {};
-    window.regionsData = [];       // bölge listesi
-    window.activeRegionId = null;  // seçili bölge filtresi
 
     // Track currently active floor ('all', '0', '1', '2', '3')
     let currentFloor = 'all';
@@ -311,7 +309,8 @@ document.addEventListener('DOMContentLoaded', function() {
             window.selectedMachines.forEach(m => { m.element.style.zIndex = ''; });
             groupDragInitialPositions = [];
             suppressNextClick = true;
-            showStatus('Pozisyonlar güncellendi. Kaydetmek için 💾 butonuna tıklayın.');
+            // Auto-save moved machines immediately after group drag
+            autoSavePositions(window.selectedMachines.slice());
         }
 
         if (isMoving) {
@@ -329,7 +328,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Suppress the click that fires after mouseup so selection doesn't toggle
             suppressNextClick = true;
-            showStatus('Pozisyonlar güncellendi. Kaydetmek için 💾 butonuna tıklayın.');
+            // Auto-save moved machines immediately after drag
+            autoSavePositions(window.selectedMachines.slice());
         }
 
         // If no group drag happened, discard the pending record
@@ -560,15 +560,80 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========== FİLTRELEME ==========
     
     function filterMachines(e) {
-        const searchText = e.target.value.toLowerCase();
+        const searchText = (e.target.value || '').trim().toLowerCase();
         
-        document.querySelectorAll('#map .machine').forEach(machine => {
-            const machineNo = machine.getAttribute('data-machine-no').toLowerCase();
-            const ip = machine.getAttribute('data-ip').toLowerCase();
-            const mac = machine.getAttribute('data-mac').toLowerCase();
-            
-            machine.style.display = (machineNo.includes(searchText) || ip.includes(searchText) || mac.includes(searchText)) ? 'flex' : 'none';
+        if (!searchText) {
+            // Arama kutusu boşaltıldı — tüm makineleri normale döndür
+            document.querySelectorAll('#map .machine').forEach(function(machine) {
+                machine.style.opacity = '';
+                machine.style.pointerEvents = '';
+                // Kat filtresine göre görünürlüğü geri yükle
+                if (currentFloor === 'all') {
+                    machine.style.display = 'flex';
+                } else {
+                    machine.style.display = (machine.getAttribute('data-z') === currentFloor) ? 'flex' : 'none';
+                }
+            });
+            return;
+        }
+
+        let hasMatch = false;
+
+        document.querySelectorAll('#map .machine').forEach(function(machine) {
+            const machineNo  = (machine.getAttribute('data-machine-no') || '').toLowerCase();
+            const smibb_ip   = (machine.getAttribute('data-smibb-ip') || '').toLowerCase();
+            const mac        = (machine.getAttribute('data-mac') || '').toLowerCase();
+            const machinePc  = (machine.getAttribute('data-machine-pc') || '').toLowerCase();
+
+            const matches = machineNo.includes(searchText)
+                         || smibb_ip.includes(searchText)
+                         || mac.includes(searchText)
+                         || machinePc.includes(searchText);
+
+            if (matches) {
+                machine.style.display = 'flex';
+                machine.style.opacity = '1';
+                machine.style.pointerEvents = '';
+                hasMatch = true;
+            } else {
+                machine.style.display = 'flex';   // hâlâ görünür (transparan)
+                machine.style.opacity = '0.12';
+                machine.style.pointerEvents = 'none';
+            }
         });
+
+        // Eşleşen makineleri görünüme sığdır
+        if (hasMatch) {
+            requestAnimationFrame(function() {
+                const MACH_W  = 60;
+                const MACH_H  = 60;
+                const PADDING = 80;
+                const matched = Array.from(document.querySelectorAll('#map .machine'))
+                    .filter(function(m) { return parseFloat(m.style.opacity || '1') >= 0.9; });
+                if (matched.length === 0) return;
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                matched.forEach(function(m) {
+                    const x = parseFloat(m.style.left) || 0;
+                    const y = parseFloat(m.style.top)  || 0;
+                    if (x           < minX) minX = x;
+                    if (x + MACH_W  > maxX) maxX = x + MACH_W;
+                    if (y           < minY) minY = y;
+                    if (y + MACH_H  > maxY) maxY = y + MACH_H;
+                });
+                const container = document.getElementById('map-container');
+                if (!container) return;
+                const cw = container.clientWidth;
+                const ch = container.clientHeight;
+                const contentW = (maxX - minX) + PADDING * 2;
+                const contentH = (maxY - minY) + PADDING * 2;
+                const newScale = Math.max(MAP_SCALE_MIN,
+                                 Math.min(MAP_SCALE_MAX, cw / contentW, ch / contentH));
+                mapScale = newScale;
+                mapTranslateX = (cw - contentW * newScale) / 2 + (PADDING - minX) * newScale;
+                mapTranslateY = (ch - contentH * newScale) / 2 + (PADDING - minY) * newScale;
+                applyMapTransform();
+            });
+        }
     }
     
     function filterByZ(e) {
@@ -768,22 +833,34 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const tooltip = document.createElement('div');
         tooltip.className = 'machine-tooltip';
-        const machineNo = machine.getAttribute('data-machine-no');
-        const ip = machine.getAttribute('data-ip');
-        const hubSw = machine.getAttribute('data-hub-sw') === '1';
-        const hubSwCable = machine.getAttribute('data-hub-sw-cable') || '';
+        const machineNo   = machine.getAttribute('data-machine-no');
+        const smibb_ip    = machine.getAttribute('data-smibb-ip') || '';
+        const screenIp    = machine.getAttribute('data-drscreen-ip') || '';
+        const mac         = machine.getAttribute('data-mac') || '';
+        const machineType = machine.getAttribute('data-machine-type') || '';
+        const gameType    = machine.getAttribute('data-game-type') || '';
+        const brand       = machine.getAttribute('data-brand') || '';
+        const model       = machine.getAttribute('data-model') || '';
+        const machinePc   = machine.getAttribute('data-machine-pc') || '';
+        const hubSw       = machine.getAttribute('data-hub-sw') === '1';
+        const hubSwCable  = machine.getAttribute('data-hub-sw-cable') || '';
         
-        let hubSwHtml = '';
-        if (hubSw) {
-            hubSwHtml = `<div style="color:#FF9800; font-weight:bold; margin-top:5px;">🔌 Hub SW${hubSwCable ? ' → ' + escapeHtml(hubSwCable) : ''}</div>`;
-        }
-        
+        const row = (label, val, color) => val
+            ? `<div style="display:flex;gap:6px;margin-top:3px;"><span style="color:#aaa;min-width:80px;font-size:10px;">${label}:</span><span style="font-size:11px;word-break:break-all;${color ? 'color:'+color+';' : ''}">${escapeHtml(val)}</span></div>`
+            : '';
+
         tooltip.innerHTML = `
-            <div style="font-weight: bold; margin-bottom: 5px; color: #40E0D0;">${escapeHtml(machineNo)}</div>
-            <div style="font-size: 11px; color: #aaa; margin-bottom: 5px;">${escapeHtml(ip)}</div>
-            <hr style="margin: 5px 0; border: 0; border-top: 1px solid #444;">
-            <div style="font-size: 12px; max-width: 200px; word-wrap: break-word;">${escapeHtml(note)}</div>
-            ${hubSwHtml}
+            <div style="font-weight:bold;margin-bottom:5px;color:#40E0D0;font-size:13px;">${escapeHtml(machineNo)}</div>
+            ${row('SMIBB IP', smibb_ip || '-')}
+            ${row('Screen IP', screenIp || '-', '#90CAF9')}
+            ${row('MAC', mac)}
+            ${row('Machine PC', machinePc)}
+            ${row('Makine Türü', machineType)}
+            ${row('Oyun Türü', gameType)}
+            ${row('Marka', brand)}
+            ${row('Model', model)}
+            ${hubSw ? `<div style="color:#FF9800;font-weight:bold;margin-top:5px;font-size:11px;">🔌 Hub SW${hubSwCable ? ' → ' + escapeHtml(hubSwCable) : ''}</div>` : ''}
+            ${note ? `<hr style="margin:6px 0;border:0;border-top:1px solid #444;"><div style="font-size:11px;max-width:200px;word-wrap:break-word;color:#ccc;">${escapeHtml(note)}</div>` : ''}
         `;
         
         document.body.appendChild(tooltip);
@@ -815,50 +892,13 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(groups => {
                 window.groupsData = groups;
-                // Bölgeleri de yükle
-                fetch('get_regions.php')
-                    .then(r => r.json())
-                    .then(regions => {
-                        window.regionsData = regions;
-                        updateRegionFilters();
-                        updateGroupsPanel();
-                    })
-                    .catch(() => {
-                        window.regionsData = [];
-                        updateRegionFilters();
-                        updateGroupsPanel();
-                    });
+                updateGroupsPanel();
                 updateGroupIcons();
                 updateGroupFilter();
             })
             .catch(error => console.log('Grup yüklenemedi:', error));
     }
     
-    function updateRegionFilters() {
-        const container = document.getElementById('regionFilters');
-        if (!container) return;
-
-        const regions = window.regionsData || [];
-        if (regions.length === 0) {
-            container.style.display = 'none';
-            return;
-        }
-        container.style.display = 'flex';
-
-        let html = `<button onclick="setRegionFilter(null)" style="padding:3px 10px;border-radius:12px;border:2px solid rgba(255,255,255,0.5);background:${window.activeRegionId===null?'rgba(255,255,255,0.3)':'transparent'};color:white;cursor:pointer;font-size:11px;font-weight:bold;transition:all 0.2s;">Tümü</button>`;
-        regions.forEach(r => {
-            const active = window.activeRegionId === r.id;
-            html += `<button onclick="setRegionFilter(${r.id})" style="padding:3px 10px;border-radius:12px;border:2px solid ${escapeHtml(r.color)};background:${active?escapeHtml(r.color):'transparent'};color:${active?'white':escapeHtml(r.color)};cursor:pointer;font-size:11px;font-weight:bold;transition:all 0.2s;">${escapeHtml(r.name)}</button>`;
-        });
-        container.innerHTML = html;
-    }
-
-    window.setRegionFilter = function(regionId) {
-        window.activeRegionId = regionId;
-        updateRegionFilters();
-        updateGroupsPanel();
-    };
-
     function updateGroupsPanel() {
         const groupsList = document.getElementById('groupsList');
         if (!groupsList) return;
@@ -870,8 +910,6 @@ document.addEventListener('DOMContentLoaded', function() {
             '3': '🎰 Alt Salon',
         };
         const FLOOR_ORDER = ['0', '1', '2', '3'];
-
-        const activeRegion = window.activeRegionId;
 
         // Grubun baskın katını (Z) makine data-z değerlerine göre hesapla
         function getGroupFloor(group) {
@@ -892,7 +930,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const buckets = { '0': [], '1': [], '2': [], '3': [], 'other': [] };
         for (let groupId in window.groupsData) {
             const group = window.groupsData[groupId];
-            if (activeRegion !== null && group.region_id !== activeRegion) continue;
             const floor = getGroupFloor(group);
             const key = FLOOR_ORDER.includes(floor) ? floor : 'other';
             buckets[key].push(groupId);
@@ -934,7 +971,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="group-machine-list" id="machine-list-${groupId}">${getMachineListHtml(group.machines, groupId)}</div>
                     <div class="group-actions">
                         ${adminButtons}
-                        <button class="export-btn" onclick="exportGroup(${groupId})" title="Excel aktar"><i class="fas fa-file-excel"></i></button>
+                        ${IS_ADMIN ? `<button class="export-btn" onclick="exportGroup(${groupId})" title="Excel aktar"><i class="fas fa-file-excel"></i></button>` : ''}
                         <button class="show-btn" onclick="showGroup(${groupId})" title="Göster"><i class="fas fa-eye"></i></button>
                     </div>
                 </div>
@@ -955,7 +992,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         if (html === '') {
-            html = '<div style="padding: 20px; text-align: center; color: #999;">Bu bölgede grup yok</div>';
+            html = '<div style="padding: 20px; text-align: center; color: #999;">Henüz grup yok</div>';
         }
         groupsList.innerHTML = html;
     }
@@ -1070,7 +1107,6 @@ document.addEventListener('DOMContentLoaded', function() {
             highlight.style.width = (maxX - minX + 16) + 'px';
             highlight.style.height = (maxY - minY + 16) + 'px';
             highlight.style.borderColor = color;
-            highlight.style.background = hexToRgba(color, 0.08);
             highlight.setAttribute('data-group-id', groupId);
 
             // Group highlight is decorative only — pointer-events:none (CSS default)
@@ -1469,7 +1505,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const collapsed = body.classList.toggle('collapsed');
         if (headerEl) headerEl.classList.toggle('collapsed', collapsed);
         // Açılınca max-height'ı ger, kapanınca 0
-        body.style.maxHeight = collapsed ? '0' : '2000px';
+        body.style.maxHeight = collapsed ? '0' : '9999px';
     };
     
     // ========== NOT FONKSİYONLARI ==========
@@ -1591,13 +1627,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 machine.element.setAttribute('data-y', validY);
                 machine.x = validX;
                 machine.y = validY;
+                // Z etiketini makine ikonunun içinde güncelle
+                const zSpan = machine.element.querySelector('.z-level');
+                if (zSpan) zSpan.textContent = 'Z:' + z;
             });
         });
         
         Promise.all(promises).then(() => {
             closePositionModal();
-            resizeMapToFitMachines();
-            updateGroupIcons();
+            // Katman görünürlüğünü yeniden uygula — Z değiştiğinde makine doğru katmana taşınsın.
+            switchFloor(currentFloor);
+            // Refresh info panel so Z layer change is immediately visible
+            if (window.selectedMachines.length > 0) {
+                const panel = document.getElementById('machine-info-panel');
+                if (panel && panel.classList.contains('open')) {
+                    window.showMachineInfoPanel(window.selectedMachines[0].element);
+                }
+            }
             showStatus('Pozisyonlar güncellendi!');
         });
     };
@@ -1755,7 +1801,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         updateGroupIcons();
-        showStatus(sorted.length + ' makine düzenlendi. Kaydetmek için 💾 butonuna tıklayın.');
+        autoSavePositions(window.selectedMachines.slice());
     };
     
     // ========== TOOLBAR FONKSİYONLARI ==========
@@ -1864,7 +1910,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 machine.element.style.transform = `rotate(${newRotation}deg)`;
                 applyInnerRotation(machine.element);
             });
-            showStatus(`${window.selectedMachines.length} makine ${angle}° döndürüldü`);
+            // Auto-save rotation changes immediately
+            autoSavePositions(window.selectedMachines.slice());
         } else {
             showStatus('Lütfen önce makine seçin');
         }
@@ -1903,6 +1950,25 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     // ========== YARDIMCI FONKSİYONLAR ==========
+
+    // Auto-save a list of selectedMachines objects to the server immediately.
+    // Used after drag-and-drop to make saving transparent (no manual save needed).
+    function autoSavePositions(machines) {
+        if (!machines || machines.length === 0) return;
+        Promise.all(machines.map(function(m) {
+            var fd = new FormData();
+            fd.append('id', m.id);
+            fd.append('x', Math.round(parseFloat(m.element.style.left) || 0));
+            fd.append('y', Math.round(parseFloat(m.element.style.top)  || 0));
+            fd.append('z', m.element.getAttribute('data-z') || 0);
+            fd.append('rotation', m.element.getAttribute('data-rotation') || 0);
+            return fetch('update_position.php', { method: 'POST', body: fd });
+        })).then(function() {
+            showStatus('Pozisyonlar kaydedildi!');
+        }).catch(function() {
+            showStatus('Kaydetme hatası! Tekrar deneyin.');
+        });
+    }
 
     // Keep machine labels upright regardless of the machine element's CSS rotation.
     // Called once on init and after every rotation update.
@@ -2300,10 +2366,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!panel) return;
 
         const machineNo    = machine.getAttribute('data-machine-no') || '-';
-        const ip           = machine.getAttribute('data-ip')  || '-';
+        const ip           = machine.getAttribute('data-smibb-ip')  || '-';
         const drscreenIp   = machine.getAttribute('data-drscreen-ip') || '';
         const mac          = machine.getAttribute('data-mac')  || '-';
-        const posX         = Math.round(parseFloat(machine.style.left) || parseInt(machine.getAttribute('data-x')) || 0);
+        const machineType  = machine.getAttribute('data-machine-type') || '';
+        const gameType     = machine.getAttribute('data-game-type') || '';
+        const brand        = machine.getAttribute('data-brand') || '';
+        const model        = machine.getAttribute('data-model') || '';
+        const machinePc    = machine.getAttribute('data-machine-pc') || '';
+        const seriNumber   = machine.getAttribute('data-seri-number') || '';
+        const posX= Math.round(parseFloat(machine.style.left) || parseInt(machine.getAttribute('data-x')) || 0);
         const posY         = Math.round(parseFloat(machine.style.top)  || parseInt(machine.getAttribute('data-y')) || 0);
         const rotation     = parseInt(machine.getAttribute('data-rotation') || 0);
         const z            = machine.getAttribute('data-z')   || '0';
@@ -2323,9 +2395,15 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('info-panel-body').innerHTML = `
             <div class="info-row"><div class="info-label">Kat</div><div class="info-value">${floorNames[z] || z}</div></div>
             <div class="info-row"><div class="info-label">Koordinat (X, Y)</div><div class="info-value">${posX}, ${posY} &nbsp;<span style="opacity:0.7;font-size:11px;">(${rotation}°)</span></div></div>
-            <div class="info-row"><div class="info-label">Makine IP</div><div class="info-value">${escapeHtml(ip)}</div></div>
-            ${drscreenIp ? `<div class="info-row"><div class="info-label">DRscreen IP</div><div class="info-value" style="color:#2196F3;">${escapeHtml(drscreenIp)}</div></div>` : ''}
+            <div class="info-row"><div class="info-label">SMIBB IP</div><div class="info-value">${escapeHtml(ip)}</div></div>
+            <div class="info-row"><div class="info-label">Screen IP</div><div class="info-value" style="color:#2196F3;">${escapeHtml(drscreenIp) || '-'}</div></div>
             <div class="info-row"><div class="info-label">MAC Adresi</div><div class="info-value" style="font-size:11px;">${escapeHtml(mac)}</div></div>
+            ${machinePc ? `<div class="info-row"><div class="info-label">Machine PC</div><div class="info-value">${escapeHtml(machinePc)}</div></div>` : ''}
+            ${seriNumber ? `<div class="info-row"><div class="info-label">Seri No</div><div class="info-value">${escapeHtml(seriNumber)}</div></div>` : ''}
+            ${machineType? `<div class="info-row"><div class="info-label">Makine Türü</div><div class="info-value">${escapeHtml(machineType)}</div></div>` : ''}
+            ${gameType ? `<div class="info-row"><div class="info-label">Oyun Türü</div><div class="info-value">${escapeHtml(gameType)}</div></div>` : ''}
+            ${brand ? `<div class="info-row"><div class="info-label">Marka</div><div class="info-value">${escapeHtml(brand)}</div></div>` : ''}
+            ${model ? `<div class="info-row"><div class="info-label">Model</div><div class="info-value">${escapeHtml(model)}</div></div>` : ''}
             ${hubSw ? `<div class="info-row"><div class="info-label">🔌 Hub SW</div><div class="info-value">${escapeHtml(hubSwCable) || 'Var'}</div></div>` : ''}
             <div class="info-row"><div class="info-label">Gruplar</div><div class="info-value">${groupTags || '<span style="color:#aaa">Grup yok</span>'}</div></div>
             ${note ? `<div class="info-row"><div class="info-label">Not</div><div class="info-value">${escapeHtml(note)}</div></div>` : ''}

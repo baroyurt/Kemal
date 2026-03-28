@@ -17,8 +17,11 @@ function runQuery($conn, $sql, $description) {
     } else {
         $errNo = $conn->errno;
         // 1060 = Duplicate column, 1050 = Table exists
+        // 1054 = Unknown column (e.g. source column no longer exists, migration already done)
         if ($errNo == 1060 || $errNo == 1050) {
             $messages[] = ['type' => 'info', 'text' => "ℹ️ $description (zaten mevcut, atlandı)"];
+        } elseif ($errNo == 1054) {
+            $messages[] = ['type' => 'info', 'text' => "ℹ️ $description (kaynak kolon bulunamadı, zaten migrate edilmiş olabilir)"];
         } else {
             $messages[] = ['type' => 'error', 'text' => "❌ $description: " . $conn->error];
         }
@@ -43,6 +46,58 @@ runQuery($conn,
 runQuery($conn,
     "ALTER TABLE machines ADD COLUMN hub_sw_target VARCHAR(100) DEFAULT NULL",
     "machines tablosuna 'hub_sw_target' kolonu eklendi"
+);
+
+runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN game_type VARCHAR(100) DEFAULT NULL",
+    "machines tablosuna 'game_type' kolonu eklendi"
+);
+
+runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN smibb_ip VARCHAR(50) DEFAULT NULL",
+    "machines tablosuna 'smibb_ip' kolonu eklendi"
+);
+
+// Mevcut 'ip' verisini 'smibb_ip'ye kopyala
+runQuery($conn,
+    "UPDATE machines SET smibb_ip = ip WHERE smibb_ip IS NULL AND ip IS NOT NULL",
+    "ip verisi smibb_ip kolonuna kopyalandı"
+);
+
+runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN screen_ip VARCHAR(50) DEFAULT NULL",
+    "machines tablosuna 'screen_ip' kolonu eklendi"
+);
+
+// Mevcut 'drscreen_ip' verisini 'screen_ip'ye kopyala
+runQuery($conn,
+    "UPDATE machines SET screen_ip = drscreen_ip WHERE screen_ip IS NULL AND drscreen_ip IS NOT NULL",
+    "drscreen_ip verisi screen_ip kolonuna kopyalandı"
+);
+
+runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN area INT DEFAULT NULL",
+    "machines tablosuna 'area' kolonu eklendi"
+);
+
+runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN machine_type VARCHAR(100) DEFAULT NULL",
+    "machines tablosuna 'machine_type' kolonu eklendi"
+);
+
+runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN brand VARCHAR(100) DEFAULT NULL",
+    "machines tablosuna 'brand' kolonu eklendi"
+);
+
+runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN model VARCHAR(100) DEFAULT NULL",
+    "machines tablosuna 'model' kolonu eklendi"
+);
+
+runQuery($conn,
+    "ALTER TABLE machines ADD COLUMN machine_pc VARCHAR(100) DEFAULT NULL",
+    "machines tablosuna 'machine_pc' kolonu eklendi"
 );
 
 runQuery($conn,
