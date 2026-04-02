@@ -90,6 +90,9 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
     <title>Makine Haritası</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -640,6 +643,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
                 <i class="fas fa-image"></i><span class="tooltip-text">Zemin Planı</span>
             </button>
             <?php endif; ?>
+            <button class="toolbar-btn" style="background:#e53935;" onclick="exportFloorPDF()" title="PDF İndir"><i class="fas fa-file-pdf"></i><span class="tooltip-text">PDF İndir</span></button>
             <button class="toolbar-btn dashboard" onclick="toggleSidebar()" title="Menü"><i class="fas fa-bars"></i><span class="tooltip-text">Menü</span></button>
             <button class="toolbar-btn theme" onclick="toggleTheme()" title="Tema değiştir"><i class="fas fa-moon"></i><span class="tooltip-text">Tema değiştir</span></button>
             
