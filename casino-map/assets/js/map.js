@@ -2452,22 +2452,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const floorName = floorNames[currentFloor] || ('Kat ' + currentFloor);
 
-        // Collect machine data for the current floor
+        // Collect only machine no / hub-sw / note for the active floor
         const machines = [];
         document.querySelectorAll('#map .machine').forEach(function(el) {
             if (currentFloor !== 'all' && el.getAttribute('data-z') !== String(currentFloor)) return;
             if (el.style.display === 'none') return;
+            const hubSw     = el.getAttribute('data-hub-sw') === '1';
+            const hubCable  = el.getAttribute('data-hub-sw-cable') || '';
             machines.push({
-                machineNo:   el.getAttribute('data-machine-no')   || '',
-                smibbIp:     el.getAttribute('data-smibb-ip')     || '',
-                screenIp:    el.getAttribute('data-drscreen-ip')  || '',
-                mac:         el.getAttribute('data-mac')          || '',
-                machinePc:   el.getAttribute('data-machine-pc')   || '',
-                machineType: el.getAttribute('data-machine-type') || '',
-                gameType:    el.getAttribute('data-game-type')    || '',
-                hubSw:       el.getAttribute('data-hub-sw') === '1' ? 'Evet' : '',
-                hubSwCable:  el.getAttribute('data-hub-sw-cable') || '',
-                note:        el.getAttribute('data-note')         || ''
+                machineNo: el.getAttribute('data-machine-no') || '',
+                hubSwText: hubSw ? ('Var' + (hubCable ? ' → ' + hubCable : '')) : '',
+                note:      el.getAttribute('data-note') || ''
             });
         });
 
@@ -2481,6 +2476,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const infoPanel = document.getElementById('machine-info-panel');
         const infoPanelWasOpen = infoPanel && infoPanel.classList.contains('open');
         if (infoPanelWasOpen) infoPanel.classList.remove('open');
+
+        // Fit the view to the active floor so the screenshot captures only those machines
+        fitFloorToView(currentFloor);
+        await new Promise(function(resolve) { requestAnimationFrame(function() { requestAnimationFrame(resolve); }); });
 
         try {
             const mapContainer = document.getElementById('map-container');
@@ -2512,17 +2511,17 @@ document.addEventListener('DOMContentLoaded', function() {
             pdf.text(dateStr, pageW - 14, 14, { align: 'right' });
             pdf.text('Toplam Makine: ' + machines.length, 14, 20);
 
-            const imgData   = canvas.toDataURL('image/jpeg', 0.85);
-            const maxImgW   = pageW - 28;
-            const maxImgH   = pageH - 28;
-            const aspect    = canvas.width / canvas.height;
+            const imgData = canvas.toDataURL('image/jpeg', 0.85);
+            const maxImgW = pageW - 28;
+            const maxImgH = pageH - 28;
+            const aspect  = canvas.width / canvas.height;
             let drawW = maxImgW;
             let drawH = drawW / aspect;
             if (drawH > maxImgH) { drawH = maxImgH; drawW = drawH * aspect; }
 
             pdf.addImage(imgData, 'JPEG', 14, 24, drawW, drawH);
 
-            // Page 2+ – portrait A4, machine data table
+            // Page 2 – portrait A4, slim table (Makine No / Hub SW / Not)
             if (machines.length > 0) {
                 pdf.addPage('a4', 'portrait');
 
@@ -2535,29 +2534,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 pdf.text(dateStr, 196, 14, { align: 'right' });
 
                 const tableRows = machines.map(function(m) {
-                    return [m.machineNo, m.smibbIp, m.screenIp, m.mac, m.machinePc,
-                            m.machineType, m.gameType, m.hubSw, m.hubSwCable, m.note];
+                    return [m.machineNo, m.hubSwText, m.note];
                 });
 
                 pdf.autoTable({
                     startY: 20,
-                    head: [['Makine No', 'SMIBB IP', 'Screen IP', 'MAC', 'Machine PC',
-                            'Makine Türü', 'Oyun Türü', 'Hub SW', 'Kablo', 'Not']],
+                    head: [['Makine No', 'Hub SW', 'Not']],
                     body: tableRows,
-                    styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
-                    headStyles: { fillColor: [76, 175, 80], textColor: 255, fontSize: 7, fontStyle: 'bold' },
+                    styles: { fontSize: 9, cellPadding: 3, overflow: 'linebreak' },
+                    headStyles: { fillColor: [76, 175, 80], textColor: 255, fontSize: 9, fontStyle: 'bold' },
                     alternateRowStyles: { fillColor: [245, 250, 245] },
                     columnStyles: {
-                        0: { cellWidth: 18 },
-                        1: { cellWidth: 22 },
-                        2: { cellWidth: 22 },
-                        3: { cellWidth: 28 },
-                        4: { cellWidth: 20 },
-                        5: { cellWidth: 18 },
-                        6: { cellWidth: 15 },
-                        7: { cellWidth: 12 },
-                        8: { cellWidth: 18 },
-                        9: { cellWidth: 'auto' }
+                        0: { cellWidth: 30 },
+                        1: { cellWidth: 50 },
+                        2: { cellWidth: 'auto' }
                     },
                     margin: { left: 14, right: 14 }
                 });
