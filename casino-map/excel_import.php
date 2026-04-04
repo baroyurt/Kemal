@@ -43,9 +43,9 @@ if(isset($_GET['download_template'])){
 // ── Mevcut Makineleri Excel Olarak Dışa Aktar ─────────────────────────────────
 if(isset($_GET['export_machines'])){
     include_once("xlsx_helper.php");
-    $headers = ['machine_no', 'machine_pc', 'smibb_ip', 'screen_ip', 'mac', 'machine_seri_number', 'machine_type', 'game_type', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note'];
+    $headers = ['machine_no', 'machine_pc', 'smibb_ip', 'screen_ip', 'mac', 'machine_seri_number', 'machine_type', 'game_type', 'pos_z', 'pos_x', 'pos_y', 'rotation', 'note', 'hub_sw', 'hub_sw_cable'];
     $rows = [];
-    $exp = $conn->query("SELECT machine_no,machine_pc,smibb_ip,screen_ip,mac,machine_seri_number,machine_type,game_type,pos_z,pos_x,pos_y,rotation,note FROM machines ORDER BY pos_z, machine_no");
+    $exp = $conn->query("SELECT machine_no,machine_pc,smibb_ip,screen_ip,mac,machine_seri_number,machine_type,game_type,pos_z,pos_x,pos_y,rotation,note,hub_sw,hub_sw_cable FROM machines ORDER BY pos_z, machine_no");
     while($r = $exp->fetch_assoc()){
         $rows[] = array_values($r);
     }
