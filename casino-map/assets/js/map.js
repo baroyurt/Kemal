@@ -2494,8 +2494,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const { jsPDF } = window.jspdf;
 
-            // Page 1 – landscape A4, map image
-            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            // Page 1 – landscape A3, map image
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
             const pageW = pdf.internal.pageSize.getWidth();
             const pageH = pdf.internal.pageSize.getHeight();
 
@@ -2521,9 +2521,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             pdf.addImage(imgData, 'JPEG', 14, 24, drawW, drawH);
 
-            // Page 2 – portrait A4, slim table (Makine No / Hub SW / Not)
+            // Page 2 – portrait A3, slim table (Makine No / Hub SW / Not)
             if (machines.length > 0) {
-                pdf.addPage('a4', 'portrait');
+                pdf.addPage('a3', 'portrait');
 
                 pdf.setFontSize(14);
                 pdf.setTextColor(44, 125, 50);
@@ -2531,7 +2531,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 pdf.setFontSize(9);
                 pdf.setTextColor(120, 120, 120);
-                pdf.text(dateStr, 196, 14, { align: 'right' });
+                pdf.text(dateStr, pdf.internal.pageSize.getWidth() - 14, 14, { align: 'right' });
 
                 const tableRows = machines.map(function(m) {
                     return [m.machineNo, m.hubSwText, m.note];
