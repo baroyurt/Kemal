@@ -15,7 +15,7 @@ $error   = '';
 if (isset($_POST['save_colors'])) {
     csrf_verify();
 
-    $allowed = ['machine_color_normal', 'machine_color_note', 'map_bg_color',
+    $allowed = ['machine_color_normal', 'machine_color_note', 'map_bg_color', 'page_bg_color',
                 'machine_text_label', 'machine_text_ip', 'machine_text_screen_ip', 'machine_text_zbadge'];
     foreach ($allowed as $key) {
         if (isset($_POST[$key])) {
@@ -50,6 +50,7 @@ function get_setting(mysqli $conn, string $key, string $default): string {
 $colorNormal     = get_setting($conn, 'machine_color_normal', '#4CAF50');
 $colorNote       = get_setting($conn, 'machine_color_note',   '#40E0D0');
 $colorMapBg      = get_setting($conn, 'map_bg_color',         '#e0e0e0');
+$colorPageBg     = get_setting($conn, 'page_bg_color',        '#f0f0f0');
 $colorTextLabel    = get_setting($conn, 'machine_text_label',     '#ffffff');
 $colorTextIp       = get_setting($conn, 'machine_text_ip',        '#ffffff');
 $colorTextScreenIp = get_setting($conn, 'machine_text_screen_ip', '#90CAF9');
@@ -198,7 +199,7 @@ $textNote   = text_color($colorNote);
                 </div>
 
                 <!-- Harita arka plan rengi -->
-                <div class="color-row" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
+                <div class="color-row">
                     <div class="color-label">
                         <strong>Harita Arka Plan Rengi</strong>
                         <span>Harita tuvalinin arka plan rengi</span>
@@ -210,6 +211,22 @@ $textNote   = text_color($colorNote);
                                value="<?= htmlspecialchars($colorMapBg) ?>" maxlength="7"
                                pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
                                oninput="syncPicker('mapbg', this.value)" required>
+                    </div>
+                </div>
+
+                <!-- Sayfa arka plan rengi -->
+                <div class="color-row" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
+                    <div class="color-label">
+                        <strong>Sayfa Arka Plan Rengi</strong>
+                        <span>Harita dışındaki sayfa arka planının rengi</span>
+                    </div>
+                    <div class="picker-wrap">
+                        <input type="color" id="picker_pagebg" value="<?= htmlspecialchars($colorPageBg) ?>"
+                               oninput="syncColor('pagebg', this.value)">
+                        <input type="text" name="page_bg_color" id="hex_pagebg" class="hex-input"
+                               value="<?= htmlspecialchars($colorPageBg) ?>" maxlength="7"
+                               pattern="^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
+                               oninput="syncPicker('pagebg', this.value)" required>
                     </div>
                 </div>
             </div>
@@ -322,6 +339,12 @@ $textNote   = text_color($colorNote);
                                  id="prev_mapbg" data-bg="1"></div>
                             <div class="preview-caption">Harita Zemin</div>
                         </div>
+                        <div>
+                            <div style="width:70px; height:70px; border-radius:10px; border:1px solid #ccc;
+                                        box-shadow:4px 4px 8px rgba(0,0,0,0.35); transition:background 0.3s;"
+                                 id="prev_pagebg" data-bg="1"></div>
+                            <div class="preview-caption">Sayfa Arka Planı</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -377,9 +400,10 @@ function updatePreview(type, hex) {
     el.style.background = hex;
 }
 
-// Initialise mapbg preview on load
+// Initialise mapbg and pagebg preview on load
 document.addEventListener('DOMContentLoaded', function() {
     updatePreview('mapbg', document.getElementById('hex_mapbg').value);
+    updatePreview('pagebg', document.getElementById('hex_pagebg').value);
 });
 </script>
 </body>

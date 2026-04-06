@@ -69,6 +69,7 @@ function map_get_setting(mysqli $conn, string $key, string $default): string {
 $machineColorNormal = map_get_setting($conn, 'machine_color_normal', '#4CAF50');
 $machineColorNote   = map_get_setting($conn, 'machine_color_note',   '#40E0D0');
 $mapBgColor         = map_get_setting($conn, 'map_bg_color',         '#e0e0e0');
+$pageBgColor        = map_get_setting($conn, 'page_bg_color',        '#f0f0f0');
 $machineTextLabel    = map_get_setting($conn, 'machine_text_label',     '#ffffff');
 $machineTextIp       = map_get_setting($conn, 'machine_text_ip',        '#ffffff');
 $machineTextScreenIp = map_get_setting($conn, 'machine_text_screen_ip', '#90CAF9');
@@ -77,6 +78,7 @@ $machineTextZbadge   = map_get_setting($conn, 'machine_text_zbadge',    '#ffffff
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNormal))  $machineColorNormal  = '#4CAF50';
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineColorNote))    $machineColorNote    = '#40E0D0';
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $mapBgColor))          $mapBgColor          = '#e0e0e0';
+if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $pageBgColor))         $pageBgColor         = '#f0f0f0';
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextLabel))    $machineTextLabel    = '#ffffff';
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextIp))       $machineTextIp       = '#ffffff';
 if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextScreenIp)) $machineTextScreenIp = '#90CAF9';
@@ -103,7 +105,7 @@ if (!preg_match('/^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$/', $machineTextZbadge))   $
             flex-direction: column;
             overflow: hidden;
         }
-        body.light-theme { background: #f0f0f0; color: #333; }
+        body.light-theme { background: <?php echo $pageBgColor; ?>; color: #333; }
         body.light-theme .toolbar { background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         /* Left sidebar */
         #sidebar {
