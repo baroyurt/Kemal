@@ -8,13 +8,13 @@ if(!isset($_SESSION['login'])){
 
 $is_admin = ($_SESSION['role'] === 'admin');
 
-// Aktif sekme: 'edit', 'groups' veya 'delete'
+// Aktif sekme: 'edit' veya 'groups'
 // personel sadece 'groups' sekmesini görebilir
-$allowed_tabs = $is_admin ? ['edit','groups','delete'] : ['groups'];
+$allowed_tabs = $is_admin ? ['edit','groups'] : ['groups'];
 $tab_default  = $is_admin ? 'edit' : 'groups';
 $tab = isset($_GET['tab']) && in_array($_GET['tab'], $allowed_tabs) ? $_GET['tab'] : $tab_default;
 
-// edit ve delete sekmelerine personel erişemez
+// edit sekmesine personel erişemez
 if(!$is_admin && $tab !== 'groups'){
     header("Location: machine_settings.php?tab=groups");
     exit;
@@ -23,6 +23,37 @@ if(!$is_admin && $tab !== 'groups'){
 // Her iki sekme için gereken tüm POST işlemleri burada
 
 include("config.php");
+
+// AJAX: tüm makine ID'lerini JSON olarak döndür (toplu seçim için)
+if ($tab === 'edit' && $is_admin && isset($_GET['get_all_ids'])) {
+    $search_term = trim($_GET['search'] ?? '');
+    $ids = [];
+    if (!empty($search_term)) {
+        $like = '%' . $search_term . '%';
+        $stmt = $conn->prepare("SELECT id FROM machines WHERE machine_no LIKE ? OR smibb_ip LIKE ? OR mac LIKE ? OR note LIKE ? ORDER BY pos_z, machine_no");
+        $stmt->bind_param("ssss", $like, $like, $like, $like);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $stmt->close();
+    } else {
+        $result = $conn->query("SELECT id FROM machines ORDER BY pos_z, machine_no");
+    }
+    while ($row = $result->fetch_assoc()) $ids[] = $row['id'];
+    header('Content-Type: application/json');
+    echo json_encode($ids);
+    exit;
+}
+
+// AJAX: belirli bir grubun makine ID'lerini döndür
+if ($tab === 'edit' && $is_admin && isset($_GET['get_group_ids'])) {
+    $gid = intval($_GET['get_group_ids']);
+    $ids = [];
+    $result = $conn->query("SELECT machine_id FROM machine_group_relations WHERE group_id = $gid");
+    while ($row = $result->fetch_assoc()) $ids[] = $row['machine_id'];
+    header('Content-Type: application/json');
+    echo json_encode($ids);
+    exit;
+}
 
 /* ══════════════════════════════════════════════
    TAB: MAKİNE DÜZENLE (edit) — POST işlemleri
@@ -75,8 +106,8 @@ if($tab === 'edit'){
         csrf_verify();
         if(isset($_POST['selected_machines']) && is_array($_POST['selected_machines'])){
             $dup_stmt = $conn->prepare(
-                "INSERT INTO machines (machine_no, ip, mac, pos_x, pos_y, pos_z, rotation, note)
-                 SELECT CONCAT(machine_no, ' (Kopya)'), ip, mac, pos_x + 20, pos_y + 20, pos_z, rotation, CONCAT(COALESCE(note,''), ' (Kopya)')
+                "INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_x, pos_y, pos_z, rotation, note)
+                 SELECT CONCAT(machine_no, ' (Kopya)'), smibb_ip, screen_ip, mac, machine_type, game_type, pos_x + 20, pos_y + 20, pos_z, rotation, CONCAT(COALESCE(note,''), ' (Kopya)')
                  FROM machines WHERE id = ?"
             );
             foreach($_POST['selected_machines'] as $dup_id){
@@ -105,22 +136,25 @@ if($tab === 'edit'){
     // Tekil ekleme/güncelleme
     if(isset($_POST['save'])){
         csrf_verify();
-        $machine_no = $_POST['machine_no'];
-        $ip         = $_POST['ip'];
-        $mac        = $_POST['mac'];
-        $pos_z      = intval($_POST['pos_z']);
-        $note       = $_POST['note'];
+        $machine_no   = $_POST['machine_no'];
+        $smibb_ip     = $_POST['smibb_ip'];
+        $screen_ip    = $_POST['screen_ip'] ?? '';
+        $mac          = $_POST['mac'];
+        $machine_type = $_POST['machine_type'] ?? '';
+        $game_type    = $_POST['game_type'] ?? '';
+        $pos_z        = intval($_POST['pos_z']);
+        $note         = $_POST['note'];
 
         if(isset($_POST['id']) && !empty($_POST['id'])){
             $id = intval($_POST['id']);
-            $stmt = $conn->prepare("UPDATE machines SET machine_no=?, ip=?, mac=?, pos_z=?, note=? WHERE id=?");
-            $stmt->bind_param("sssisi", $machine_no, $ip, $mac, $pos_z, $note, $id);
+            $stmt = $conn->prepare("UPDATE machines SET machine_no=?, smibb_ip=?, screen_ip=?, mac=?, machine_type=?, game_type=?, pos_z=?, note=? WHERE id=?");
+            $stmt->bind_param("ssssssisi", $machine_no, $smibb_ip, $screen_ip, $mac, $machine_type, $game_type, $pos_z, $note, $id);
             $stmt->execute();
             $stmt->close();
             $message = "Makine güncellendi";
         } else {
-            $stmt = $conn->prepare("INSERT INTO machines (machine_no, ip, mac, pos_z, note) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssis", $machine_no, $ip, $mac, $pos_z, $note);
+            $stmt = $conn->prepare("INSERT INTO machines (machine_no, smibb_ip, screen_ip, mac, machine_type, game_type, pos_z, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssssis", $machine_no, $smibb_ip, $screen_ip, $mac, $machine_type, $game_type, $pos_z, $note);
             $stmt->execute();
             $stmt->close();
             $message = "Yeni makine eklendi";
@@ -137,12 +171,12 @@ if($tab === 'edit'){
 
     if(!empty($search)){
         $like = '%' . $search . '%';
-        $cstmt = $conn->prepare("SELECT COUNT(*) as count FROM machines WHERE machine_no LIKE ? OR ip LIKE ? OR mac LIKE ? OR note LIKE ?");
+        $cstmt = $conn->prepare("SELECT COUNT(*) as count FROM machines WHERE machine_no LIKE ? OR smibb_ip LIKE ? OR mac LIKE ? OR note LIKE ?");
         $cstmt->bind_param("ssss", $like, $like, $like, $like);
         $cstmt->execute();
         $total_machines = $cstmt->get_result()->fetch_assoc()['count'];
         $cstmt->close();
-        $dstmt = $conn->prepare("SELECT * FROM machines WHERE machine_no LIKE ? OR ip LIKE ? OR mac LIKE ? OR note LIKE ? ORDER BY pos_z, machine_no LIMIT ?, ?");
+        $dstmt = $conn->prepare("SELECT * FROM machines WHERE machine_no LIKE ? OR smibb_ip LIKE ? OR mac LIKE ? OR note LIKE ? ORDER BY pos_z, machine_no LIMIT ?, ?");
         $dstmt->bind_param("ssssii", $like, $like, $like, $like, $offset, $limit);
         $dstmt->execute();
         $machines = $dstmt->get_result();
@@ -158,6 +192,8 @@ if($tab === 'edit'){
     $total_pages = ceil($total_machines / $limit);
 
     $z_levels = [0=>'Yüksek Tavan', 1=>'Alçak Tavan', 2=>'Yeni Vip Salon', 3=>'Alt Salon'];
+    // Grupları toplu araç çubuğu için yükle
+    $groups_for_bulk = $conn->query("SELECT id, group_name FROM machine_groups ORDER BY group_name");
 }
 
 /* ══════════════════════════════════════════════
@@ -167,10 +203,8 @@ if($tab === 'groups'){
 
     if($is_admin && isset($_POST['create_group'])){
         csrf_verify();
-        $region_id_int = intval($_POST['region_id'] ?? 0);
-        $region_id_val = $region_id_int > 0 ? $region_id_int : null;
-        $stmt = $conn->prepare("INSERT INTO machine_groups (group_name, description, region_id) VALUES (?, ?, ?)");
-        $stmt->bind_param("ssi", $_POST['group_name'], $_POST['description'], $region_id_val);
+        $stmt = $conn->prepare("INSERT INTO machine_groups (group_name, description) VALUES (?, ?)");
+        $stmt->bind_param("ss", $_POST['group_name'], $_POST['description']);
         $stmt->execute();
         $stmt->close();
         $success = "Grup oluşturuldu!";
@@ -202,75 +236,12 @@ if($tab === 'groups'){
             }
             $stmt->close();
         }
-        // Bölge güncelle
-        if(isset($_POST['region_id'])){
-            $new_region = intval($_POST['region_id']) > 0 ? intval($_POST['region_id']) : null;
-            $rstmt = $conn->prepare("UPDATE machine_groups SET region_id = ? WHERE id = ?");
-            $rstmt->bind_param("ii", $new_region, $group_id);
-            $rstmt->execute();
-            $rstmt->close();
-        }
         header("Location: machine_settings.php?tab=groups&updated=1&group_id=$group_id");
         exit;
     }
 
-    // Bölge oluştur
-    if($is_admin && isset($_POST['create_region'])){
-        csrf_verify();
-        $region_name  = trim($_POST['region_name'] ?? '');
-        $region_color = isset($_POST['region_color']) && preg_match('/^#[0-9A-Fa-f]{6}$/', $_POST['region_color']) ? $_POST['region_color'] : '#607D8B';
-        if($region_name !== ''){
-            $stmt = $conn->prepare("INSERT INTO regions (name, color) VALUES (?, ?)");
-            $stmt->bind_param("ss", $region_name, $region_color);
-            $stmt->execute();
-            $stmt->close();
-            $success = "Bölge oluşturuldu!";
-        }
-    }
-
-    // Bölge sil
-    if($is_admin && isset($_GET['delete_region'])){
-        $region_id_del = intval($_GET['delete_region']);
-        $stmt = $conn->prepare("DELETE FROM regions WHERE id = ?");
-        $stmt->bind_param("i", $region_id_del);
-        $stmt->execute();
-        $stmt->close();
-        header("Location: machine_settings.php?tab=groups&region_deleted=1");
-        exit;
-    }
-
-    $groups       = $conn->query("SELECT mg.*, r.name AS region_name, r.color AS region_color FROM machine_groups mg LEFT JOIN regions r ON mg.region_id = r.id ORDER BY r.name, mg.group_name");
+    $groups       = $conn->query("SELECT * FROM machine_groups ORDER BY group_name");
     $all_machines = $conn->query("SELECT * FROM machines ORDER BY machine_no");
-    $all_regions  = $conn->query("SELECT * FROM regions ORDER BY name");
-}
-
-/* ══════════════════════════════════════════════
-   TAB: MAKİNE SİLME (delete) — POST işlemleri
-   ══════════════════════════════════════════════ */
-if($tab === 'delete'){
-
-    if(isset($_POST['bulk_delete_machines'])){
-        csrf_verify();
-        if(isset($_POST['selected_machines']) && is_array($_POST['selected_machines'])){
-            $selected_ids = implode(',', array_map('intval', $_POST['selected_machines']));
-            $conn->query("DELETE FROM machines WHERE id IN ($selected_ids)");
-            $del_count = $conn->affected_rows;
-            header("Location: machine_settings.php?tab=delete&deleted=$del_count");
-            exit;
-        }
-    }
-
-    $del_search = isset($_GET['search']) ? trim($_GET['search']) : '';
-    if($del_search){
-        $like = "%$del_search%";
-        $del_stmt = $conn->prepare("SELECT id, machine_no, ip, mac, pos_z, note FROM machines WHERE machine_no LIKE ? OR ip LIKE ? OR mac LIKE ? ORDER BY machine_no");
-        $del_stmt->bind_param("sss", $like, $like, $like);
-        $del_stmt->execute();
-        $del_machines = $del_stmt->get_result();
-        $del_stmt->close();
-    } else {
-        $del_machines = $conn->query("SELECT id, machine_no, ip, mac, pos_z, note FROM machines ORDER BY machine_no");
-    }
 }
 ?>
 <!DOCTYPE html>
@@ -288,13 +259,14 @@ if($tab === 'delete'){
         .tab-link { padding: 12px 28px; color: #666; text-decoration: none; font-size: 14px; font-weight: bold; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
         .tab-link:hover { color: #4CAF50; background: #f9f9f9; }
         .tab-link.active { color: #4CAF50; border-bottom: 3px solid #4CAF50; background: white; }
-        .tab-link.active-delete { color: #f44336; border-bottom: 3px solid #f44336; background: white; }
         /* Messages */
         .message { background: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; margin-bottom: 20px; animation: slideDown 0.3s ease; }
         @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         /* ─── Edit tab styles ─── */
         .form-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+        .form-grid .form-group-wide { grid-column: 1 / -1; }
         label { display: block; margin-bottom: 5px; color: #666; font-weight: bold; }
         input[type="text"], textarea, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         textarea { height: 100px; resize: vertical; }
@@ -343,13 +315,6 @@ if($tab === 'delete'){
         .machine-item { padding: 5px; border-bottom: 1px solid #eee; }
         .machine-item label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .group-stats { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
-        /* ─── Region filter ─── */
-        .region-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-        .region-btn { padding: 5px 14px; border: 2px solid #ddd; border-radius: 20px; background: white; cursor: pointer; font-size: 12px; font-weight: bold; transition: all 0.2s; }
-        .region-btn:hover { border-color: #4CAF50; color: #4CAF50; }
-        .region-btn.active-region { color: white; border-color: transparent; }
-        .region-section { margin-bottom: 10px; }
-        .region-label { font-size: 11px; font-weight: bold; color: #999; text-transform: uppercase; letter-spacing: 1px; padding: 6px 0 4px; border-top: 1px solid #eee; margin-top: 6px; }
     </style>
 </head>
 <body>
@@ -370,11 +335,6 @@ if($tab === 'delete'){
         <a href="machine_settings.php?tab=groups" class="tab-link <?php echo $tab==='groups'?'active':''; ?>">
             👥 Makine Grupları
         </a>
-        <?php if($is_admin): ?>
-        <a href="machine_settings.php?tab=delete" class="tab-link <?php echo $tab==='delete'?'active-delete':''; ?>">
-            🗑️ Makine Silme
-        </a>
-        <?php endif; ?>
     </div>
 
 <?php if($tab === 'edit'): ?>
@@ -404,12 +364,24 @@ if($tab === 'delete'){
                 <option value="<?php echo $z_value; ?>"><?php echo $z_label; ?> (Z:<?php echo $z_value; ?>)</option>
             <?php endforeach; ?>
         </select>
-        <button onclick="bulkUpdateZ()">Z Katmanını Güncelle</button>
+        <button type="button" onclick="bulkUpdateZ()">Z Katmanını Güncelle</button>
         <textarea id="bulkNote" placeholder="Toplu not girin..."></textarea>
-        <button onclick="bulkUpdateNote()">Notları Güncelle</button>
-        <button onclick="bulkDuplicate()">Seçilileri Kopyala</button>
-        <button onclick="bulkDelete()" style="background: #f44336; color: white;">Seçilileri Sil</button>
-        <button class="close-btn" onclick="hideBulkToolbar()">✕</button>
+        <button type="button" onclick="bulkUpdateNote()">Notları Güncelle</button>
+        <button type="button" onclick="bulkDuplicate()">Seçilileri Kopyala</button>
+        <button type="button" onclick="bulkDelete()" style="background: #f44336; color: white;">Seçilileri Sil</button>
+        <button type="button" class="close-btn" onclick="hideBulkToolbar()">✕</button>
+    </div>
+
+    <!-- Grup bazlı seçim satırı -->
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+        <select id="groupSelectBulk" style="padding:8px; border:1px solid #ddd; border-radius:5px; font-size:13px;">
+            <option value="">— Gruba Göre Seç —</option>
+            <?php if(isset($groups_for_bulk)): $groups_for_bulk->data_seek(0); while($g = $groups_for_bulk->fetch_assoc()): ?>
+                <option value="<?php echo intval($g['id']); ?>"><?php echo htmlspecialchars($g['group_name']); ?></option>
+            <?php endwhile; endif; ?>
+        </select>
+        <button type="button" onclick="selectByGroup()" style="padding:8px 14px; background:#9C27B0; color:white; border:none; border-radius:5px; cursor:pointer; font-size:13px;">👥 Grubu Seç</button>
+        <button type="button" onclick="selectAllPages()" style="padding:8px 14px; background:#FF9800; color:white; border:none; border-radius:5px; cursor:pointer; font-size:13px;">☑️ Tüm <?php echo intval($total_machines); ?> Makineyi Seç</button>
     </div>
 
     <div class="form-box">
@@ -417,18 +389,23 @@ if($tab === 'delete'){
         <form method="post" action="machine_settings.php?tab=edit" id="machineForm">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="id" id="edit_id">
-            <div class="form-group"><label>Makine No:</label><input type="text" name="machine_no" id="edit_machine_no" required></div>
-            <div class="form-group"><label>IP Adresi:</label><input type="text" name="ip" id="edit_ip" required></div>
-            <div class="form-group"><label>MAC Adresi:</label><input type="text" name="mac" id="edit_mac" required></div>
-            <div class="form-group">
-                <label>Z Koordinatı (Kat):</label>
-                <select name="pos_z" id="edit_z">
-                    <?php foreach($z_levels as $z_value => $z_label): ?>
-                        <option value="<?php echo $z_value; ?>"><?php echo $z_label; ?></option>
-                    <?php endforeach; ?>
-                </select>
+            <div class="form-grid">
+                <div class="form-group"><label>Makine No:</label><input type="text" name="machine_no" id="edit_machine_no" required></div>
+                <div class="form-group"><label>SMIBB IP:</label><input type="text" name="smibb_ip" id="edit_smibb_ip" required></div>
+                <div class="form-group"><label>Screen IP:</label><input type="text" name="screen_ip" id="edit_screen_ip"></div>
+                <div class="form-group"><label>MAC Adresi:</label><input type="text" name="mac" id="edit_mac" required></div>
+                <div class="form-group"><label>Makine Türü:</label><input type="text" name="machine_type" id="edit_machine_type"></div>
+                <div class="form-group"><label>Oyun Türü:</label><input type="text" name="game_type" id="edit_game_type"></div>
+                <div class="form-group">
+                    <label>Z Koordinatı (Kat):</label>
+                    <select name="pos_z" id="edit_z">
+                        <?php foreach($z_levels as $z_value => $z_label): ?>
+                            <option value="<?php echo $z_value; ?>"><?php echo $z_label; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group form-group-wide"><label>Not:</label><textarea name="note" id="edit_note" placeholder="Makine hakkında notlar..."></textarea></div>
             </div>
-            <div class="form-group"><label>Not:</label><textarea name="note" id="edit_note" placeholder="Makine hakkında notlar..."></textarea></div>
             <button type="submit" name="save">Kaydet</button>
             <button type="button" class="cancel-btn" onclick="clearForm()">Temizle</button>
         </form>
@@ -437,7 +414,7 @@ if($tab === 'delete'){
     <div class="search-box">
         <form method="get" action="machine_settings.php" style="flex: 1; display: flex; gap: 10px;">
             <input type="hidden" name="tab" value="edit">
-            <input type="text" name="search" placeholder="Makine no, IP, MAC veya not ile ara..." value="<?php echo htmlspecialchars($search); ?>">
+            <input type="text" name="search" placeholder="Makine no, SMIBB IP, MAC veya not ile ara..." value="<?php echo htmlspecialchars($search); ?>">
             <button type="submit">Ara</button>
             <?php if(!empty($search)): ?>
                 <a href="machine_settings.php?tab=edit" style="padding: 10px 20px; background: #999; color: white; text-decoration: none; border-radius: 5px;">Temizle</a>
@@ -452,8 +429,8 @@ if($tab === 'delete'){
             <thead>
                 <tr>
                     <th style="width:40px; text-align:center;"><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
-                    <th>ID</th><th>Makine No</th><th>IP Adresi</th><th>MAC Adresi</th>
-                    <th>Kat (Z)</th><th>Not</th><th>Konum (X,Y)</th><th>İşlemler</th>
+                    <th>ID</th><th>Makine No</th><th>SMIBB IP</th><th>Screen IP</th><th>MAC Adresi</th>
+                    <th>Makine Türü</th><th>Oyun Türü</th><th>Kat (Z)</th><th>Not</th><th>Konum (X,Y)</th><th>İşlemler</th>
                 </tr>
             </thead>
             <tbody>
@@ -463,8 +440,11 @@ if($tab === 'delete'){
                         <td style="text-align:center;"><input type="checkbox" class="machine-checkbox" value="<?php echo intval($row['id']); ?>" onchange="updateSelection()"></td>
                         <td><?php echo intval($row['id']); ?></td>
                         <td><?php echo htmlspecialchars($row['machine_no']); ?></td>
-                        <td><?php echo htmlspecialchars($row['ip']); ?></td>
+                        <td><?php echo htmlspecialchars($row['smibb_ip'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($row['screen_ip'] ?? ''); ?></td>
                         <td><?php echo htmlspecialchars($row['mac']); ?></td>
+                        <td><?php echo htmlspecialchars($row['machine_type'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($row['game_type'] ?? ''); ?></td>
                         <td><span class="z-badge"><?php echo htmlspecialchars($z_levels[$row['pos_z']] ?? 'Kat '.intval($row['pos_z'])); ?></span></td>
                         <td class="note-cell">
                             <?php if(!empty($row['note'])): ?>
@@ -473,13 +453,13 @@ if($tab === 'delete'){
                         </td>
                         <td>(<?php echo intval($row['pos_x']); ?>, <?php echo intval($row['pos_y']); ?>)</td>
                         <td>
-                            <button class="action-btn edit-btn" onclick="editMachine(<?php echo intval($row['id']); ?>,'<?php echo htmlspecialchars($row['machine_no'],ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['ip'],ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['mac'],ENT_QUOTES); ?>',<?php echo intval($row['pos_z']); ?>,'<?php echo htmlspecialchars($row['note']??'',ENT_QUOTES); ?>')">Düzenle</button>
-                            <a href="?tab=edit&delete=<?php echo intval($row['id']); ?><?php echo !empty($search)?'&search='.urlencode($search):''; ?>" class="action-btn delete-btn" onclick="return confirm('Bu makineyi silmek istediğinize emin misiniz?')">Sil</a>
+                            <button class="action-btn edit-btn" onclick="editMachine(<?php echo intval($row['id']); ?>,<?php echo htmlspecialchars(json_encode($row['machine_no']),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['smibb_ip']??''),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['screen_ip']??''),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['mac']),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['machine_type']??''),ENT_QUOTES); ?>,<?php echo htmlspecialchars(json_encode($row['game_type']??''),ENT_QUOTES); ?>,<?php echo intval($row['pos_z']); ?>,<?php echo htmlspecialchars(json_encode($row['note']??''),ENT_QUOTES); ?>)">Düzenle</button>
+                            <a href="?tab=edit&amp;delete=<?php echo intval($row['id']); ?><?php echo !empty($search)?'&amp;search='.urlencode($search):''; ?>" class="action-btn delete-btn" onclick="return confirm('Bu makineyi silmek istediğinize emin misiniz?')">Sil</a>
                         </td>
                     </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="9" style="text-align:center; padding:40px;">Makine bulunamadı.</td></tr>
+                    <tr><td colspan="12" style="text-align:center; padding:40px;">Makine bulunamadı.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -505,8 +485,9 @@ if($tab === 'delete'){
         function highlightRow(id,h){ const r=document.querySelector('tr[data-id="'+id+'"]'); if(r){ if(h) r.classList.add('selected'); else r.classList.remove('selected'); } }
         function updateSelection(){
             const cbs=document.querySelectorAll('.machine-checkbox'); const sa=document.getElementById('selectAll');
-            selectedMachines.clear(); cbs.forEach(c=>{ if(c.checked){selectedMachines.add(c.value); highlightRow(c.value,true);} else highlightRow(c.value,false); });
-            if(sa){ sa.checked=Array.from(cbs).every(c=>c.checked); sa.indeterminate=Array.from(cbs).some(c=>c.checked)&&!sa.checked; }
+            // Update selectedMachines based on checkbox state — but do NOT clear IDs from other pages
+            cbs.forEach(c=>{ if(c.checked){selectedMachines.add(c.value); highlightRow(c.value,true);} else {selectedMachines.delete(c.value); highlightRow(c.value,false);} });
+            if(sa){ sa.checked=cbs.length>0&&Array.from(cbs).every(c=>c.checked); sa.indeterminate=Array.from(cbs).some(c=>c.checked)&&!sa.checked; }
             const tb=document.getElementById('bulkToolbar');
             if(selectedMachines.size>0){ tb.classList.remove('hidden'); document.getElementById('selectionCount').textContent=selectedMachines.size+' makine seçili'; }
             else tb.classList.add('hidden');
@@ -519,9 +500,38 @@ if($tab === 'delete'){
         function bulkUpdateNote(){ const n=document.getElementById('bulkNote').value; if(!selectedMachines.size){alert('Lütfen makine seçin!');return;} if(!confirm(selectedMachines.size+' makinenin notunu güncellemek istiyor musunuz?'))return; const f=makeForm(); addIds(f); addHidden(f,'bulk_note',n); addHidden(f,'bulk_update_note','1'); document.body.appendChild(f); f.submit(); }
         function bulkDelete(){ if(!selectedMachines.size){alert('Lütfen makine seçin!');return;} if(!confirm(selectedMachines.size+' makineyi kalıcı olarak silmek istiyor musunuz?'))return; const f=makeForm(); addIds(f); addHidden(f,'bulk_delete','1'); document.body.appendChild(f); f.submit(); }
         function bulkDuplicate(){ if(!selectedMachines.size){alert('Lütfen makine seçin!');return;} if(!confirm(selectedMachines.size+' makineyi kopyalamak istiyor musunuz?'))return; const f=makeForm(); addIds(f); addHidden(f,'bulk_duplicate','1'); document.body.appendChild(f); f.submit(); }
-        function editMachine(id,no,ip,mac,z,note){ document.getElementById('edit_id').value=id; document.getElementById('edit_machine_no').value=no; document.getElementById('edit_ip').value=ip; document.getElementById('edit_mac').value=mac; document.getElementById('edit_z').value=z; document.getElementById('edit_note').value=note; document.querySelector('.form-box').scrollIntoView({behavior:'smooth'}); }
-        function clearForm(){ ['edit_id','edit_machine_no','edit_ip','edit_mac','edit_note'].forEach(id=>document.getElementById(id).value=''); document.getElementById('edit_z').value='0'; }
-        document.addEventListener('keydown',function(e){ if(e.ctrlKey&&e.key==='a'){e.preventDefault(); document.querySelectorAll('.machine-checkbox').forEach(c=>{c.checked=true;selectedMachines.add(c.value);}); updateSelection();} if(e.key==='Escape')hideBulkToolbar(); });
+        function editMachine(id,no,smibb_ip,screen_ip,mac,machine_type,game_type,z,note){ document.getElementById('edit_id').value=id; document.getElementById('edit_machine_no').value=no; document.getElementById('edit_smibb_ip').value=smibb_ip; document.getElementById('edit_screen_ip').value=screen_ip; document.getElementById('edit_mac').value=mac; document.getElementById('edit_machine_type').value=machine_type; document.getElementById('edit_game_type').value=game_type; document.getElementById('edit_z').value=z; document.getElementById('edit_note').value=note; document.querySelector('.form-box').scrollIntoView({behavior:'smooth'}); }
+        function clearForm(){ ['edit_id','edit_machine_no','edit_smibb_ip','edit_screen_ip','edit_mac','edit_machine_type','edit_game_type','edit_note'].forEach(id=>document.getElementById(id).value=''); document.getElementById('edit_z').value='0'; }
+        // Tüm sayfaları seç
+        function selectAllPages(){
+            const search=new URLSearchParams(window.location.search).get('search')||'';
+            fetch('machine_settings.php?tab=edit&get_all_ids=1&search='+encodeURIComponent(search))
+                .then(function(r){return r.json();})
+                .then(function(ids){
+                    ids.forEach(function(id){selectedMachines.add(String(id));});
+                    document.querySelectorAll('.machine-checkbox').forEach(function(c){
+                        if(ids.indexOf(parseInt(c.value))!==-1){c.checked=true;}
+                    });
+                    updateSelection();
+                });
+        }
+        // Gruba göre seç
+        function selectByGroup(){
+            const gid=document.getElementById('groupSelectBulk').value;
+            if(!gid){alert('Lütfen bir grup seçin!');return;}
+            fetch('machine_settings.php?tab=edit&get_group_ids='+encodeURIComponent(gid))
+                .then(function(r){return r.json();})
+                .then(function(ids){
+                    if(!ids.length){alert('Bu grupta makine yok!');return;}
+                    ids.forEach(function(id){selectedMachines.add(String(id));});
+                    document.querySelectorAll('.machine-checkbox').forEach(function(c){
+                        if(ids.indexOf(parseInt(c.value))!==-1){c.checked=true;}
+                    });
+                    updateSelection();
+                    if(typeof showMsg==='function') showMsg(ids.length+' makine seçildi.');
+                });
+        }
+        document.addEventListener('keydown',function(e){ if(e.ctrlKey&&e.key==='a'){e.preventDefault(); selectAllPages();} if(e.key==='Escape')hideBulkToolbar(); });
     </script>
 
 <?php elseif($tab === 'groups'): ?>
@@ -529,139 +539,64 @@ if($tab === 'delete'){
 
     <?php if(isset($success)): ?><div class="message"><?php echo $success; ?></div><?php endif; ?>
     <?php if(isset($_GET['deleted'])): ?><div class="message">Grup silindi.</div><?php endif; ?>
-    <?php if(isset($_GET['region_deleted'])): ?><div class="message">Bölge silindi.</div><?php endif; ?>
     <?php if(isset($_GET['updated'])): ?><div class="message">Grup güncellendi.</div><?php endif; ?>
 
     <div class="grid">
         <div class="left-panel">
 
             <?php if($is_admin): ?>
-            <!-- Bölge Yönetimi (admin only) -->
-            <details style="margin-bottom:18px;">
-                <summary style="cursor:pointer;font-weight:bold;color:#607D8B;padding:6px 0;">🗺️ Bölge Yönetimi</summary>
-                <div style="padding-top:10px;">
-                    <form method="post" action="machine_settings.php?tab=groups" style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
-                        <?php echo csrf_field(); ?>
-                        <input type="text" name="region_name" placeholder="Bölge adı" required style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
-                        <input type="color" name="region_color" value="#607D8B" style="width:32px;height:32px;padding:0;border:none;cursor:pointer;border-radius:4px;">
-                        <button type="submit" name="create_region" style="padding:6px 12px;background:#607D8B;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">Ekle</button>
-                    </form>
-                    <?php $all_regions->data_seek(0); while($rgn = $all_regions->fetch_assoc()): ?>
-                    <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;">
-                        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:<?php echo htmlspecialchars($rgn['color']); ?>;flex-shrink:0;"></span>
-                        <span style="flex:1;font-size:13px;"><?php echo htmlspecialchars($rgn['name']); ?></span>
-                        <a href="?tab=groups&delete_region=<?php echo $rgn['id']; ?>" onclick="return confirm('Bölgeyi silmek istiyor musunuz?')" style="color:#f44336;font-size:11px;">🗑️</a>
-                    </div>
-                    <?php endwhile; ?>
-                </div>
-            </details>
-
             <!-- Grup Oluştur (admin only) -->
             <h3>Yeni Grup Oluştur</h3>
             <form method="post" action="machine_settings.php?tab=groups">
                 <?php echo csrf_field(); ?>
                 <div class="form-group"><label>Grup Adı:</label><input type="text" name="group_name" required></div>
                 <div class="form-group"><label>Açıklama:</label><textarea name="description" rows="2"></textarea></div>
-                <div class="form-group">
-                    <label>Bölge:</label>
-                    <select name="region_id" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:5px;">
-                        <option value="">— Bölge Seçin —</option>
-                        <?php $all_regions->data_seek(0); while($rgn = $all_regions->fetch_assoc()): ?>
-                        <option value="<?php echo $rgn['id']; ?>"><?php echo htmlspecialchars($rgn['name']); ?></option>
-                        <?php endwhile; ?>
-                    </select>
-                </div>
                 <button type="submit" name="create_group">Grup Oluştur</button>
             </form>
             <hr style="margin:20px 0;">
             <?php endif; ?>
 
-            <!-- Bölge Filtresi -->
-            <?php
-            // Bölgeleri topla (filtre için)
-            $all_regions->data_seek(0);
-            $region_list = [];
-            while($rgn = $all_regions->fetch_assoc()) $region_list[] = $rgn;
-            $filter_region = isset($_GET['filter_region']) ? intval($_GET['filter_region']) : 0;
-            ?>
-            <?php if(!empty($region_list)): ?>
-            <div class="region-filters">
-                <a href="?tab=groups<?php echo isset($_GET['group_id'])?'&group_id='.intval($_GET['group_id']):''; ?>"
-                   class="region-btn <?php echo $filter_region===0?'active-region':''; ?>"
-                   style="<?php echo $filter_region===0?'background:#607D8B;':''; ?>">Tümü</a>
-                <?php foreach($region_list as $rgn): ?>
-                <a href="?tab=groups&filter_region=<?php echo $rgn['id']; ?><?php echo isset($_GET['group_id'])?'&group_id='.intval($_GET['group_id']):''; ?>"
-                   class="region-btn <?php echo $filter_region===$rgn['id']?'active-region':''; ?>"
-                   style="<?php echo $filter_region===$rgn['id']?'background:'.htmlspecialchars($rgn['color']).';border-color:transparent;':'border-color:'.htmlspecialchars($rgn['color']).';color:'.htmlspecialchars($rgn['color']).';'; ?>">
-                   <?php echo htmlspecialchars($rgn['name']); ?>
-                </a>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-
             <h3>Gruplar</h3>
             <?php
-            // Grupları bölgeye göre filtrele
             $groups->data_seek(0);
-            $current_region_label = '';
             $found_any = false;
             while($group = $groups->fetch_assoc()):
-                if($filter_region > 0 && $group['region_id'] != $filter_region) continue;
                 $found_any = true;
                 $mc = $conn->query("SELECT COUNT(*) as count FROM machine_group_relations WHERE group_id = ".$group['id'])->fetch_assoc()['count'];
-                // Bölge label
-                $rgn_label = $group['region_name'] ?? '— Bölgesiz —';
-                if($filter_region === 0 && $rgn_label !== $current_region_label):
-                    $current_region_label = $rgn_label;
             ?>
-                <div class="region-label" style="<?php echo $group['region_color'] ? 'color:'.htmlspecialchars($group['region_color']).';' : ''; ?>"><?php echo htmlspecialchars($rgn_label); ?></div>
-            <?php endif; ?>
             <div class="group-item <?php echo (isset($_GET['group_id'])&&$_GET['group_id']==$group['id'])?'active':''; ?>"
-                 onclick="window.location='?tab=groups<?php echo $filter_region>0?'&filter_region='.$filter_region:''; ?>&group_id=<?php echo $group['id']; ?>'"
+                 onclick="window.location='?tab=groups&group_id=<?php echo $group['id']; ?>'"
                  style="<?php echo $group['color'] ? 'border-left:3px solid '.htmlspecialchars($group['color']).';' : ''; ?>">
                 <div class="group-name"><?php echo htmlspecialchars($group['group_name']); ?></div>
                 <div class="group-info"><?php echo $mc; ?> makine<?php echo $group['description'] ? ' • '.htmlspecialchars($group['description']) : ''; ?></div>
                 <div class="group-actions">
-                    <a href="export_group.php?group_id=<?php echo $group['id']; ?>" target="_blank" style="color:#2196F3;">📥 Excel Aktar</a>
                     <?php if($is_admin): ?>
-                    <a href="?tab=groups<?php echo $filter_region>0?'&filter_region='.$filter_region:''; ?>&delete_group=<?php echo $group['id']; ?>" onclick="return confirm('Grubu silmek istiyor musunuz?')" style="color:#f44336;">🗑️ Sil</a>
+                    <a href="export_group.php?group_id=<?php echo $group['id']; ?>" target="_blank" style="color:#2196F3;">📥 Excel Aktar</a>
+                    <a href="?tab=groups&delete_group=<?php echo $group['id']; ?>" onclick="return confirm('Grubu silmek istiyor musunuz?')" style="color:#f44336;">🗑️ Sil</a>
                     <?php endif; ?>
                 </div>
             </div>
             <?php endwhile; ?>
             <?php if(!$found_any): ?>
-            <div style="color:#999;text-align:center;padding:20px;font-size:13px;">Bu bölgede grup yok.</div>
+            <div style="color:#999;text-align:center;padding:20px;font-size:13px;">Henüz grup yok.</div>
             <?php endif; ?>
         </div>
 
         <div class="right-panel">
             <?php if(isset($_GET['group_id'])):
                 $group_id = intval($_GET['group_id']);
-                $group = $conn->query("SELECT mg.*, r.name AS region_name FROM machine_groups mg LEFT JOIN regions r ON mg.region_id=r.id WHERE mg.id = $group_id")->fetch_assoc();
+                $group = $conn->query("SELECT * FROM machine_groups WHERE id = $group_id")->fetch_assoc();
                 $group_machines = [];
                 $gm_result = $conn->query("SELECT machine_id FROM machine_group_relations WHERE group_id = $group_id");
                 while($gm = $gm_result->fetch_assoc()) $group_machines[] = $gm['machine_id'];
             ?>
                 <h3><?php echo htmlspecialchars($group['group_name']); ?></h3>
-                <?php if($group['region_name']): ?>
-                <p style="color:#607D8B;font-size:12px;">🗺️ <?php echo htmlspecialchars($group['region_name']); ?></p>
-                <?php endif; ?>
                 <p><?php echo htmlspecialchars($group['description'] ?? ''); ?></p>
 
                 <?php if($is_admin): ?>
-                <form method="post" action="machine_settings.php?tab=groups<?php echo $filter_region>0?'&filter_region='.$filter_region:''; ?>&group_id=<?php echo $group_id; ?>">
+                <form method="post" action="machine_settings.php?tab=groups&group_id=<?php echo $group_id; ?>">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="group_id" value="<?php echo $group_id; ?>">
-                    <!-- Bölge güncelle -->
-                    <div class="form-group" style="margin-bottom:10px;">
-                        <label style="font-size:12px;color:#666;">Bölge:</label>
-                        <select name="region_id" style="padding:5px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;">
-                            <option value="">— Bölgesiz —</option>
-                            <?php $all_regions->data_seek(0); while($rgn = $all_regions->fetch_assoc()): ?>
-                            <option value="<?php echo $rgn['id']; ?>" <?php echo $group['region_id']==$rgn['id']?'selected':''; ?>><?php echo htmlspecialchars($rgn['name']); ?></option>
-                            <?php endwhile; ?>
-                        </select>
-                    </div>
                     <div style="margin-bottom:10px; display:flex; align-items:center; gap:10px;">
                         <button type="button" id="toggleAllMachinesBtn" onclick="toggleAllMachines()" style="font-size:12px; padding:5px 12px; background:#607D8B; color:white; border:none; border-radius:5px; cursor:pointer;">➕ Tüm Makineleri Göster</button>
                         <input type="text" id="machineSearchInput" placeholder="Makine ara..." oninput="filterMachineList()" style="padding:5px 10px; border:1px solid #ddd; border-radius:5px; font-size:13px; flex:1;">
@@ -674,7 +609,7 @@ if($tab === 'delete'){
                         <div class="machine-item" <?php echo $inGroup; ?> <?php echo !$checked ? 'style="display:none"' : ''; ?>>
                             <label>
                                 <input type="checkbox" name="machines[]" value="<?php echo $machine['id']; ?>" <?php echo $checked; ?>>
-                                <strong><?php echo htmlspecialchars($machine['machine_no']); ?></strong> — <?php echo htmlspecialchars($machine['ip']); ?> (Z:<?php echo $machine['pos_z']; ?>)
+                                <strong><?php echo htmlspecialchars($machine['machine_no']); ?></strong> — <?php echo htmlspecialchars($machine['smibb_ip'] ?? ''); ?> (Z:<?php echo $machine['pos_z']; ?>)
                             </label>
                         </div>
                         <?php endwhile; ?>
@@ -685,23 +620,20 @@ if($tab === 'delete'){
                     </div>
                 </form>
                 <?php else: ?>
-                <!-- personel: sadece izleme + excel aktar -->
+                <!-- personel: sadece izleme -->
                 <div class="machine-list" style="max-height:500px;">
                     <?php foreach($group_machines as $mid):
-                        $mrow = $conn->query("SELECT machine_no, ip, pos_z FROM machines WHERE id=".intval($mid))->fetch_assoc();
+                        $mrow = $conn->query("SELECT machine_no, smibb_ip, pos_z FROM machines WHERE id=".intval($mid))->fetch_assoc();
                         if(!$mrow) continue;
                     ?>
                     <div class="machine-item">
                         <strong><?php echo htmlspecialchars($mrow['machine_no']); ?></strong>
-                        — <?php echo htmlspecialchars($mrow['ip']); ?> (Z:<?php echo intval($mrow['pos_z']); ?>)
+                        — <?php echo htmlspecialchars($mrow['smibb_ip'] ?? ''); ?> (Z:<?php echo intval($mrow['pos_z']); ?>)
                     </div>
                     <?php endforeach; ?>
                     <?php if(empty($group_machines)): ?>
                     <div style="color:#999;text-align:center;padding:20px;">Grupta makine yok.</div>
                     <?php endif; ?>
-                </div>
-                <div style="margin-top:15px;">
-                    <button type="button" onclick="window.location='export_group.php?group_id=<?php echo $group_id; ?>'" style="background:#2196F3;color:white;border:none;border-radius:5px;padding:10px 20px;cursor:pointer;">📥 Excel Aktar</button>
                 </div>
                 <?php endif; ?>
 
@@ -735,94 +667,6 @@ if($tab === 'delete'){
             <?php endif; ?>
         </div>
     </div>
-
-<?php elseif($tab === 'delete'): ?>
-    <!-- ═══════════════════════════════ MAKİNE SİLME ═══════════════════════════════ -->
-
-    <?php if(isset($_GET['deleted'])): ?>
-        <div class="message" style="background:#f44336;"><?php echo intval($_GET['deleted']); ?> makine silindi.</div>
-    <?php endif; ?>
-
-    <form method="get" action="machine_settings.php" style="display:flex;gap:10px;margin-bottom:20px;">
-        <input type="hidden" name="tab" value="delete">
-        <input type="text" name="search" placeholder="Makine no, IP veya MAC ile ara..."
-               value="<?php echo htmlspecialchars($del_search); ?>"
-               style="flex:1;padding:10px;border:1px solid #ddd;border-radius:5px;font-size:14px;">
-        <button type="submit" style="background:#607D8B;">🔍 Ara</button>
-        <?php if($del_search): ?>
-            <a href="?tab=delete" style="padding:10px 16px;background:#999;color:white;text-decoration:none;border-radius:5px;display:flex;align-items:center;">✕ Temizle</a>
-        <?php endif; ?>
-    </form>
-
-    <form method="post" action="machine_settings.php?tab=delete" id="deleteForm">
-        <?php echo csrf_field(); ?>
-        <div style="background:white;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1);margin-bottom:16px;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:bold;">
-                <input type="checkbox" id="selectAllDel" onchange="toggleAllDel(this)" style="width:18px;height:18px;">
-                Tümünü Seç
-            </label>
-            <span id="delSelInfo" style="color:#666;font-size:13px;">0 makine seçildi</span>
-            <button type="submit" name="bulk_delete_machines" id="delBtn"
-                    onclick="return confirmDelete()"
-                    style="background:#f44336;margin-left:auto;"
-                    disabled>🗑️ Seçilenleri Sil</button>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:40px;">#</th>
-                        <th>Makine No</th>
-                        <th>IP</th>
-                        <th>MAC</th>
-                        <th>Kat (Z)</th>
-                        <th>Not</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php
-                $del_row_num = 0;
-                while($dr = $del_machines->fetch_assoc()):
-                    $del_row_num++;
-                ?>
-                    <tr id="delrow-<?php echo $dr['id']; ?>">
-                        <td>
-                            <input type="checkbox" name="selected_machines[]" value="<?php echo $dr['id']; ?>"
-                                   class="del-cb" onchange="updateDelInfo()">
-                        </td>
-                        <td><strong><?php echo htmlspecialchars($dr['machine_no']); ?></strong></td>
-                        <td><?php echo htmlspecialchars($dr['ip']); ?></td>
-                        <td><?php echo htmlspecialchars($dr['mac']); ?></td>
-                        <td><span class="z-badge"><?php echo intval($dr['pos_z']); ?></span></td>
-                        <td class="note-cell"><?php echo htmlspecialchars($dr['note'] ?? ''); ?></td>
-                    </tr>
-                <?php endwhile; ?>
-                <?php if($del_row_num === 0): ?>
-                    <tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">Makine bulunamadı.</td></tr>
-                <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </form>
-
-    <script>
-    function toggleAllDel(cb){
-        document.querySelectorAll('.del-cb').forEach(c => c.checked = cb.checked);
-        updateDelInfo();
-    }
-    function updateDelInfo(){
-        const checked = document.querySelectorAll('.del-cb:checked').length;
-        document.getElementById('delSelInfo').textContent = checked + ' makine seçildi';
-        document.getElementById('delBtn').disabled = checked === 0;
-        const all = document.querySelectorAll('.del-cb').length;
-        document.getElementById('selectAllDel').checked = all > 0 && checked === all;
-    }
-    function confirmDelete(){
-        const n = document.querySelectorAll('.del-cb:checked').length;
-        return n > 0 && confirm(n + ' makineyi kalıcı olarak silmek istediğinize emin misiniz?\nBu işlem geri alınamaz!');
-    }
-    </script>
 
 <?php endif; ?>
 </div><!-- /.container -->

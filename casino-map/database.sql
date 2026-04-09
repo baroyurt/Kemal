@@ -5,13 +5,21 @@ USE casino_map;
 CREATE TABLE machines(
     id INT AUTO_INCREMENT PRIMARY KEY,
     machine_no VARCHAR(20),
-    ip VARCHAR(50),
+    smibb_ip VARCHAR(50),
+    screen_ip VARCHAR(50) DEFAULT NULL,
     mac VARCHAR(50),
+    machine_type VARCHAR(100) DEFAULT NULL,
+    game_type VARCHAR(100) DEFAULT NULL,
     pos_x INT DEFAULT 50,
     pos_y INT DEFAULT 50,
     pos_z INT DEFAULT 0,
     rotation INT DEFAULT 0,
-    note TEXT DEFAULT NULL
+    note TEXT DEFAULT NULL,
+    hub_sw TINYINT(1) DEFAULT 0,
+    hub_sw_cable VARCHAR(255) DEFAULT NULL,
+    brand VARCHAR(100) DEFAULT NULL,
+    model VARCHAR(100) DEFAULT NULL,
+    machine_pc VARCHAR(100) DEFAULT NULL
 );
 
 CREATE TABLE users(
@@ -51,20 +59,16 @@ ALTER TABLE machines ADD COLUMN IF NOT EXISTS brand VARCHAR(100) DEFAULT NULL;
 ALTER TABLE machines ADD COLUMN IF NOT EXISTS model VARCHAR(100) DEFAULT NULL;
 ALTER TABLE machines ADD COLUMN IF NOT EXISTS game_type VARCHAR(100) DEFAULT NULL;
 
--- Migration: DRscreen IP
+-- Migration: DRscreen IP (renamed to screen_ip)
 ALTER TABLE machines ADD COLUMN IF NOT EXISTS drscreen_ip VARCHAR(50) DEFAULT NULL;
+
+-- Migration: new fields smibb_ip, screen_ip, machine_type
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS smibb_ip VARCHAR(50) DEFAULT NULL;
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS screen_ip VARCHAR(50) DEFAULT NULL;
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS machine_type VARCHAR(100) DEFAULT NULL;
+
+-- Migration: machine_pc
+ALTER TABLE machines ADD COLUMN IF NOT EXISTS machine_pc VARCHAR(100) DEFAULT NULL;
 
 -- Migration: users created_at (eğer eski şemadan geçiş yapıyorsanız)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-
--- Migration: bölgeler (regions) tablosu
-CREATE TABLE IF NOT EXISTS regions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    color VARCHAR(20) DEFAULT '#607D8B',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Migration: makine gruplarına bölge ilişkisi
-ALTER TABLE machine_groups ADD COLUMN IF NOT EXISTS region_id INT DEFAULT NULL;
-ALTER TABLE machine_groups ADD CONSTRAINT IF NOT EXISTS fk_group_region FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE SET NULL;

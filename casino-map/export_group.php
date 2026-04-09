@@ -6,6 +6,12 @@ if(!isset($_SESSION['login'])){
     exit;
 }
 
+// Sadece admin Excel aktarabilir
+if($_SESSION['role'] !== 'admin'){
+    header("Location: map.php");
+    exit;
+}
+
 include("config.php");
 include("xlsx_helper.php");
 
@@ -35,14 +41,20 @@ $z_levels = [
     3 => 'Alt Salon'
 ];
 
-$headers = ['Makine No', 'IP Adresi', 'MAC Adresi', 'Z Katmanı', 'X Koordinatı', 'Y Koordinatı', 'Döndürme', 'Not'];
+$headers = ['Makine No', 'Machine PC', 'SMIBB IP', 'Screen IP', 'MAC Adresi', 'Seri Numarası', 'Bölge (Area)', 'Makine Türü', 'Oyun Türü', 'Z Katmanı', 'X Koordinatı', 'Y Koordinatı', 'Döndürme', 'Not'];
 $rows = [];
 
 while($row = $machines->fetch_assoc()){
     $rows[] = [
         $row['machine_no'],
-        $row['ip'],
+        $row['machine_pc'] ?? '',
+        $row['smibb_ip'] ?? '',
+        $row['screen_ip'] ?? '',
         $row['mac'],
+        $row['machine_seri_number'] ?? '',
+        $row['area'] !== null ? $row['area'] : '',
+        $row['machine_type'] ?? '',
+        $row['game_type'] ?? '',
         $z_levels[$row['pos_z']] ?? ('Kat ' . $row['pos_z']),
         $row['pos_x'],
         $row['pos_y'],
