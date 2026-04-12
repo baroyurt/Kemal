@@ -209,7 +209,7 @@ include __DIR__ . '/../../modules/auth/layout.php';
             <td style="white-space:nowrap;">
                 <!-- Şifre -->
                 <button class="btn btn-info btn-sm"
-                        onclick="openPassModal(<?php echo $u['id']; ?>, '<?php echo h($u['username']); ?>')">
+                        onclick="openPassModal(<?php echo (int)$u['id']; ?>, <?php echo json_encode($u['username']); ?>)">
                     🔑
                 </button>
 

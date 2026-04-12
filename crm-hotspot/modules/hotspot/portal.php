@@ -84,11 +84,13 @@
                 $wifi_password = $room_no;
                 $success       = true;
 
-                // MAC adresini al (NAS-Port üzerinden captive portal MAC)
-                $mac    = $_SERVER['HTTP_X_MAC_ADDRESS'] ?? 'unknown';
-                $ip     = $_SERVER['REMOTE_ADDR'] ?? '';
-                $prof   = $guest['vip_status'] ? 'vip' : 'standard';
-                $gid    = $guest['id'];
+                // MAC adresini al (NAS-Port üzerinden captive portal MAC) — validate format
+                $raw_mac = $_SERVER['HTTP_X_MAC_ADDRESS'] ?? '';
+                $mac     = preg_match('/^([0-9a-fA-F]{2}[:\-]){5}[0-9a-fA-F]{2}$/', $raw_mac)
+                           ? strtolower($raw_mac) : 'unknown';
+                $ip      = $_SERVER['REMOTE_ADDR'] ?? '';
+                $prof    = $guest['vip_status'] ? 'vip' : 'standard';
+                $gid     = $guest['id'];
 
                 // Oturum kaydı oluştur
                 $chk = $conn->prepare(

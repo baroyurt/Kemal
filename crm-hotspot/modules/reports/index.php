@@ -6,9 +6,15 @@ require_role('admin','it_staff','reception');
 $page_title = 'Raporlar';
 $active_nav = 'reports';
 
-// Tarih aralığı — validate to prevent SQL injection
-$date_from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ?? '') ? $_GET['from'] : date('Y-m-01');
-$date_to   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to']   ?? '') ? $_GET['to']   : date('Y-m-d');
+// Tarih aralığı — strict validation to prevent SQL injection and invalid dates
+function validate_date(string $input, string $fallback): string {
+    if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $input, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+        return $input;
+    }
+    return $fallback;
+}
+$date_from = validate_date($_GET['from'] ?? '', date('Y-m-01'));
+$date_to   = validate_date($_GET['to']   ?? '', date('Y-m-d'));
 // Ensure from <= to
 if ($date_from > $date_to) { [$date_from, $date_to] = [$date_to, $date_from]; }
 

@@ -19,11 +19,24 @@ if (isset($_POST['send_bulk']) && has_role('admin','reception')) {
     require_once APP_ROOT . '/lib/WhatsAppClient.php';
     $wa = new WhatsAppClient();
 
-    $sql  = "SELECT id, first_name, last_name, room_no, phone FROM guests WHERE status='checked_in' AND phone IS NOT NULL AND phone!=''";
-    if ($target === 'vip')       $sql .= " AND vip_status=1";
-    if ($target === 'room_no')   $sql .= " AND room_no='" . $conn->real_escape_string($room_f) . "'";
+    $base_sql = "SELECT id, first_name, last_name, room_no, phone FROM guests WHERE status='checked_in' AND phone IS NOT NULL AND phone!=''";
+    $params   = [];
+    $types    = '';
 
-    $res   = $conn->query($sql);
+    if ($target === 'vip') {
+        $base_sql .= ' AND vip_status=1';
+    } elseif ($target === 'room_no' && $room_f !== '') {
+        $base_sql .= ' AND room_no=?';
+        $params[]  = $room_f;
+        $types    .= 's';
+    }
+
+    $bulk_st = $conn->prepare($base_sql);
+    if ($params) $bulk_st->bind_param($types, ...$params);
+    $bulk_st->execute();
+    $res   = $bulk_st->get_result();
+    $bulk_st->close();
+
     $count = 0;
     while ($g = $res->fetch_assoc()) {
         $msg = match($template) {

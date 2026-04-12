@@ -35,6 +35,8 @@ define('FIDELIO_FIAS_PORT',  5010);            // FIAS port
 define('FIDELIO_REST_URL',   'https://opera.otel.com/api/v1');
 define('FIDELIO_REST_TOKEN', 'OPERA_API_TOKEN_BURAYA');
 define('FIDELIO_HOTEL_CODE', 'OTEL01');
+// SSL sertifikası doğrulama: üretimde true, test/dev ortamında false yapılabilir
+define('FIDELIO_SSL_VERIFY', true);
 
 // ============================================================
 // Mikrotik RouterOS API

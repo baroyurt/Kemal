@@ -93,7 +93,9 @@ class FidelioClient
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER     => $headers,
             CURLOPT_TIMEOUT        => 10,
-            CURLOPT_SSL_VERIFYPEER => false,
+            // SSL verification: set FIDELIO_SSL_VERIFY=false only in dev/test
+            CURLOPT_SSL_VERIFYPEER => defined('FIDELIO_SSL_VERIFY') ? (bool)FIDELIO_SSL_VERIFY : true,
+            CURLOPT_SSL_VERIFYHOST => defined('FIDELIO_SSL_VERIFY') ? (FIDELIO_SSL_VERIFY ? 2 : 0) : 2,
         ]);
         $response = curl_exec($ch);
         $curl_err = curl_error($ch);
