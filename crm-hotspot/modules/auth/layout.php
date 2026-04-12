@@ -32,6 +32,10 @@
            class="<?php echo ($active_nav??'') === 'whatsapp' ? 'active' : ''; ?>">
             💬 WhatsApp Mesajları
         </a>
+        <a href="<?php echo APP_URL; ?>/modules/requests/index.php"
+           class="<?php echo ($active_nav??'') === 'requests' ? 'active' : ''; ?>">
+            🎫 Arıza &amp; Talepler
+        </a>
 
         <div class="nav-section">Altyapı</div>
         <a href="<?php echo APP_URL; ?>/modules/hotspot/index.php"

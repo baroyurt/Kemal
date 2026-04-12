@@ -39,6 +39,11 @@ define('FIDELIO_HOTEL_CODE', 'OTEL01');
 define('FIDELIO_SSL_VERIFY', true);
 
 // ============================================================
+// Hotspot Sağlayıcı: 'mikrotik' veya 'meraki'
+// ============================================================
+define('HOTSPOT_PROVIDER', 'mikrotik'); // 'mikrotik' | 'meraki'
+
+// ============================================================
 // Mikrotik RouterOS API
 // ============================================================
 define('MIKROTIK_HOST',      '192.168.88.1');
@@ -48,13 +53,39 @@ define('MIKROTIK_PASS',      'mikrotik_sifre');
 define('MIKROTIK_HOTSPOT_SERVER', 'hotspot1');
 
 // ============================================================
-// Bant genişliği profilleri (Mikrotik hotspot profil adları)
+// Cisco Meraki Dashboard API
+// (Yalnızca HOTSPOT_PROVIDER = 'meraki' iken geçerlidir)
+// Meraki Dashboard → Organization → API → Enable API Access
+// ============================================================
+define('MERAKI_API_KEY',    'YOUR_MERAKI_API_KEY_BURAYA');
+define('MERAKI_ORG_ID',     '123456');
+define('MERAKI_NETWORK_ID', 'L_123456789');
+// Splash page URL — Meraki Dashboard'da "Splash URL" olarak bu adresi girin:
+// https://yourserver.com/crm-hotspot/modules/hotspot/portal.php
+// Meraki oturum süresi (saniye): 86400 = 24 saat
+define('MERAKI_SESSION_DURATION', 86400);
+
+// ============================================================
+// Bant genişliği profilleri
+// Mikrotik: RouterOS hotspot profil adları
+// Meraki  : Policy nesnelerinin policy ID'leri
 // ============================================================
 define('BW_PROFILES', serialize([
     'standard' => 'Standard-10M',
     'premium'  => 'Premium-50M',
     'vip'      => 'VIP-100M',
 ]));
+
+// ============================================================
+// WhatsApp Servis Menüsü — Personel Bildirim Numaraları
+// Her talep tipi için ayrı WhatsApp bildirim numarası.
+// Boş bırakılırsa personel paneli üzerinden takip edilir.
+// ============================================================
+define('WA_NOTIFY_FAULT',   '');   // Arıza → Teknik Servis (örn: +905551234567)
+define('WA_NOTIFY_REQUEST', '');   // Talep → Housekeeping / Resepsiyon
+define('WA_NOTIFY_WISH',    '');   // İstek → Concierge / Resepsiyon
+// Otel WiFi ağ adı (captive portal ekranında gösterilir)
+define('WIFI_SSID', 'Otel_Guest');
 
 // ============================================================
 // Veritabanı bağlantısı
