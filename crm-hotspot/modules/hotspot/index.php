@@ -58,16 +58,29 @@ if (isset($_POST['disconnect']) && has_role('admin','it_staff')) {
 }
 
 // Oturum listesi
-$status_filter = $_GET['status'] ?? 'active';
-$where = $status_filter ? "WHERE hs.status='$status_filter'" : '';
-$sessions = $conn->query(
-    "SELECT hs.*, CONCAT(g.first_name,' ',g.last_name) AS guest_name, g.room_no, g.phone
-     FROM hotspot_sessions hs
-     LEFT JOIN guests g ON g.id = hs.guest_id
-     $where
-     ORDER BY hs.started_at DESC
-     LIMIT 100"
-);
+$allowed_statuses = ['active', 'disconnected', ''];
+$status_filter = in_array($_GET['status'] ?? 'active', $allowed_statuses, true) ? ($_GET['status'] ?? 'active') : 'active';
+
+if ($status_filter) {
+    $sf_stmt = $conn->prepare(
+        "SELECT hs.*, CONCAT(g.first_name,' ',g.last_name) AS guest_name, g.room_no, g.phone
+         FROM hotspot_sessions hs
+         LEFT JOIN guests g ON g.id = hs.guest_id
+         WHERE hs.status=?
+         ORDER BY hs.started_at DESC LIMIT 100"
+    );
+    $sf_stmt->bind_param('s', $status_filter);
+    $sf_stmt->execute();
+    $sessions = $sf_stmt->get_result();
+    $sf_stmt->close();
+} else {
+    $sessions = $conn->query(
+        "SELECT hs.*, CONCAT(g.first_name,' ',g.last_name) AS guest_name, g.room_no, g.phone
+         FROM hotspot_sessions hs
+         LEFT JOIN guests g ON g.id = hs.guest_id
+         ORDER BY hs.started_at DESC LIMIT 100"
+    );
+}
 
 // Özet
 $r = $conn->query("SELECT COUNT(*) AS c FROM hotspot_sessions WHERE status='active'");

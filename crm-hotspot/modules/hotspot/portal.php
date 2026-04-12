@@ -122,7 +122,11 @@
 
                 // WhatsApp: WiFi bilgisi gönder (sadece ilk bağlantıda)
                 if (!$existing && $guest) {
-                    $g_row = $conn->query("SELECT phone FROM guests WHERE id=$gid")->fetch_assoc();
+                    $g_phone_st = $conn->prepare("SELECT phone FROM guests WHERE id=?");
+                    $g_phone_st->bind_param('i', $gid);
+                    $g_phone_st->execute();
+                    $g_row = $g_phone_st->get_result()->fetch_assoc();
+                    $g_phone_st->close();
                     if (!empty($g_row['phone'])) {
                         try {
                             require_once APP_ROOT . '/lib/WhatsAppClient.php';

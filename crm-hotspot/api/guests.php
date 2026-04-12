@@ -78,9 +78,22 @@ if ($method === 'GET') {
 
     // Liste
     $allowed_status = ['checked_in','checked_out','reserved','cancelled'];
-    $where = $status && in_array($status, $allowed_status) ? "WHERE status='$status'" : '';
-    $rows  = [];
-    $res   = $conn->query("SELECT id,first_name,last_name,room_no,phone,status,vip_status,checkin_date,checkout_date FROM guests $where ORDER BY checkin_date DESC LIMIT 200");
+    $rows = [];
+    if ($status && in_array($status, $allowed_status, true)) {
+        $lst = $conn->prepare(
+            'SELECT id,first_name,last_name,room_no,phone,status,vip_status,checkin_date,checkout_date
+             FROM guests WHERE status=? ORDER BY checkin_date DESC LIMIT 200'
+        );
+        $lst->bind_param('s', $status);
+        $lst->execute();
+        $res = $lst->get_result();
+        $lst->close();
+    } else {
+        $res = $conn->query(
+            'SELECT id,first_name,last_name,room_no,phone,status,vip_status,checkin_date,checkout_date
+             FROM guests ORDER BY checkin_date DESC LIMIT 200'
+        );
+    }
     while ($r = $res->fetch_assoc()) $rows[] = $r;
     api_success($rows);
 }

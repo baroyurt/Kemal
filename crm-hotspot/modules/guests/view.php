@@ -130,7 +130,10 @@ $messages = $wa_st->get_result();
 $wa_st->close();
 
 // Okunmamış mesajları okundu yap
-$conn->query("UPDATE whatsapp_messages SET status='read' WHERE guest_id=$id AND direction='inbound' AND status='received'");
+$upd_read = $conn->prepare("UPDATE whatsapp_messages SET status='read' WHERE guest_id=? AND direction='inbound' AND status='received'");
+$upd_read->bind_param('i', $id);
+$upd_read->execute();
+$upd_read->close();
 
 include __DIR__ . '/../../modules/auth/layout.php';
 ?>

@@ -67,15 +67,23 @@ class MikrotikClient
     {
         if (!$this->connected) return ['success' => false, 'error' => $this->lastError];
 
+        // Sanitize: allow only safe characters in username and password
+        if (!preg_match('/^[a-zA-Z0-9_\-\.]{1,64}$/', $username)) {
+            return ['success' => false, 'error' => 'Geçersiz kullanıcı adı formatı.'];
+        }
+        if (strlen($password) < 1 || strlen($password) > 64) {
+            return ['success' => false, 'error' => 'Geçersiz şifre uzunluğu.'];
+        }
+
         $bw_profiles = unserialize(BW_PROFILES);
         $mk_profile  = $bw_profiles[$profile] ?? 'Standard-10M';
         $server      = MIKROTIK_HOTSPOT_SERVER;
 
         $this->sendWord('/ip/hotspot/user/add');
-        $this->sendWord("=name=$username");
-        $this->sendWord("=password=$password");
-        $this->sendWord("=profile=$mk_profile");
-        $this->sendWord("=server=$server");
+        $this->sendWord('=name=' . $username);
+        $this->sendWord('=password=' . $password);
+        $this->sendWord('=profile=' . $mk_profile);
+        $this->sendWord('=server=' . $server);
         $this->sendWord('=comment=CRM-Auto');
         $this->sendWord('');
 

@@ -82,7 +82,7 @@ class FidelioClient
         $updated   = 0;
         $error     = null;
 
-        $url     = FIDELIO_REST_URL . '/reservations?hotelCode=' . FIDELIO_HOTEL_CODE . '&reservationStatus=INHOUSE&limit=200';
+        $url     = FIDELIO_REST_URL . '/reservations?hotelCode=' . urlencode(FIDELIO_HOTEL_CODE) . '&reservationStatus=INHOUSE&limit=200';
         $headers = [
             'Authorization: Bearer ' . FIDELIO_REST_TOKEN,
             'Accept: application/json',

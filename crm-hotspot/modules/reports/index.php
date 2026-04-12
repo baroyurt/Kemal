@@ -6,93 +6,97 @@ require_role('admin','it_staff','reception');
 $page_title = 'Raporlar';
 $active_nav = 'reports';
 
-// Tarih aralığı
-$date_from = $_GET['from'] ?? date('Y-m-01');
-$date_to   = $_GET['to']   ?? date('Y-m-d');
+// Tarih aralığı — validate to prevent SQL injection
+$date_from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ?? '') ? $_GET['from'] : date('Y-m-01');
+$date_to   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to']   ?? '') ? $_GET['to']   : date('Y-m-d');
+// Ensure from <= to
+if ($date_from > $date_to) { [$date_from, $date_to] = [$date_to, $date_from]; }
+
+// Helper: run a date-range prepared statement and return result
+function report_query(mysqli $conn, string $sql, string $from, string $to): mysqli_result|false {
+    $st = $conn->prepare($sql);
+    $st->bind_param('ss', $from, $to);
+    $st->execute();
+    $res = $st->get_result();
+    $st->close();
+    return $res;
+}
 
 // --- Misafir İstatistikleri ---
-$r = $conn->query(
+$r = report_query($conn,
     "SELECT DATE(checkin_date) AS day, COUNT(*) AS cnt
-     FROM guests
-     WHERE DATE(checkin_date) BETWEEN '$date_from' AND '$date_to'
-     GROUP BY DATE(checkin_date)
-     ORDER BY day"
-);
+     FROM guests WHERE DATE(checkin_date) BETWEEN ? AND ?
+     GROUP BY DATE(checkin_date) ORDER BY day",
+    $date_from, $date_to);
 $checkin_by_day = [];
 while ($row = $r->fetch_assoc()) $checkin_by_day[$row['day']] = $row['cnt'];
 
-$r = $conn->query(
+$r = report_query($conn,
     "SELECT status, COUNT(*) AS cnt FROM guests
-     WHERE DATE(checkin_date) BETWEEN '$date_from' AND '$date_to'
-     GROUP BY status"
-);
+     WHERE DATE(checkin_date) BETWEEN ? AND ? GROUP BY status",
+    $date_from, $date_to);
 $status_breakdown = [];
 while ($row = $r->fetch_assoc()) $status_breakdown[$row['status']] = $row['cnt'];
 
-$r = $conn->query(
+$r = report_query($conn,
     "SELECT nationality, COUNT(*) AS cnt FROM guests
-     WHERE DATE(checkin_date) BETWEEN '$date_from' AND '$date_to'
+     WHERE DATE(checkin_date) BETWEEN ? AND ?
        AND nationality IS NOT NULL AND nationality != ''
-     GROUP BY nationality ORDER BY cnt DESC LIMIT 10"
-);
+     GROUP BY nationality ORDER BY cnt DESC LIMIT 10",
+    $date_from, $date_to);
 $by_nationality = [];
 while ($row = $r->fetch_assoc()) $by_nationality[$row['nationality']] = $row['cnt'];
 
 // --- Hotspot İstatistikleri ---
-$r = $conn->query(
+$r = report_query($conn,
     "SELECT DATE(started_at) AS day, COUNT(*) AS sessions,
             SUM(bytes_in+bytes_out) AS total_bytes
-     FROM hotspot_sessions
-     WHERE DATE(started_at) BETWEEN '$date_from' AND '$date_to'
-     GROUP BY DATE(started_at) ORDER BY day"
-);
+     FROM hotspot_sessions WHERE DATE(started_at) BETWEEN ? AND ?
+     GROUP BY DATE(started_at) ORDER BY day",
+    $date_from, $date_to);
 $hs_by_day = [];
 while ($row = $r->fetch_assoc()) $hs_by_day[$row['day']] = $row;
 
-$r = $conn->query(
+$r = report_query($conn,
     "SELECT bandwidth_profile, COUNT(*) AS cnt
-     FROM hotspot_sessions
-     WHERE DATE(started_at) BETWEEN '$date_from' AND '$date_to'
-     GROUP BY bandwidth_profile"
-);
+     FROM hotspot_sessions WHERE DATE(started_at) BETWEEN ? AND ?
+     GROUP BY bandwidth_profile",
+    $date_from, $date_to);
 $hs_profiles = [];
 while ($row = $r->fetch_assoc()) $hs_profiles[$row['bandwidth_profile']] = $row['cnt'];
 
-$r = $conn->query(
+$r = report_query($conn,
     "SELECT SUM(bytes_in) AS total_in, SUM(bytes_out) AS total_out,
             COUNT(*) AS total_sessions
-     FROM hotspot_sessions
-     WHERE DATE(started_at) BETWEEN '$date_from' AND '$date_to'"
-);
+     FROM hotspot_sessions WHERE DATE(started_at) BETWEEN ? AND ?",
+    $date_from, $date_to);
 $hs_summary = $r->fetch_assoc();
 
 // --- WhatsApp İstatistikleri ---
-$r = $conn->query(
+$r = report_query($conn,
     "SELECT direction, status, COUNT(*) AS cnt
-     FROM whatsapp_messages
-     WHERE DATE(created_at) BETWEEN '$date_from' AND '$date_to'
-     GROUP BY direction, status"
-);
+     FROM whatsapp_messages WHERE DATE(created_at) BETWEEN ? AND ?
+     GROUP BY direction, status",
+    $date_from, $date_to);
 $wa_stats = [];
 while ($row = $r->fetch_assoc()) {
     $wa_stats[$row['direction']][$row['status']] = $row['cnt'];
 }
 
-$r = $conn->query(
+$r = report_query($conn,
     "SELECT DATE(created_at) AS day, COUNT(*) AS cnt
-     FROM whatsapp_messages
-     WHERE DATE(created_at) BETWEEN '$date_from' AND '$date_to'
-     GROUP BY DATE(created_at) ORDER BY day"
-);
+     FROM whatsapp_messages WHERE DATE(created_at) BETWEEN ? AND ?
+     GROUP BY DATE(created_at) ORDER BY day",
+    $date_from, $date_to);
 $wa_by_day = [];
 while ($row = $r->fetch_assoc()) $wa_by_day[$row['day']] = $row['cnt'];
 
 // --- Özet Sayılar ---
-$r = $conn->query("SELECT COUNT(*) AS c FROM guests WHERE DATE(checkin_date) BETWEEN '$date_from' AND '$date_to'");
+$r = report_query($conn, "SELECT COUNT(*) AS c FROM guests WHERE DATE(checkin_date) BETWEEN ? AND ?", $date_from, $date_to);
 $total_guests = (int)$r->fetch_assoc()['c'];
-$r = $conn->query("SELECT COUNT(*) AS c FROM guests WHERE vip_status=1 AND DATE(checkin_date) BETWEEN '$date_from' AND '$date_to'");
+$r = report_query($conn, "SELECT COUNT(*) AS c FROM guests WHERE vip_status=1 AND DATE(checkin_date) BETWEEN ? AND ?", $date_from, $date_to);
 $vip_guests = (int)$r->fetch_assoc()['c'];
-$r = $conn->query("SELECT COUNT(*) AS c FROM whatsapp_messages WHERE DATE(created_at) BETWEEN '$date_from' AND '$date_to'");
+$r = report_query($conn, "SELECT COUNT(*) AS c FROM whatsapp_messages WHERE DATE(created_at) BETWEEN ? AND ?", $date_from, $date_to);
 $total_wa = (int)$r->fetch_assoc()['c'];
 
 include __DIR__ . '/../../modules/auth/layout.php';

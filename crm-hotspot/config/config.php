@@ -134,7 +134,7 @@ function audit_log(mysqli $conn, string $action, string $target_type = '', int $
         'INSERT INTO staff_logs (user_id, action, target_type, target_id, description, ip_address)
          VALUES (?, ?, ?, ?, ?, ?)'
     );
-    $stmt->bind_param('ississs', $user_id, $action, $target_type, $target_id, $desc, $ip);
+    $stmt->bind_param('ississ', $user_id, $action, $target_type, $target_id, $desc, $ip);
     $stmt->execute();
     $stmt->close();
 }
@@ -164,5 +164,5 @@ function guest_status_badge(string $status): string {
         'cancelled'   => ['danger', 'İptal'],
     ];
     [$cls, $lbl] = $map[$status] ?? ['secondary', $status];
-    return '<span class="badge bg-' . $cls . '">' . $lbl . '</span>';
+    return '<span class="badge bg-' . h($cls) . '">' . h($lbl) . '</span>';
 }
