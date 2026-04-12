@@ -68,7 +68,7 @@ class MikrotikClient
         if (!$this->connected) return ['success' => false, 'error' => $this->lastError];
 
         // Sanitize: allow only safe characters in username and password
-        if (!preg_match('/^[a-zA-Z0-9_\-\.]{1,64}$/', $username)) {
+        if (!preg_match('/^[a-zA-Z0-9_.\\-]{1,64}$/', $username)) {
             return ['success' => false, 'error' => 'Geçersiz kullanıcı adı formatı.'];
         }
         if (strlen($password) < 1 || strlen($password) > 64) {

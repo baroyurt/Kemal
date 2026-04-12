@@ -219,7 +219,7 @@ include __DIR__ . '/../../modules/auth/layout.php';
 
 <!-- Güncelleme Modal -->
 <div id="updateModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
-     z-index:1000; display:none; align-items:center; justify-content:center;">
+     z-index:1000; align-items:center; justify-content:center;">
     <div style="background:#fff; border-radius:16px; padding:28px; width:380px; max-width:90%;">
         <h3 style="margin-bottom:16px;">Talep Güncelle</h3>
         <form method="post" id="updateForm">

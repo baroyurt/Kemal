@@ -211,10 +211,16 @@ class WhatsAppClient
     public function handleChatbot(mysqli $conn, string $from, string $msg_type, string $payload_id, string $payload_title): void
     {
         $phone = '+' . ltrim($from, '+');
+        // Also try without leading +, since DB may store numbers in either format
+        $phone_no_plus = ltrim($phone, '+');
 
-        // Misafiri bul
-        $st = $conn->prepare('SELECT id, first_name FROM guests WHERE phone=? AND status=\'checked_in\' LIMIT 1');
-        $st->bind_param('s', $phone);
+        // Misafiri bul — normalize for both +905... and 905... storage formats
+        $st = $conn->prepare(
+            "SELECT id, first_name FROM guests
+             WHERE (phone=? OR phone=? OR phone=CONCAT('+',?))
+               AND status='checked_in' LIMIT 1"
+        );
+        $st->bind_param('sss', $phone, $phone_no_plus, $phone_no_plus);
         $st->execute();
         $guest = $st->get_result()->fetch_assoc();
         $st->close();
